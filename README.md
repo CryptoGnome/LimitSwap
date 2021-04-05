@@ -6,6 +6,9 @@ LimitSwap is a trading bot for UniSwap. It has the ability to scan multiple pair
 ### Learn More:
 https://www.limitswap.com/
 
+## WIKI
+https://limitswap.gitbook.io/limitswap/
+
 ### Twitter:
 https://twitter.com/LimitSwap
 
