@@ -1,0 +1,7 @@
+local variable 'decode' referenced before assignment
+Traceback (most recent call last):
+  File "C:\Users\oimap\Desktop\Github Projects\LimitSwap\LimitSwap.py", line 1252, in <module>
+    true_balance = auth()
+  File "C:\Users\oimap\Desktop\Github Projects\LimitSwap\LimitSwap.py", line 359, in auth
+    wallet_address = Web3.toChecksumAddress(decode)
+UnboundLocalError: local variable 'decode' referenced before assignment

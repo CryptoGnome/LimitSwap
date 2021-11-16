@@ -1,0 +1,14 @@
+[
+    {
+        "LIMITWALLETPRIVATEKEY": "private key to wallet that hold LIMIT goes here - see secuirity tips on wiki!!!",
+        "LIMITWALLETADDRESS": "wallet the holds LIMIT",
+        "WALLETADDRESS": "wallet address you want to trade on",
+        "PRIVATEKEY": "private key to trading wallet here - see secuirity tips on wiki!!!",
+        "USECUSTOMNODE": "false",
+        "CUSTOMNODE": "put your own node here if you want and make, USECUSTOMNODE = TRUE",
+        "EXCHANGE": "pancakeswap",
+		"EXCHANGEVERSION": "2",
+		"PREAPPROVE": "true",
+		"UNLIMITEDSLIPPAGE": "false"
+    }
+]

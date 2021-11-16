@@ -1,0 +1,20 @@
+INFO: 2021-11-16 09:51:35,524 *************************************************************************************
+INFO: 2021-11-16 09:51:35,525 For Help & To Learn More About how the bot works please visit our wiki here:
+INFO: 2021-11-16 09:51:35,525 https://cryptognome.gitbook.io/limitswap/
+INFO: 2021-11-16 09:51:35,525 *************************************************************************************
+INFO: 2021-11-16 09:51:36,786 There is a problem with your private key : please check if it's correct. Don't enter seed phrase !
+ERROR: 2021-11-16 09:51:36,788 local variable 'decode' referenced before assignment
+Traceback (most recent call last):
+  File "C:\Users\oimap\Desktop\Github Projects\LimitSwap\LimitSwap.py", line 1252, in <module>
+    true_balance = auth()
+  File "C:\Users\oimap\Desktop\Github Projects\LimitSwap\LimitSwap.py", line 359, in auth
+    wallet_address = Web3.toChecksumAddress(decode)
+UnboundLocalError: local variable 'decode' referenced before assignment
+ERROR: 2021-11-16 09:51:36,789 local variable 'decode' referenced before assignment
+Traceback (most recent call last):
+  File "C:\Users\oimap\Desktop\Github Projects\LimitSwap\LimitSwap.py", line 1252, in <module>
+    true_balance = auth()
+  File "C:\Users\oimap\Desktop\Github Projects\LimitSwap\LimitSwap.py", line 359, in auth
+    wallet_address = Web3.toChecksumAddress(decode)
+UnboundLocalError: local variable 'decode' referenced before assignment
+INFO: 2021-11-16 09:51:36,789 Restarting LimitSwap

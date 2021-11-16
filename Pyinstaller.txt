@@ -1,0 +1,4 @@
+cd C:\Users\oimap\Desktop\LimitSwap - Production
+pyinstaller LimitSwap.py
+
+
