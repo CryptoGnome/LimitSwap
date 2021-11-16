@@ -2,6 +2,9 @@
 # LimitSwap
 LimitSwap is a trading bot for UniSwap & Many Other DEXs. It has the ability to scan multiple pairs on uniswap and grab the price in realtime and make automated trading decisions based on the users settings [AKA: Limit Orders]
 
+_
+This bot was built as a learning project for me to learn how to use Web.py, Erc20, & improve my coding skills please use at your own risk!
+_
 
 #### Grab the Latest Release:
 https://github.com/CryptoGnome/LimitSwap/releases
