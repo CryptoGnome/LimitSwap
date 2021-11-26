@@ -90,7 +90,7 @@ logging.info("******************************************************************
 if settings['EXCHANGE'].lower() == 'pancakeswap':
     if settings['USECUSTOMNODE'].lower() == 'true':
         my_provider = settings['CUSTOMNODE']
-        print(timestamp(), 'Using custom mode.')
+        print(timestamp(), 'Using custom node.')
     else:
         my_provider = "https://bsc-dataseed4.defibit.io"
 
