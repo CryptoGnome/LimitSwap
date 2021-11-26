@@ -90,10 +90,24 @@ logging.info("******************************************************************
 if settings['EXCHANGE'].lower() == 'pancakeswap':
     if settings['USECUSTOMNODE'].lower() == 'true':
         my_provider = settings['CUSTOMNODE']
+        print(timestamp(), 'Using custom mode.')
     else:
         my_provider = "https://bsc-dataseed4.defibit.io"
 
-    client = Web3(Web3.HTTPProvider(my_provider))
+    if not my_provider:
+        print(timestamp(), 'Custom node empty. Exiting')
+        exit(1)
+
+    if my_provider[0].lower() == 'h':
+        print(timestamp(), 'Using HTTPProvider')
+        client = Web3(Web3.HTTPProvider(my_provider))
+    elif my_provider[0].lower() == 'w':
+        print(timestamp(), 'Using WebsocketProvider')
+        client = Web3(Web3.WebsocketProvider(my_provider))
+    else:
+        print(timestamp(), 'Using IPCProvider')
+        client = Web3(Web3.IPCProvider(my_provider))
+
     print(timestamp(), "Binance Smart Chain Connected =", client.isConnected())
     print(timestamp(), "Loading Smart Contracts...")
 
