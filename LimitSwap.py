@@ -334,7 +334,7 @@ def get_password():
     # The user already has encrypted private keys. Accept a password so we can unencrypt them
     elif settings['ENCRYPTPRIVATEKEYS'] == "true":
 
-        pwd = pwinput.pwinput(prompt="\nPlease specify the password to encrypt and decrypt your keys: ")
+        pwd = pwinput.pwinput(prompt="\nPlease specify the password to decrypt your keys: ")
 
     else:
         pwd = ""
@@ -357,8 +357,8 @@ def save_settings(pwd):
 
     if len(pwd) > 0:
         encrypted_settings = settings
-        encrypted_settings['LIMITWALLETPRIVATEKEY'] = 'aes:' + cryptocode.encrypt(pwd, settings['LIMITWALLETPRIVATEKEY'])
-        encrypted_settings['PRIVATEKEY'] = 'aes:' + cryptocode.encrypt(pwd, settings['PRIVATEKEY'])
+        encrypted_settings['LIMITWALLETPRIVATEKEY'] = 'aes:' + cryptocode.encrypt(settings['LIMITWALLETPRIVATEKEY'], pwd)
+        encrypted_settings['PRIVATEKEY'] = 'aes:' + cryptocode.encrypt(settings['PRIVATEKEY'], pwd)
     
     # MASSAGE OUTPUT - LimitSwap currently loads settings.json as a [0] element, so we need to massage our
     #                  settings.json output so that it's reasable. This should probably be fixed by us importing
@@ -1358,8 +1358,6 @@ try:
     print("YOUR BOT IS CURRENTLY RUNNING VERSION " + str(version))
     check_release()
     save_settings(userpassword)
-
-    exit()
 
     if true_balance >= 50:
         print(timestamp(), "Professional Subscriptions Active")

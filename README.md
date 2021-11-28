@@ -10,6 +10,17 @@ https://github.com/CryptoGnome/LimitSwap/releases
 
 
 
+## 2021-11-28 Change (yaqub0r)
+
+#### Added encryption of private keys in settings.json
+No changes to current configuration file is necessary. When executing LimitSwap you will be asked if you want to encrypt your private keys:
+- If you answer no you will get a warning reminding you of the danger of leaving your private keys unencrypted on disk. You will never be asked if you want to encrypt them again, but you will get warned on every run. If you change you mind later on, change the "ENCRYPTPRIVATEKEYS" setting to "true". On the next run you'll be prompted for a password and your keys will be encrypted.
+- If you answer yes, you'll be prompted for a password. Your private keys will be encrypted and written to settings.json. After that you will need to supply the same password every time you run LimitSwap. 
+
+#### Todo
+- Allow for private keys to be empty in settings.json
+- Prompt users for keys when the are empty in settings.json
+- Encrypt and store private keys after prompt, so they are never written to disk unencrypted
 
 
 
