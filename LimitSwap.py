@@ -563,8 +563,8 @@ def approve(address, amount):
 
             return tx_hash
     else:
-        print(timestamp(), "you have less than 0.01 ETH/BNB/FTM/MATIC or network gas token in your wallet, please make sure you have enough to cover fees!!")
-        logging.info("you have less than 0.01 ETH/BNB/FTM/MATIC or network gas token in your wallet, please make sure you have enough to cover fees!!")
+        print(timestamp(), "You have less than 0.01 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
+        logging.info("You have less than 0.01 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
         exit()
 
 def check_approval(address, balance):
@@ -593,7 +593,7 @@ def check_approval(address, balance):
 
 def check_bnb_balance():
     balance = client.eth.getBalance(settings['WALLETADDRESS'])
-    print(timestamp(), "Current Wallet Balance is :", Web3.fromWei(balance, 'ether'), base_symbol)
+    print(timestamp(), "Current Wallet Balance is :", Web3.fromWei(balance, 'ETH'), base_symbol)
     return balance
 
 def check_balance(address, symbol):
@@ -1179,7 +1179,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                         })
 
                 elif routing.lower() == 'false' and outToken == weth:
-                    print("ERROR IN SETTINGS.... YOU NEED TO CHOOSE THE PROPER BASE PAIR AS SYMBOL IN YOUR TOKENS.JSON IF YOU ARE TRADING OUTSIDE OF NATIVE LIQUIDITY POOL")
+                    print("ERROR IN YOUR TOKENS.JSON : YOU NEED TO CHOOSE THE PROPER BASE PAIR AS SYMBOL IF YOU ARE TRADING OUTSIDE OF NATIVE LIQUIDITY POOL")
 
                 else:
                     amount_out = routerContract.functions.getAmountsOut(amount, [inToken, weth, outToken]).call()[-1]
@@ -1290,7 +1290,7 @@ def run():
                                     else:
                                         pass
                                 else:
-                                    print(timestamp(), "Not enough Liquidity for", token['SYMBOL'])
+                                    print(timestamp(), "Liquidity for", token['SYMBOL'], "is inferior to your LIQUIDITYAMOUNT parameter : bot will not buy")
 
                             else:
                                 print(timestamp(), "Buy Signal Found!")
@@ -1352,7 +1352,7 @@ def run():
                                     tx = buy(token['BUYAMOUNTINBASE'], outToken, inToken, token['GAS'], token['SLIPPAGE'], token['GASLIMIT'], token['BOOSTPERCENT'], token["HASFEES"], token['USECUSTOMBASEPAIR'], token['SYMBOL'], token['LIQUIDITYINNATIVETOKEN'])
                                     wait_for_tx(tx, token['ADDRESS'], False)
                                 else:
-                                    print(timestamp(), "Max Position Size Reached for ", token['SYMBOL'])
+                                    print(timestamp(), "Bot has reached MAXTOKENS Position Size for ", token['SYMBOL'])
                                     pass
                 else:
                     pass
@@ -1360,7 +1360,7 @@ def run():
             sleep(cooldown)
 
     except Exception as ee:
-        print(timestamp(), "ERROR: Please Check Your Error & Exception Logs for more info...")
+        print(timestamp(), "ERROR. Please go to /log folder and open your error logs : you will find more details.")
         logging.exception(ee)
         logger1.exception(ee)
         sleep(10)
@@ -1406,7 +1406,6 @@ try:
     else:
         print(timestamp(), "10 - 50 $LIMIT tokens needed to use this bot, please visit the LimitSwap.com for more info or buy more tokens on Uniswap to use!")
         logging.exception("10 - 50 $LIMIT tokens needed to use this bot, please visit the LimitSwap.com for more info or buy more tokens on Uniswap to use!")
-
 
 
 except Exception as e:
