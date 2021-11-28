@@ -6,6 +6,7 @@ base58==2.1.1
 bitarray==1.2.2
 certifi==2021.10.8
 charset-normalizer==2.0.7
+cryptocode==0.1
 cytoolz==0.11.2
 eth-abi==2.1.1
 eth-account==0.5.6
@@ -26,9 +27,10 @@ multidict==5.2.0
 netaddr==0.8.0
 parsimonious==0.8.1
 protobuf==3.19.1
+pwinput==1.0.2
 pycryptodome==3.11.0
 pyrsistent==0.18.0
-pywin32==302
+pywin32==302; sys_platform == 'win32'
 requests==2.26.0
 rlp==2.0.1
 six==1.16.0

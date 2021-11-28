@@ -6,9 +6,12 @@ import os
 from web3.exceptions import ABIFunctionNotFound, TransactionNotFound, BadFunctionCallOutput
 import logging
 from datetime import datetime
-from sys import exit
+import sys
 import requests
+import cryptocode, re, pwinput
 
+# global used to track if any settings need to be written to file
+settings_changed = False
 
 def timestamp():
     timestamp = time()
@@ -291,7 +294,87 @@ elif settings["EXCHANGE"].lower() == 'pangolin':
     modified = True
 
 
+def get_password():
+    
+    global settings_changed
+    setnewpassword = False
 
+    # Check to see if the user has a version of the settings file before private key encryption existed
+    if 'ENCRYPTPRIVATEKEYS' not in settings:
+        response = ""
+        settings_changed = True
+        while response != "y" and response != "n":
+            print ("\nWould you like to use a password to encrypt your private keys?")
+            response = input ("You will need to input this password each time LimitSwap is executed (y/n): ")
+    
+        if response == "y":
+            settings['ENCRYPTPRIVATEKEYS'] = "true"
+            setnewpassword = True
+        else:
+            settings['ENCRYPTPRIVATEKEYS'] = "false"  
+
+    # If the user wants to encrypt their private keys, but we don't have an encrypted private key recorded, we need to ask for a password
+    elif settings['ENCRYPTPRIVATEKEYS'] == "true" and not settings['PRIVATEKEY'].startswith('aes:'):
+        print ("\nPlease create a password to encrypt your private keys.")
+        setnewpassword = True
+
+    # Set a new password when necessary
+    if setnewpassword == True:
+        settings_changed = True
+        passwords_differ = True
+        while passwords_differ:
+            pwd = pwinput.pwinput(prompt="\nType your new password: ")
+            pwd2 = pwinput.pwinput(prompt="\nType your new password again: ")
+            
+            if pwd != pwd2:
+                print ("Error, password mismatch. Try again.")
+            else:
+                passwords_differ = False
+    
+    # The user already has encrypted private keys. Accept a password so we can unencrypt them
+    elif settings['ENCRYPTPRIVATEKEYS'] == "true":
+
+        pwd = pwinput.pwinput(prompt="\nPlease specify the password to encrypt and decrypt your keys: ")
+
+    else:
+        pwd = ""
+
+    if not pwd.strip():
+        print ()
+        print ("X WARNING =-= WARNING =-= WARNING =-= WARNING =-= WARNING =-= WARNING=-= WARNING X")
+        print ("X       You are running LimitSwap without encrypting your private keys.          X")
+        print ("X     Private keys are stored on disk unencrypted and can be accessed by         X")
+        print ("X anyone with access to the file system, including the Systems/VPS administrator X")
+        print ("X       and anyone with physical access to the machine or hard drives.           X")
+        print ("X WARNING =-= WARNING =-= WARNING =-= WARNING =-= WARNING =-= WARNING=-= WARNING X")
+        print ()
+
+    return pwd
+
+def save_settings(pwd):
+    
+    global settings_changed
+
+    if len(pwd) > 0:
+        encrypted_settings = settings
+        encrypted_settings['LIMITWALLETPRIVATEKEY'] = 'aes:' + cryptocode.encrypt(pwd, settings['LIMITWALLETPRIVATEKEY'])
+        encrypted_settings['PRIVATEKEY'] = 'aes:' + cryptocode.encrypt(pwd, settings['PRIVATEKEY'])
+    
+    # MASSAGE OUTPUT - LimitSwap currently loads settings.json as a [0] element, so we need to massage our
+    #                  settings.json output so that it's reasable. This should probably be fixed by us importing
+    #                  the entire json file, instead of just the [0] element.
+    if settings_changed == True:
+        print (timestamp(), "Writing settings to file.")
+
+        if settings['ENCRYPTPRIVATEKEYS'] == "true":
+            output_settings = encrypted_settings
+        else:
+            output_settings = settings
+
+        with open('settings.json', 'w') as f:
+            f.write("[\n")                 
+            f.write(json.dumps(output_settings, indent=4))
+            f.write("\n]\n")
 
 
 def decimals(address):
@@ -321,8 +404,33 @@ def check_logs():
 
     f.close()
 
-def decode_key():
+def decode_key(pwd):
+    
+    global settings_changed
+
+    # If the private keys in settings.json are encrypted, decrypt them
+    if settings['PRIVATEKEY'].startswith('aes:'):
+        print (timestamp(), "Decrypting private key.")
+        settings['PRIVATEKEY'] = settings['PRIVATEKEY'].replace('aes:', "", 1)
+        settings['PRIVATEKEY'] = cryptocode.decrypt(settings['PRIVATEKEY'], pwd)
+
+    if settings['LIMITWALLETPRIVATEKEY'].startswith('aes:'):
+        print (timestamp(), "Decrypting limit wallet private key.")
+        settings['LIMITWALLETPRIVATEKEY'] = settings['LIMITWALLETPRIVATEKEY'].replace('aes:', "", 1)
+        settings['LIMITWALLETPRIVATEKEY'] = cryptocode.decrypt(settings['LIMITWALLETPRIVATEKEY'], pwd)
+
+    if settings['LIMITWALLETPRIVATEKEY'] == False or settings['PRIVATEKEY'] == False:
+        print ("ERROR: Wrong password provided for private key decryption", file = sys.stderr)
+        exit(1)
+
     private_key = settings['LIMITWALLETPRIVATEKEY']
+
+    # TODO: ACCEPT KEYS FROM STDIN SO THAT THE USER NEVER HAS AN UNENCRYPTED PRIVATE KEY WRITTEN TO DISK
+    # if not private_key.strip():
+    #     private_key = input("\nPlease enter the private key for the wallet with your LIMIT: ")
+    #     private_key = private_key.strip()
+    #     settings_changed = True
+    
     acct = client.eth.account.privateKeyToAccount(private_key)
     addr = acct.address
     return addr
@@ -338,7 +446,7 @@ def check_release():
 
     return r
 
-def auth():
+def auth(pwd):
     my_provider2 = 'https://reverent-raman:photo-hamlet-ankle-saved-scared-bobbed@nd-539-402-515.p2pify.com'
     client2 = Web3(Web3.HTTPProvider(my_provider2))
     print(timestamp(), "Connected to Ethereum BlockChain =", client2.isConnected())
@@ -351,7 +459,7 @@ def auth():
 
     #Exception for incorrect Key Input
     try:
-        decode = decode_key()
+        decode = decode_key(pwd)
     except Exception:
         print("There is a problem with your private key : please check if it's correct. Don't enter seed phrase !")
         logging.info("There is a problem with your private key : please check if it's correct. Don't enter seed phrase !")
@@ -565,7 +673,6 @@ def wait_for_tx(tx_hash, address, check):
                 logging.info("NO BUY FOUND, WE WILL CHECK A FEW TIMES TO SEE IF THERE IS BLOCKCHAIN DELAY, IF NOT WE WILL ASSUME THE TX HAS FAILED")
                 break
 
-
 def preapprove(tokens):
 
     for token in tokens:
@@ -575,8 +682,6 @@ def preapprove(tokens):
             check_approval(weth, 115792089237316195423570985008687907853269984665640564039457584007913129639934)
         else:
             check_approval(token['BASEADDRESS'], 115792089237316195423570985008687907853269984665640564039457584007913129639934)
-
-
 
 def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom, symbol, base, routing):
     print(timestamp(), "Placing New Buy Order for " + symbol)
@@ -1099,7 +1204,6 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
     else:
         pass
 
-
 def run():
     try:
         s = open('./tokens.json', )
@@ -1244,16 +1348,18 @@ def run():
 
 
 
-
-
-
 try:
+
     check_logs()
-    true_balance = auth()
+    userpassword = get_password()
+    true_balance = auth(userpassword)
     version = 3.36
     logging.info("YOUR BOT IS CURRENTLY RUNNING VERSION " + str(version))
     print("YOUR BOT IS CURRENTLY RUNNING VERSION " + str(version))
     check_release()
+    save_settings(userpassword)
+
+    exit()
 
     if true_balance >= 50:
         print(timestamp(), "Professional Subscriptions Active")
