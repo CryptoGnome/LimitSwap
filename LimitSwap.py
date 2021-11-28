@@ -375,7 +375,7 @@ def approve(address, amount):
             gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
             print("Current Gas Price =", gas)
 
-        elif settings['EXCHANGE'].lower() == 'pancakeswap' or 'apeswap':
+        elif settings['EXCHANGE'].lower() == 'pancakeswap':
             gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
             print("Current Gas Price = ", gas)
         elif settings['EXCHANGE'].lower() == 'spiritswap':
@@ -384,7 +384,7 @@ def approve(address, amount):
         elif settings['EXCHANGE'].lower() == 'spookyswap':
             gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
             print("Current Gas Price = ", gas)
-        elif settings['EXCHANGE'].lower() == 'pangolin' or 'traderjoe':
+        elif settings['EXCHANGE'].lower() == 'pangolin':
             gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
             print("Current Gas Price = ", gas)
         elif settings['EXCHANGE'].lower() == 'quickswap':
@@ -1271,7 +1271,6 @@ try:
     else:
         print(timestamp(), "10 - 50 $LIMIT tokens needed to use this bot, please visit the LimitSwap.com for more info or buy more tokens on Uniswap to use!")
         logging.exception("10 - 50 $LIMIT tokens needed to use this bot, please visit the LimitSwap.com for more info or buy more tokens on Uniswap to use!")
-        timeout = 50
 
 
 except Exception as e:
