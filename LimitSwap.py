@@ -293,7 +293,6 @@ elif settings["EXCHANGE"].lower() == 'pangolin':
     base_symbol = "AVAX"
     modified = True
 
-
 def get_password():
     
     global settings_changed
@@ -356,7 +355,7 @@ def save_settings(pwd):
     global settings_changed
 
     if len(pwd) > 0:
-        encrypted_settings = settings
+        encrypted_settings = settings.copy()
         encrypted_settings['LIMITWALLETPRIVATEKEY'] = 'aes:' + cryptocode.encrypt(settings['LIMITWALLETPRIVATEKEY'], pwd)
         encrypted_settings['PRIVATEKEY'] = 'aes:' + cryptocode.encrypt(settings['PRIVATEKEY'], pwd)
     
@@ -375,6 +374,48 @@ def save_settings(pwd):
             f.write("[\n")                 
             f.write(json.dumps(output_settings, indent=4))
             f.write("\n]\n")
+
+def load_wallet_settings(pwd):
+
+    global settings
+    global settings_changed
+
+    # Check for limit wallet information
+    if " " in settings['LIMITWALLETADDRESS'] or settings['LIMITWALLETADDRESS'] == "":
+        settings_changed = True
+        settings['LIMITWALLETADDRESS'] = input("Please provide the wallet address where you have your LIMIT: ")
+    
+    # Check for limit wallet private key
+    if " " in settings['LIMITWALLETPRIVATEKEY'] or settings['LIMITWALLETPRIVATEKEY'] == "":
+        settings_changed = True
+        settings['LIMITWALLETPRIVATEKEY'] = input("Please provide the private key for the wallet where you have your LIMIT: ")
+    
+    # If the limit wallet private key is already set and encrypted, decrypt it
+    elif settings['LIMITWALLETPRIVATEKEY'].startswith('aes:'):
+        print (timestamp(), "Decrypting limit wallet private key.")
+        settings['LIMITWALLETPRIVATEKEY'] = settings['LIMITWALLETPRIVATEKEY'].replace('aes:', "", 1)
+        settings['LIMITWALLETPRIVATEKEY'] = cryptocode.decrypt(settings['LIMITWALLETPRIVATEKEY'], pwd)
+
+        if settings['LIMITWALLETPRIVATEKEY'] == False:
+            print("ERROR: Your private key decryption password is incorrect")
+            exit(1)
+
+
+    # Check for trading wallet information
+    if " " in settings['WALLETADDRESS'] or settings['WALLETADDRESS'] == "":
+        settings_changed = True
+        settings['WALLETADDRESS'] = input("Please provide the wallet address for your trading wallet: ")
+    
+    # Check for trading wallet private key
+    if " " in settings['PRIVATEKEY'] or settings['PRIVATEKEY'] == "":
+        settings_changed = True
+        settings['PRIVATEKEY'] = input("Please provide the private key for the wallet you want to trade with: ")
+    
+    # If the trading wallet private key is already set and encrypted, decrypt it
+    elif settings['PRIVATEKEY'].startswith('aes:'):
+        print (timestamp(), "Decrypting limit wallet private key.")
+        settings['PRIVATEKEY'] = settings['PRIVATEKEY'].replace('aes:', "", 1)
+        settings['PRIVATEKEY'] = cryptocode.decrypt(settings['PRIVATEKEY'], pwd)
 
 
 def decimals(address):
@@ -404,33 +445,8 @@ def check_logs():
 
     f.close()
 
-def decode_key(pwd):
-    
-    global settings_changed
-
-    # If the private keys in settings.json are encrypted, decrypt them
-    if settings['PRIVATEKEY'].startswith('aes:'):
-        print (timestamp(), "Decrypting private key.")
-        settings['PRIVATEKEY'] = settings['PRIVATEKEY'].replace('aes:', "", 1)
-        settings['PRIVATEKEY'] = cryptocode.decrypt(settings['PRIVATEKEY'], pwd)
-
-    if settings['LIMITWALLETPRIVATEKEY'].startswith('aes:'):
-        print (timestamp(), "Decrypting limit wallet private key.")
-        settings['LIMITWALLETPRIVATEKEY'] = settings['LIMITWALLETPRIVATEKEY'].replace('aes:', "", 1)
-        settings['LIMITWALLETPRIVATEKEY'] = cryptocode.decrypt(settings['LIMITWALLETPRIVATEKEY'], pwd)
-
-    if settings['LIMITWALLETPRIVATEKEY'] == False or settings['PRIVATEKEY'] == False:
-        print ("ERROR: Wrong password provided for private key decryption", file = sys.stderr)
-        exit(1)
-
+def decode_key():
     private_key = settings['LIMITWALLETPRIVATEKEY']
-
-    # TODO: ACCEPT KEYS FROM STDIN SO THAT THE USER NEVER HAS AN UNENCRYPTED PRIVATE KEY WRITTEN TO DISK
-    # if not private_key.strip():
-    #     private_key = input("\nPlease enter the private key for the wallet with your LIMIT: ")
-    #     private_key = private_key.strip()
-    #     settings_changed = True
-    
     acct = client.eth.account.privateKeyToAccount(private_key)
     addr = acct.address
     return addr
@@ -446,7 +462,7 @@ def check_release():
 
     return r
 
-def auth(pwd):
+def auth():
     my_provider2 = 'https://reverent-raman:photo-hamlet-ankle-saved-scared-bobbed@nd-539-402-515.p2pify.com'
     client2 = Web3(Web3.HTTPProvider(my_provider2))
     print(timestamp(), "Connected to Ethereum BlockChain =", client2.isConnected())
@@ -459,7 +475,7 @@ def auth(pwd):
 
     #Exception for incorrect Key Input
     try:
-        decode = decode_key(pwd)
+        decode = decode_key()
     except Exception:
         print("There is a problem with your private key : please check if it's correct. Don't enter seed phrase !")
         logging.info("There is a problem with your private key : please check if it's correct. Don't enter seed phrase !")
@@ -1347,17 +1363,18 @@ def run():
                 run()
 
 
-
 try:
 
     check_logs()
     userpassword = get_password()
-    true_balance = auth(userpassword)
+    load_wallet_settings(userpassword)
+    true_balance = auth()
+    save_settings(userpassword)
+
     version = 3.36
     logging.info("YOUR BOT IS CURRENTLY RUNNING VERSION " + str(version))
     print("YOUR BOT IS CURRENTLY RUNNING VERSION " + str(version))
     check_release()
-    save_settings(userpassword)
 
     if true_balance >= 50:
         print(timestamp(), "Professional Subscriptions Active")

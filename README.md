@@ -17,10 +17,8 @@ No changes to current configuration file is necessary. When executing LimitSwap 
 - If you answer no you will get a warning reminding you of the danger of leaving your private keys unencrypted on disk. You will never be asked if you want to encrypt them again, but you will get warned on every run. If you change you mind later on, change the "ENCRYPTPRIVATEKEYS" setting to "true". On the next run you'll be prompted for a password and your keys will be encrypted.
 - If you answer yes, you'll be prompted for a password. Your private keys will be encrypted and written to settings.json. After that you will need to supply the same password every time you run LimitSwap. 
 
-#### Todo
-- Allow for private keys to be empty in settings.json
-- Prompt users for keys when the are empty in settings.json
-- Encrypt and store private keys after prompt, so they are never written to disk unencrypted
+#### Added ZERO trust private key recording
+- If settings.json is using the default WALLET and PRIVATEKEY variables, or the variables are empty, LimitSwap will request you to enter your wallet and private key information and will optionally, but immediately, encrypt the private key and write the encrypted string to disk. Your private key is never written to disk in an unecrypted format.
 
 
 
