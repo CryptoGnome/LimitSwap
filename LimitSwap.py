@@ -627,7 +627,7 @@ def check_pool(inToken, outToken, symbol):
 
     return pooled
 
-def check_price(inToken, outToken, symbol, base, custom, routing):
+def check_price(inToken, outToken, symbol, base, custom, routing, buyamount):
     # CHECK GET RATE OF THE TOKEn
 
     DECIMALS = decimals(inToken)
@@ -643,26 +643,26 @@ def check_price(inToken, outToken, symbol, base, custom, routing):
             price_check = routerContract.functions.getAmountsOut(1 * DECIMALS, [inToken, weth, outToken]).call()[-1]
             DECIMALS = decimals(outToken)
             tokenPrice = price_check / DECIMALS
-            print(stamp, symbol, " Price ", tokenPrice,  base)
+            print(stamp, symbol, " Price ", tokenPrice,  base, "//// your buyprice =", buyamount, base)
         else:
             price_check = routerContract.functions.getAmountsOut(1 * DECIMALS, [inToken, weth]).call()[-1]
             DECIMALS = decimals(outToken)
             tokenPrice = price_check / DECIMALS
             price_output = "{:.18f}".format(tokenPrice)
-            print(stamp, symbol, "Price =", price_output,  base)
+            print(stamp, symbol, "Price =", price_output,  base, "//// your buyprice =", buyamount, base)
 
     else:
         if outToken != weth:
             price_check = routerContract.functions.getAmountsOut(1 * DECIMALS, [inToken, outToken]).call()[-1]
             DECIMALS = decimals(outToken)
             tokenPrice = price_check / DECIMALS
-            print(stamp, symbol, " Price ", tokenPrice,  base)
+            print(stamp, symbol, " Price ", tokenPrice,  base, "//// your buyprice =", buyamount, base)
         else:
             price_check = routerContract.functions.getAmountsOut(1 * DECIMALS, [inToken, weth]).call()[-1]
             DECIMALS = decimals(outToken)
             tokenPrice = price_check / DECIMALS
             price_output = "{:.18f}".format(tokenPrice)
-            print(stamp, symbol, "Price =", price_output,  base)
+            print(stamp, symbol, "Price =", price_output,  base, "//// your buyprice =", buyamount, base)
 
 
     return tokenPrice
@@ -732,7 +732,7 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
         if gas.lower() == 'boost':
             gas_check = client.eth.gasPrice
             gas_price = gas_check / 1000000000
-            gas = (gas_price * ((int(boost)*4)/100)) + gas_price
+            gas = (gas_price * ((int(boost))/100)) + gas_price
         else:
             gas = int(gas)
 
@@ -1261,7 +1261,7 @@ def run():
                         outToken = weth
 
                     try:
-                        quote = check_price(inToken, outToken, token['SYMBOL'], token['BASESYMBOL'], token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'])
+                        quote = check_price(inToken, outToken, token['SYMBOL'], token['BASESYMBOL'], token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], token['BUYPRICEINBASE'])
 
                     except Exception:
                         print(timestamp(), token['SYMBOL'], " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
