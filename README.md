@@ -9,11 +9,6 @@ LimitSwap is a trading bot for UniSwap & Many Other DEXs. It has the ability to 
 https://github.com/CryptoGnome/LimitSwap/releases
 
 
-
-
-
-
-
 ## Developers 🔧
 Want to help contribute to LimitSwap, reach out on telegram all you need to do is make changes or fix bugs and we will pay developer bounties in $LIMIT for helping make the bot batter!
 
@@ -30,3 +25,5 @@ https://twitter.com/LimitSwap
 
 #### Telegram:
 https://t.me/LimitSwap
+
+
