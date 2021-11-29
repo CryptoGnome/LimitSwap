@@ -941,7 +941,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
         if gas.lower() == 'boost':
             gas_check = client.eth.gasPrice
             gas_price = gas_check / 1000000000
-            gas = (gas_price * ((int(boost)*4)/100)) + gas_price
+            gas = (gas_price * ((int(boost))/100)) + gas_price
         else:
             gas = int(gas)
 
