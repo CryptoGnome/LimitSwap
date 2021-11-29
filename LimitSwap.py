@@ -611,19 +611,20 @@ def fetch_pair(inToken, outToken):
     print(timestamp(), "Pair Address = ", pair)
     return pair
 
+
 def sync(inToken, outToken):
     pair = factoryContract.functions.getPair(inToken, outToken).call()
     syncContract = client.eth.contract(address=Web3.toChecksumAddress(pair), abi=lpAbi)
     sync = syncContract.functions.sync().call()
 
-def check_pool(inToken, outToken, symbol):
 
+def check_pool(inToken, outToken, symbol):
     pair_address = factoryContract.functions.getPair(inToken, outToken).call()
     DECIMALS = decimals(outToken)
     pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
     reserves = pair_contract.functions.getReserves().call()
-    pooled = reserves[-1] / DECIMALS
-    print(timestamp(), "Current Liquidity Reserves:", pooled, symbol)
+    pooled = reserves[1] / DECIMALS
+   # print("line 627 - LIQUIDITYAMOUNT:", pooled, "in token:", outToken)
 
     return pooled
 
@@ -732,7 +733,7 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
         if gas.lower() == 'boost':
             gas_check = client.eth.gasPrice
             gas_price = gas_check / 1000000000
-            gas = (gas_price * ((int(boost))/100)) + gas_price
+            gas = (gas_price * ((int(boost)*4)/100)) + gas_price
         else:
             gas = int(gas)
 
@@ -1262,7 +1263,10 @@ def run():
 
                     try:
                         quote = check_price(inToken, outToken, token['SYMBOL'], token['BASESYMBOL'], token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], token['BUYPRICEINBASE'])
-
+                        pool = check_pool(inToken, outToken, token['BASESYMBOL'])
+                       # print("Current Liquidity Reserves ligne 1268:", float(pool))
+                       # print("inToken : ", inToken, "outToken :", outToken)        
+                                
                     except Exception:
                         print(timestamp(), token['SYMBOL'], " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
                         quote = 0
@@ -1274,8 +1278,10 @@ def run():
 
                             if token["LIQUIDITYCHECK"].lower() == 'true':
                                 pool = check_pool(inToken, outToken, token['BASESYMBOL'])
+                                print("You have set LIQUIDITYCHECK = true. Current Liquidity = ", pool, "in token:", outToken)
+                                
                                 if float(token['LIQUIDITYAMOUNT']) <= float(pool):
-                                    print(timestamp(), "Buy Signal Found!")
+                                    print(timestamp(), "Enough liquidity detected --> Buy Signal Found!")
                                     log_price = "{:.18f}".format(quote)
                                     logging.info("BuySignal Found @" + str(log_price))
                                     tx = buy(token['BUYAMOUNTINBASE'], outToken, inToken, token['GAS'], token['SLIPPAGE'], token['GASLIMIT'], token['BOOSTPERCENT'], token["HASFEES"], token['USECUSTOMBASEPAIR'], token['SYMBOL'], token['BASESYMBOL'], token['LIQUIDITYINNATIVETOKEN'])
