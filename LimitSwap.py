@@ -619,12 +619,13 @@ def sync(inToken, outToken):
 
 
 def check_pool(inToken, outToken, symbol):
+    # This function is made to calculate Liquidity of a token
     pair_address = factoryContract.functions.getPair(inToken, outToken).call()
     DECIMALS = decimals(outToken)
     pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
     reserves = pair_contract.functions.getReserves().call()
     pooled = reserves[1] / DECIMALS
-   # print("line 627 - LIQUIDITYAMOUNT:", pooled, "in token:", outToken)
+   # print("Debug LIQUIDITYAMOUNT line 627 :", pooled, "in token:", outToken)
 
     return pooled
 
@@ -1264,8 +1265,8 @@ def run():
                     try:
                         quote = check_price(inToken, outToken, token['SYMBOL'], token['BASESYMBOL'], token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], token['BUYPRICEINBASE'])
                         pool = check_pool(inToken, outToken, token['BASESYMBOL'])
-                       # print("Current Liquidity Reserves ligne 1268:", float(pool))
-                       # print("inToken : ", inToken, "outToken :", outToken)        
+                       # print("Debug Liquidity Reserves ligne 1267:", float(pool))
+                       # print("Debug inToken : ", inToken, "outToken :", outToken)        
                                 
                     except Exception:
                         print(timestamp(), token['SYMBOL'], " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
@@ -1278,7 +1279,7 @@ def run():
 
                             if token["LIQUIDITYCHECK"].lower() == 'true':
                                 pool = check_pool(inToken, outToken, token['BASESYMBOL'])
-                                print("You have set LIQUIDITYCHECK = true. Current Liquidity = ", pool, "in token:", outToken)
+                                print("You have set LIQUIDITYCHECK = true. Current Liquidity = ", pool, " in token:", outToken)
                                 
                                 if float(token['LIQUIDITYAMOUNT']) <= float(pool):
                                     print(timestamp(), "Enough liquidity detected --> Buy Signal Found!")
@@ -1315,7 +1316,7 @@ def run():
 
 
                         else:
-                            print(timestamp(), "Max Position Size Reached for ", token['SYMBOL'])
+                            print(timestamp(), "You own more tokens than your MAXTOKENS parameter for ", token['SYMBOL'])
 
                             if quote > Decimal(token['SELLPRICEINBASE']):
                                 DECIMALS = decimals(inToken)
