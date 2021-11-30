@@ -593,7 +593,7 @@ def check_approval(address, balance):
 
 def check_bnb_balance():
     balance = client.eth.getBalance(settings['WALLETADDRESS'])
-    print(timestamp(), "Current Wallet Balance is :", Web3.fromWei(balance, 'ETH'), base_symbol)
+    print(timestamp(), "Current Wallet Balance is :", Web3.fromWei(balance, 'ether'), base_symbol)
     return balance
 
 def check_balance(address, symbol):
@@ -670,10 +670,10 @@ def check_price(inToken, outToken, symbol, base, custom, routing, buyamount):
     return tokenPrice
 
 def wait_for_tx(tx_hash, address, check):
-    print(timestamp(), "Waiting for TX to Confirm....")
+    print(timestamp(), "Waiting 1 minute for TX to Confirm....")
     timeout = time() + 60
     while True:
-        print(timestamp(), ".........waiting............")
+        print(timestamp(), ".........Waiting 1 minute for TX to Confirm............")
         try:
             txn_receipt = client.eth.getTransactionReceipt(tx_hash)
             return txn_receipt['status']
@@ -685,8 +685,8 @@ def wait_for_tx(tx_hash, address, check):
             return txn_receipt['status']
 
         elif time() > timeout:
-            print(timestamp(), "Transaction Timed Out, Breaking Check Cycle....")
-            logging.info("Transaction Timed Out, Breaking Check Cycle....")
+            print(timestamp(), "Transaction was not confirmed after 1 minute, breaking Check Cycle....")
+            logging.info("Transaction was not confirmed after 1 minute, breaking Check Cycle....")
             break
 
 
@@ -694,7 +694,7 @@ def wait_for_tx(tx_hash, address, check):
     if check == True:
         timeout = time() + 30
         while True:
-            print(timestamp(), ".........Balance Check After Purchase............")
+            print(timestamp(), ".........Waiting 30s to check tokens balance in your wallet after purchase............")
 
             balance = check_balance(address, address)
 
@@ -1279,7 +1279,8 @@ def run():
 
                             if token["LIQUIDITYCHECK"].lower() == 'true':
                                 pool = check_pool(inToken, outToken, token['BASESYMBOL'])
-                                print("You have set LIQUIDITYCHECK = true. Current Liquidity = ", pool, " in token:", outToken)
+                                print(timestamp(), "You have set LIQUIDITYCHECK = true.")
+                                print(timestamp(), "Current", token['SYMBOL'], "Liquidity = ", int(pool), "in token:", outToken)
                                 
                                 if float(token['LIQUIDITYAMOUNT']) <= float(pool):
                                     print(timestamp(), "Enough liquidity detected --> Buy Signal Found!")
@@ -1297,7 +1298,7 @@ def run():
                                     else:
                                         pass
                                 else:
-                                    print(timestamp(), "Liquidity for", token['SYMBOL'], "is inferior to your LIQUIDITYAMOUNT parameter : bot will not buy")
+                                    print(timestamp(), "LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']), " : not enough liquidity, bot will not buy")
 
                             else:
                                 print(timestamp(), "Buy Signal Found!")
