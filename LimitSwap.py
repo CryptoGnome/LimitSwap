@@ -593,7 +593,7 @@ def check_approval(address, balance):
 
 def check_bnb_balance():
     balance = client.eth.getBalance(settings['WALLETADDRESS'])
-    print(timestamp(), "Current Wallet Balance is :", Web3.fromWei(balance, 'ETH'), base_symbol)
+    print(timestamp(), "Current Wallet Balance is :", Web3.fromWei(balance, 'ether'), base_symbol)
     return balance
 
 def check_balance(address, symbol):
@@ -611,19 +611,21 @@ def fetch_pair(inToken, outToken):
     print(timestamp(), "Pair Address = ", pair)
     return pair
 
+
 def sync(inToken, outToken):
     pair = factoryContract.functions.getPair(inToken, outToken).call()
     syncContract = client.eth.contract(address=Web3.toChecksumAddress(pair), abi=lpAbi)
     sync = syncContract.functions.sync().call()
 
-def check_pool(inToken, outToken, symbol):
 
+def check_pool(inToken, outToken, symbol):
+    # This function is made to calculate Liquidity of a token
     pair_address = factoryContract.functions.getPair(inToken, outToken).call()
     DECIMALS = decimals(outToken)
     pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
     reserves = pair_contract.functions.getReserves().call()
-    pooled = reserves[-1] / DECIMALS
-    print(timestamp(), "Current Liquidity Reserves:", pooled, symbol)
+    pooled = reserves[1] / DECIMALS
+   # print("Debug LIQUIDITYAMOUNT line 627 :", pooled, "in token:", outToken)
 
     return pooled
 
@@ -668,10 +670,10 @@ def check_price(inToken, outToken, symbol, base, custom, routing, buyamount):
     return tokenPrice
 
 def wait_for_tx(tx_hash, address, check):
-    print(timestamp(), "Waiting for TX to Confirm....")
+    print(timestamp(), "Waiting 1 minute for TX to Confirm....")
     timeout = time() + 60
     while True:
-        print(timestamp(), ".........waiting............")
+        print(timestamp(), ".........Waiting 1 minute for TX to Confirm............")
         try:
             txn_receipt = client.eth.getTransactionReceipt(tx_hash)
             return txn_receipt['status']
@@ -683,8 +685,8 @@ def wait_for_tx(tx_hash, address, check):
             return txn_receipt['status']
 
         elif time() > timeout:
-            print(timestamp(), "Transaction Timed Out, Breaking Check Cycle....")
-            logging.info("Transaction Timed Out, Breaking Check Cycle....")
+            print(timestamp(), "Transaction was not confirmed after 1 minute, breaking Check Cycle....")
+            logging.info("Transaction was not confirmed after 1 minute, breaking Check Cycle....")
             break
 
 
@@ -692,7 +694,7 @@ def wait_for_tx(tx_hash, address, check):
     if check == True:
         timeout = time() + 30
         while True:
-            print(timestamp(), ".........Balance Check After Purchase............")
+            print(timestamp(), ".........Waiting 30s to check tokens balance in your wallet after purchase............")
 
             balance = check_balance(address, address)
 
@@ -1262,7 +1264,10 @@ def run():
 
                     try:
                         quote = check_price(inToken, outToken, token['SYMBOL'], token['BASESYMBOL'], token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], token['BUYPRICEINBASE'])
-
+                        pool = check_pool(inToken, outToken, token['BASESYMBOL'])
+                       # print("Debug Liquidity Reserves ligne 1267:", float(pool))
+                       # print("Debug inToken : ", inToken, "outToken :", outToken)        
+                                
                     except Exception:
                         print(timestamp(), token['SYMBOL'], " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
                         quote = 0
@@ -1274,8 +1279,11 @@ def run():
 
                             if token["LIQUIDITYCHECK"].lower() == 'true':
                                 pool = check_pool(inToken, outToken, token['BASESYMBOL'])
+                                print(timestamp(), "You have set LIQUIDITYCHECK = true.")
+                                print(timestamp(), "Current", token['SYMBOL'], "Liquidity = ", int(pool), "in token:", outToken)
+                                
                                 if float(token['LIQUIDITYAMOUNT']) <= float(pool):
-                                    print(timestamp(), "Buy Signal Found!")
+                                    print(timestamp(), "LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']), " --> Enough liquidity detected : Buy Signal Found!")
                                     log_price = "{:.18f}".format(quote)
                                     logging.info("BuySignal Found @" + str(log_price))
                                     tx = buy(token['BUYAMOUNTINBASE'], outToken, inToken, token['GAS'], token['SLIPPAGE'], token['GASLIMIT'], token['BOOSTPERCENT'], token["HASFEES"], token['USECUSTOMBASEPAIR'], token['SYMBOL'], token['BASESYMBOL'], token['LIQUIDITYINNATIVETOKEN'])
@@ -1290,7 +1298,7 @@ def run():
                                     else:
                                         pass
                                 else:
-                                    print(timestamp(), "Liquidity for", token['SYMBOL'], "is inferior to your LIQUIDITYAMOUNT parameter : bot will not buy")
+                                    print(timestamp(), "LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']), " : not enough liquidity, bot will not buy")
 
                             else:
                                 print(timestamp(), "Buy Signal Found!")
@@ -1309,7 +1317,7 @@ def run():
 
 
                         else:
-                            print(timestamp(), "Max Position Size Reached for ", token['SYMBOL'])
+                            print(timestamp(), "You own more tokens than your MAXTOKENS parameter for ", token['SYMBOL'])
 
                             if quote > Decimal(token['SELLPRICEINBASE']):
                                 DECIMALS = decimals(inToken)
