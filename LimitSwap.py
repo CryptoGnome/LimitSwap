@@ -1283,7 +1283,7 @@ def run():
                                 print(timestamp(), "Current", token['SYMBOL'], "Liquidity = ", int(pool), "in token:", outToken)
                                 
                                 if float(token['LIQUIDITYAMOUNT']) <= float(pool):
-                                    print(timestamp(), "Enough liquidity detected --> Buy Signal Found!")
+                                    print(timestamp(), "LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']), " --> Enough liquidity detected : Buy Signal Found!")
                                     log_price = "{:.18f}".format(quote)
                                     logging.info("BuySignal Found @" + str(log_price))
                                     tx = buy(token['BUYAMOUNTINBASE'], outToken, inToken, token['GAS'], token['SLIPPAGE'], token['GASLIMIT'], token['BOOSTPERCENT'], token["HASFEES"], token['USECUSTOMBASEPAIR'], token['SYMBOL'], token['BASESYMBOL'], token['LIQUIDITYINNATIVETOKEN'])
