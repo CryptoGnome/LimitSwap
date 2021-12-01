@@ -1,3 +1,4 @@
+# coding=utf-8
 from web3 import Web3
 from time import sleep, time
 import json
@@ -340,20 +341,21 @@ honeypot_url = 'https://honeypot.api.rugdoc.io/api/honeypotStatus.js?address='
 interpretations = {
     "UNKNOWN": (style.RED + 'The status of this token is unknown. '
                             'This is usually a system error but could \n also be a bad sign for the token. Be careful.'),
-    "OK": (style.GREEN + ' √ Honeypot tests passed. Our program was able to buy and sell it successfully. \n'
-                         'This however does not guarantee that it is not a honeypot.'),
-    "NO_PAIRS": (style.RED + '⚠ Could not find any trading pair for this token '
-                             'on the default router and could thus not test it.'),
-    "SEVERE_FEE": (style.RED + '⚠ A severely high trading fee (over 50%) was '
-                               'detected when selling or buying this token.'),
-    "HIGH_FEE": (style.YELLOW + '⚠ A high trading fee (Between 20% and 50%) was detected when '
-                                'selling or buying this token. Our system was\n however able to sell the token again.'),
-    "MEDIUM_FEE": (style.YELLOW + '⚠ A trading fee of over 10% but less then 20%\n was detected when selling '
-                                  'or buying this token. Our system was however able\n to sell the token again.'),
-    "APPROVE_FAILED": (style.RED + '🚨 Failed to approve the token.\n This is very likely a honeypot.'),
-    "SWAP_FAILED": (style.RED + '🚨 Failed to sell the token. \n This is very likely a honeypot.')
+    "OK": (style.GREEN + 'RUGDOC API RESULT : OK \n'
+                         '√ Honeypot tests passed. Our program was able to buy and sell it successfully. This however does not guarantee that it is not a honeypot.'),
+    "NO_PAIRS": (style.RED + 'RUGDOC API RESULT : NO_PAIRS \n'
+                             '⚠ Could not find any trading pair for this token on the default router and could thus not test it.'),
+    "SEVERE_FEE": (style.RED + 'RUGDOC API RESULT : SEVERE_FEE \n'
+                               '/!\ /!\ A severely high trading fee (over 50%) was detected when selling or buying this token.'),
+    "HIGH_FEE": (style.YELLOW + 'RUGDOC API RESULT : HIGH_FEE \n'
+                                '/!\ /!\ A high trading fee (Between 20% and 50%) was detected when selling or buying this token. Our system was however able to sell the token again.'),
+    "MEDIUM_FEE": (style.YELLOW + 'RUGDOC API RESULT : MEDIUM_FEE \n'
+                                  '/!\ A trading fee of over 10% but less then 20% was detected when selling or buying this token. Our system was however able to sell the token again.'),
+    "APPROVE_FAILED": (style.RED + 'RUGDOC API RESULT : APPROVE_FAILED \n'
+                                   '/!\ /!\ /!\ Failed to approve the token.\n This is very likely a honeypot.'),
+    "SWAP_FAILED": (style.RED + 'RUGDOC API RESULT : SWAP_FAILED \n'
+                                '/!\ /!\ /!\ Failed to sell the token. \n This is very likely a honeypot.')
 }
-
 
 # Function to check rugdoc API
 def honeypot_check(address):
@@ -380,7 +382,7 @@ def get_password():
         else:
             settings['ENCRYPTPRIVATEKEYS'] = "false"
 
-            # If the user wants to encrypt their private keys, but we don't have an encrypted private key recorded, we need to ask for a password
+    # If the user wants to encrypt their private keys, but we don't have an encrypted private key recorded, we need to ask for a password
     elif settings['ENCRYPTPRIVATEKEYS'] == "true" and not settings['PRIVATEKEY'].startswith('aes:'):
         print ("\nPlease create a password to encrypt your private keys.")
         setnewpassword = True
@@ -424,8 +426,7 @@ def save_settings(pwd):
 
     if len(pwd) > 0:
         encrypted_settings = settings.copy()
-        encrypted_settings['LIMITWALLETPRIVATEKEY'] = 'aes:' + cryptocode.encrypt(settings['LIMITWALLETPRIVATEKEY'],
-                                                                                  pwd)
+        encrypted_settings['LIMITWALLETPRIVATEKEY'] = 'aes:' + cryptocode.encrypt(settings['LIMITWALLETPRIVATEKEY'], pwd)
         encrypted_settings['PRIVATEKEY'] = 'aes:' + cryptocode.encrypt(settings['PRIVATEKEY'], pwd)
 
     # MASSAGE OUTPUT - LimitSwap currently loads settings.json as a [0] element, so we need to massage our
@@ -457,8 +458,7 @@ def load_wallet_settings(pwd):
     # Check for limit wallet private key
     if " " in settings['LIMITWALLETPRIVATEKEY'] or settings['LIMITWALLETPRIVATEKEY'] == "":
         settings_changed = True
-        settings['LIMITWALLETPRIVATEKEY'] = input(
-            "Please provide the private key for the wallet where you have your LIMIT: ")
+        settings['LIMITWALLETPRIVATEKEY'] = input("Please provide the private key for the wallet where you have your LIMIT: ")
 
     # If the limit wallet private key is already set and encrypted, decrypt it
     elif settings['LIMITWALLETPRIVATEKEY'].startswith('aes:'):
@@ -551,8 +551,7 @@ def auth():
         decode = decode_key()
     except Exception:
         print("There is a problem with your private key : please check if it's correct. Don't enter seed phrase !")
-        logging.info(
-            "There is a problem with your private key : please check if it's correct. Don't enter seed phrase !")
+        logging.info("There is a problem with your private key : please check if it's correct. Don't enter seed phrase !")
 
     wallet_address = Web3.toChecksumAddress(decode)
     balance = balanceContract.functions.balanceOf(wallet_address).call()
@@ -623,10 +622,8 @@ def approve(address, amount):
 
             return tx_hash
     else:
-        print(timestamp(),
-              "You have less than 0.01 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
-        logging.info(
-            "You have less than 0.01 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
+        print(timestamp(),"You have less than 0.01 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
+        logging.info("You have less than 0.01 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
         exit()
 
 
@@ -690,10 +687,9 @@ def check_pool(inToken, outToken, symbol):
     pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
     reserves = pair_contract.functions.getReserves().call()
     pooled = reserves[0] / DECIMALS
-
+    """
     pooledplusout = reserves[1] / DECIMALS
     pooledzeroinin = reserves[0] / DECIMALS
-    """
     print("-----------------------------------------------------------------------------------------------------------------------------------------")
     print("Debug inToken", inToken)
     print("Debug outToken", outToken)
@@ -790,8 +786,7 @@ def preapprove(tokens):
         if token['USECUSTOMBASEPAIR'].lower() == 'false':
             check_approval(weth, 115792089237316195423570985008687907853269984665640564039457584007913129639934)
         else:
-            check_approval(token['BASEADDRESS'],
-                           115792089237316195423570985008687907853269984665640564039457584007913129639934)
+            check_approval(token['BASEADDRESS'], 115792089237316195423570985008687907853269984665640564039457584007913129639934)
 
 
 def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom, symbol, base, routing, rugdoccheck):
@@ -823,14 +818,14 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
         amount = int(float(amount) * DECIMALS)
 
         if rugdoccheck.lower() == 'true':
-                # we check first if function rugdoc is activated before making a buy order
-                honeypot = honeypot_check(address=outToken)
-                d = json.loads(honeypot.content)
-                for key, value in interpretations.items():
-                    if d["status"] in key:
-                        honeypot_status = value
-                        honeypot_code = key
-                        print(honeypot_status)
+            # we check first if function rugdoc is activated before making a buy order
+            honeypot = honeypot_check(address=outToken)
+            d = json.loads(honeypot.content)
+            for key, value in interpretations.items():
+                if d["status"] in key:
+                    honeypot_status = value
+                    honeypot_code = key
+                    print(honeypot_status)
 
         if honeypot_code.lower() == 'ok' or rugdoccheck.lower() == 'false':
             if custom.lower() == 'false':
@@ -892,8 +887,7 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
                                 'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
                             })
 
-                        elif settings["EXCHANGE"].lower() == 'pangolin' or settings[
-                            "EXCHANGE"].lower() == 'traderjoe':
+                        elif settings["EXCHANGE"].lower() == 'pangolin' or settings["EXCHANGE"].lower() == 'traderjoe':
                             transaction = routerContract.functions.swapExactAVAXForTokens(
                                 min_tokens,
                                 [weth, outToken],
@@ -946,8 +940,7 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
                 else:
 
                     if routing.lower() == 'true':
-                        amount_out = \
-                        routerContract.functions.getAmountsOut(amount, [inToken, weth, outToken]).call()[-1]
+                        amount_out = routerContract.functions.getAmountsOut(amount, [inToken, weth, outToken]).call()[-1]
                         if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
                             min_tokens = 100
                         else:
@@ -1009,6 +1002,7 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
 
         else:
             print("rugdoc not OK")
+            logging.info("Restarting LimitSwap")
             sys.exit()
 
 
@@ -1422,7 +1416,7 @@ def run():
 
                         else:
                             print(
-                            timestamp(), "You own more tokens than your MAXTOKENS parameter for ", token['SYMBOL'])
+                                timestamp(), "You own more tokens than your MAXTOKENS parameter for ", token['SYMBOL'])
 
                             if quote > Decimal(token['SELLPRICEINBASE']):
                                 DECIMALS = decimals(inToken)
