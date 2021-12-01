@@ -1,4 +1,3 @@
-# coding=utf-8
 from web3 import Web3
 from time import sleep, time
 import json
@@ -11,8 +10,10 @@ import sys
 import requests
 import cryptocode, re, pwinput
 
+# global used to track if any settings need to be written to file
+settings_changed = False
 
-# color style
+# color styles
 class style():  # Class of different text colours - default is white
     BLACK = '\033[30m'
     RED = '\033[31m'
@@ -24,11 +25,6 @@ class style():  # Class of different text colours - default is white
     WHITE = '\033[37m'
     UNDERLINE = '\033[4m'
     RESET = '\033[0m'
-
-
-# global used to track if any settings need to be written to file
-settings_changed = False
-
 
 def timestamp():
     timestamp = time()
@@ -332,37 +328,6 @@ elif settings["EXCHANGE"].lower() == 'pangolin':
     rugdocchain = '&chain=avax'
     modified = True
 
-# RUGDOC control implementation
-
-# Honeypot API details
-honeypot_url = 'https://honeypot.api.rugdoc.io/api/honeypotStatus.js?address='
-
-# Rugdoc's answers interpretations
-interpretations = {
-    "UNKNOWN": (style.RED + 'The status of this token is unknown. '
-                            'This is usually a system error but could \n also be a bad sign for the token. Be careful.'),
-    "OK": (style.GREEN + 'RUGDOC API RESULT : OK \n'
-                         '√ Honeypot tests passed. Our program was able to buy and sell it successfully. This however does not guarantee that it is not a honeypot.'),
-    "NO_PAIRS": (style.RED + 'RUGDOC API RESULT : NO_PAIRS \n'
-                             '⚠ Could not find any trading pair for this token on the default router and could thus not test it.'),
-    "SEVERE_FEE": (style.RED + 'RUGDOC API RESULT : SEVERE_FEE \n'
-                               '/!\ /!\ A severely high trading fee (over 50%) was detected when selling or buying this token.'),
-    "HIGH_FEE": (style.YELLOW + 'RUGDOC API RESULT : HIGH_FEE \n'
-                                '/!\ /!\ A high trading fee (Between 20% and 50%) was detected when selling or buying this token. Our system was however able to sell the token again.'),
-    "MEDIUM_FEE": (style.YELLOW + 'RUGDOC API RESULT : MEDIUM_FEE \n'
-                                  '/!\ A trading fee of over 10% but less then 20% was detected when selling or buying this token. Our system was however able to sell the token again.'),
-    "APPROVE_FAILED": (style.RED + 'RUGDOC API RESULT : APPROVE_FAILED \n'
-                                   '/!\ /!\ /!\ Failed to approve the token.\n This is very likely a honeypot.'),
-    "SWAP_FAILED": (style.RED + 'RUGDOC API RESULT : SWAP_FAILED \n'
-                                '/!\ /!\ /!\ Failed to sell the token. \n This is very likely a honeypot.')
-}
-
-# Function to check rugdoc API
-def honeypot_check(address):
-    url = (honeypot_url + address + rugdocchain)
-    # sending get request and saving the response as response object
-    return requests.get(url)
-
 
 def get_password():
     global settings_changed
@@ -382,7 +347,7 @@ def get_password():
         else:
             settings['ENCRYPTPRIVATEKEYS'] = "false"
 
-    # If the user wants to encrypt their private keys, but we don't have an encrypted private key recorded, we need to ask for a password
+            # If the user wants to encrypt their private keys, but we don't have an encrypted private key recorded, we need to ask for a password
     elif settings['ENCRYPTPRIVATEKEYS'] == "true" and not settings['PRIVATEKEY'].startswith('aes:'):
         print ("\nPlease create a password to encrypt your private keys.")
         setnewpassword = True
@@ -421,12 +386,44 @@ def get_password():
     return pwd
 
 
+# RUGDOC CONTROL IMPLEMENTATION
+# Honeypot API details
+honeypot_url = 'https://honeypot.api.rugdoc.io/api/honeypotStatus.js?address='
+
+# Rugdoc's answers interpretations
+interpretations = {
+    "UNKNOWN": (style.RED + '\nThe status of this token is unknown. '
+                            'This is usually a system error but could \n also be a bad sign for the token. Be careful.'),
+    "OK": (style.GREEN + '\nRUGDOC API RESULT : OK \n'
+                         '√ Honeypot tests passed. Our program was able to buy and sell it successfully. This however does not guarantee that it is not a honeypot.'),
+    "NO_PAIRS": (style.RED + '\nRUGDOC API RESULT : NO_PAIRS \n'
+                             '⚠ Could not find any trading pair for this token on the default router and could thus not test it.'),
+    "SEVERE_FEE": (style.RED + '\nRUGDOC API RESULT : SEVERE_FEE \n'
+                               '/!\ /!\ A severely high trading fee (over 50%) was detected when selling or buying this token.'),
+    "HIGH_FEE": (style.YELLOW + '\nRUGDOC API RESULT : HIGH_FEE \n'
+                                '/!\ /!\ A high trading fee (Between 20% and 50%) was detected when selling or buying this token. Our system was however able to sell the token again.'),
+    "MEDIUM_FEE": (style.YELLOW + '\nRUGDOC API RESULT : MEDIUM_FEE \n'
+                                  '/!\ A trading fee of over 10% but less then 20% was detected when selling or buying this token. Our system was however able to sell the token again.'),
+    "APPROVE_FAILED": (style.RED + '\nRUGDOC API RESULT : APPROVE_FAILED \n'
+                                   '/!\ /!\ /!\ Failed to approve the token.\n This is very likely a honeypot.'),
+    "SWAP_FAILED": (style.RED + '\nRUGDOC API RESULT : SWAP_FAILED \n'
+                                '/!\ /!\ /!\ Failed to sell the token. \n This is very likely a honeypot.')
+}
+
+# Function to check rugdoc API
+def honeypot_check(address):
+    url = (honeypot_url + address + rugdocchain)
+    # sending get request and saving the response as response object
+    return requests.get(url)
+
+
 def save_settings(pwd):
     global settings_changed
 
     if len(pwd) > 0:
         encrypted_settings = settings.copy()
-        encrypted_settings['LIMITWALLETPRIVATEKEY'] = 'aes:' + cryptocode.encrypt(settings['LIMITWALLETPRIVATEKEY'], pwd)
+        encrypted_settings['LIMITWALLETPRIVATEKEY'] = 'aes:' + cryptocode.encrypt(settings['LIMITWALLETPRIVATEKEY'],
+                                                                                  pwd)
         encrypted_settings['PRIVATEKEY'] = 'aes:' + cryptocode.encrypt(settings['PRIVATEKEY'], pwd)
 
     # MASSAGE OUTPUT - LimitSwap currently loads settings.json as a [0] element, so we need to massage our
@@ -458,7 +455,8 @@ def load_wallet_settings(pwd):
     # Check for limit wallet private key
     if " " in settings['LIMITWALLETPRIVATEKEY'] or settings['LIMITWALLETPRIVATEKEY'] == "":
         settings_changed = True
-        settings['LIMITWALLETPRIVATEKEY'] = input("Please provide the private key for the wallet where you have your LIMIT: ")
+        settings['LIMITWALLETPRIVATEKEY'] = input(
+            "Please provide the private key for the wallet where you have your LIMIT: ")
 
     # If the limit wallet private key is already set and encrypted, decrypt it
     elif settings['LIMITWALLETPRIVATEKEY'].startswith('aes:'):
@@ -467,8 +465,10 @@ def load_wallet_settings(pwd):
         settings['LIMITWALLETPRIVATEKEY'] = cryptocode.decrypt(settings['LIMITWALLETPRIVATEKEY'], pwd)
 
         if settings['LIMITWALLETPRIVATEKEY'] == False:
-            print("ERROR: Your private key decryption password is incorrect")
-            exit(1)
+            print(style.RED + "ERROR: Your private key decryption password is incorrect")
+            print(style.WHITE + "Please re-launch the bot and try again")
+            sleep(10)
+            sys.exit()
 
     # Check for trading wallet information
     if " " in settings['WALLETADDRESS'] or settings['WALLETADDRESS'] == "":
@@ -540,7 +540,7 @@ def auth():
     client2 = Web3(Web3.HTTPProvider(my_provider2))
     print(timestamp(), "Connected to Ethereum BlockChain =", client2.isConnected())
     # Insert LIMITSWAP Token Contract Here To Calculate Staked Verification
-    address = Web3.toChecksumAddress("0x1712aad2c773ee04bdc9114b32163c058321cd85")
+    address = Web3.toChecksumAddress("0xab95e915c123fded5bdfb6325e35ef5515f1ea69")
     abi = standardAbi
     balanceContract = client2.eth.contract(address=address, abi=abi)
     decimals = balanceContract.functions.decimals().call()
@@ -551,7 +551,8 @@ def auth():
         decode = decode_key()
     except Exception:
         print("There is a problem with your private key : please check if it's correct. Don't enter seed phrase !")
-        logging.info("There is a problem with your private key : please check if it's correct. Don't enter seed phrase !")
+        logging.info(
+            "There is a problem with your private key : please check if it's correct. Don't enter seed phrase !")
 
     wallet_address = Web3.toChecksumAddress(decode)
     balance = balanceContract.functions.balanceOf(wallet_address).call()
@@ -622,8 +623,10 @@ def approve(address, amount):
 
             return tx_hash
     else:
-        print(timestamp(), "You have less than 0.01 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
-        logging.info("You have less than 0.01 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
+        print(timestamp(),
+              "You have less than 0.01 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
+        logging.info(
+            "You have less than 0.01 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
         exit()
 
 
@@ -661,7 +664,7 @@ def check_balance(address, symbol):
     DECIMALS = decimals(address)
     balanceContract = client.eth.contract(address=address, abi=standardAbi)
     balance = balanceContract.functions.balanceOf(settings['WALLETADDRESS']).call()
-    print(timestamp(), "Current Wallet Balance is: " + str(balance/DECIMALS) + " " + symbol)
+    print(timestamp(), "Current Wallet Balance is: " + str(balance / DECIMALS) + " " + symbol)
 
     return balance
 
@@ -683,22 +686,11 @@ def check_pool(inToken, outToken, symbol):
     # This function is made to calculate Liquidity of a token
     pair_address = factoryContract.functions.getPair(inToken, outToken).call()
     DECIMALS = decimals(outToken)
-
     pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
     reserves = pair_contract.functions.getReserves().call()
-    pooled = reserves[0] / DECIMALS
-    """
-    pooledplusout = reserves[1] / DECIMALS
-    pooledzeroinin = reserves[0] / DECIMALS
-    print("-----------------------------------------------------------------------------------------------------------------------------------------")
-    print("Debug inToken", inToken)
-    print("Debug outToken", outToken)
-    print("Debug reserves[0]", pooledzeroinin)
-    print("Debug reserves[1]:", pooledplusout)
-    print("Debug max(reserves[*])", pooled)
-    print("Brut", reserves)
-    print("-----------------------------------------------------------------------------------------------------------------------------------------")
-    """
+    pooled = reserves[1] / DECIMALS
+    # print("Debug LIQUIDITYAMOUNT line 627 :", pooled, "in token:", outToken)
+
     return pooled
 
 
@@ -786,10 +778,11 @@ def preapprove(tokens):
         if token['USECUSTOMBASEPAIR'].lower() == 'false':
             check_approval(weth, 115792089237316195423570985008687907853269984665640564039457584007913129639934)
         else:
-            check_approval(token['BASEADDRESS'], 115792089237316195423570985008687907853269984665640564039457584007913129639934)
+            check_approval(token['BASEADDRESS'],
+                           115792089237316195423570985008687907853269984665640564039457584007913129639934)
 
 
-def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom, symbol, base, routing, rugdoccheck):
+def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom, symbol, base, routing):
     print(timestamp(), "Placing New Buy Order for " + symbol)
 
     if int(gaslimit) < 250000:
@@ -817,26 +810,48 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
         DECIMALS = decimals(inToken)
         amount = int(float(amount) * DECIMALS)
 
-        if rugdoccheck.lower() == 'true':
-            # we check first if function rugdoc is activated before making a buy order
-            honeypot = honeypot_check(address=outToken)
-            d = json.loads(honeypot.content)
-            for key, value in interpretations.items():
-                if d["status"] in key:
-                    honeypot_status = value
-                    honeypot_code = key
-                    print(honeypot_status)
+        if custom.lower() == 'false':
+            amount_out = routerContract.functions.getAmountsOut(amount, [weth, outToken]).call()[-1]
+            if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
+                min_tokens = 100
+            else:
+                min_tokens = int(amount_out * (1 - (slippage / 100)))
 
-        if honeypot_code.lower() == 'ok' or rugdoccheck.lower() == 'false':
-            if custom.lower() == 'false':
-                amount_out = routerContract.functions.getAmountsOut(amount, [weth, outToken]).call()[-1]
-                if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
-                    min_tokens = 100
-                else:
-                    min_tokens = int(amount_out * (1 - (slippage / 100)))
+            deadline = int(time() + + 60)
 
-                deadline = int(time() + + 60)
+            # THIS SECTION IS FOR MODIFIED CONTRACTS AND EACH EXCHANGE IS SPECIFIED
+            if modified == True:
 
+                if settings["EXCHANGE"].lower() == 'koffeeswap':
+                    transaction = routerContract.functions.swapExactKCSForTokens(
+                        min_tokens,
+                        [weth, outToken],
+                        Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                        deadline
+                    ).buildTransaction({
+                        'gasPrice': Web3.toWei(gas, 'gwei'),
+                        'gas': gaslimit,
+                        'value': amount,
+                        'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                        'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
+                    })
+
+                elif settings["EXCHANGE"].lower() == 'pangolin' or settings["EXCHANGE"].lower() == 'traderjoe':
+                    transaction = routerContract.functions.swapExactAVAXForTokens(
+                        min_tokens,
+                        [weth, outToken],
+                        Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                        deadline
+                    ).buildTransaction({
+                        'gasPrice': Web3.toWei(gas, 'gwei'),
+                        'gas': gaslimit,
+                        'value': amount,
+                        'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                        'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
+                    })
+
+
+            else:
                 # THIS SECTION IS FOR MODIFIED CONTRACTS AND EACH EXCHANGE IS SPECIFIED
                 if modified == True:
 
@@ -868,57 +883,46 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
                             'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
                         })
 
-
                 else:
-                    # THIS SECTION IS FOR MODIFIED CONTRACTS AND EACH EXCHANGE IS SPECIFIED
-                    if modified == True:
+                    transaction = routerContract.functions.swapExactETHForTokens(
+                        min_tokens,
+                        [weth, outToken],
+                        Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                        deadline
+                    ).buildTransaction({
+                        'gasPrice': Web3.toWei(gas, 'gwei'),
+                        'gas': gaslimit,
+                        'value': amount,
+                        'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                        'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
+                    })
 
-                        if settings["EXCHANGE"].lower() == 'koffeeswap':
-                            transaction = routerContract.functions.swapExactKCSForTokens(
-                                min_tokens,
-                                [weth, outToken],
-                                Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                                deadline
-                            ).buildTransaction({
-                                'gasPrice': Web3.toWei(gas, 'gwei'),
-                                'gas': gaslimit,
-                                'value': amount,
-                                'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                                'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
-                            })
+        else:
 
-                        elif settings["EXCHANGE"].lower() == 'pangolin' or settings["EXCHANGE"].lower() == 'traderjoe':
-                            transaction = routerContract.functions.swapExactAVAXForTokens(
-                                min_tokens,
-                                [weth, outToken],
-                                Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                                deadline
-                            ).buildTransaction({
-                                'gasPrice': Web3.toWei(gas, 'gwei'),
-                                'gas': gaslimit,
-                                'value': amount,
-                                'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                                'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
-                            })
+            if inToken == weth:
+                amount_out = routerContract.functions.getAmountsOut(amount, [weth, outToken]).call()[-1]
+                if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
+                    min_tokens = 100
+                else:
+                    min_tokens = int(amount_out * (1 - (slippage / 100)))
+                deadline = int(time() + + 60)
 
-                    else:
-                        transaction = routerContract.functions.swapExactETHForTokens(
-                            min_tokens,
-                            [weth, outToken],
-                            Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                            deadline
-                        ).buildTransaction({
-                            'gasPrice': Web3.toWei(gas, 'gwei'),
-                            'gas': gaslimit,
-                            'value': amount,
-                            'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                            'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
-                        })
-
+                transaction = routerContract.functions.swapExactTokensForTokens(
+                    amount,
+                    min_tokens,
+                    [weth, outToken],
+                    Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                    deadline
+                ).buildTransaction({
+                    'gasPrice': Web3.toWei(gas, 'gwei'),
+                    'gas': gaslimit,
+                    'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                    'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
+                })
             else:
 
-                if inToken == weth:
-                    amount_out = routerContract.functions.getAmountsOut(amount, [weth, outToken]).call()[-1]
+                if routing.lower() == 'true':
+                    amount_out = routerContract.functions.getAmountsOut(amount, [inToken, weth, outToken]).call()[-1]
                     if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
                         min_tokens = 100
                     else:
@@ -928,7 +932,7 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
                     transaction = routerContract.functions.swapExactTokensForTokens(
                         amount,
                         min_tokens,
-                        [weth, outToken],
+                        [inToken, weth, outToken],
                         Web3.toChecksumAddress(settings['WALLETADDRESS']),
                         deadline
                     ).buildTransaction({
@@ -937,74 +941,46 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
                         'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
                         'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
                     })
+
                 else:
-
-                    if routing.lower() == 'true':
-                        amount_out = routerContract.functions.getAmountsOut(amount, [inToken, weth, outToken]).call()[-1]
-                        if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
-                            min_tokens = 100
-                        else:
-                            min_tokens = int(amount_out * (1 - (slippage / 100)))
-                        deadline = int(time() + + 60)
-
-                        transaction = routerContract.functions.swapExactTokensForTokens(
-                            amount,
-                            min_tokens,
-                            [inToken, weth, outToken],
-                            Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                            deadline
-                        ).buildTransaction({
-                            'gasPrice': Web3.toWei(gas, 'gwei'),
-                            'gas': gaslimit,
-                            'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                            'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
-                        })
-
+                    amount_out = routerContract.functions.getAmountsOut(amount, [inToken, outToken]).call()[-1]
+                    if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
+                        min_tokens = 100
                     else:
-                        amount_out = routerContract.functions.getAmountsOut(amount, [inToken, outToken]).call()[-1]
-                        if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
-                            min_tokens = 100
-                        else:
-                            min_tokens = int(amount_out * (1 - (slippage / 100)))
-                        deadline = int(time() + + 60)
+                        min_tokens = int(amount_out * (1 - (slippage / 100)))
+                    deadline = int(time() + + 60)
 
-                        transaction = routerContract.functions.swapExactTokensForTokens(
-                            amount,
-                            min_tokens,
-                            [inToken, outToken],
-                            Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                            deadline
-                        ).buildTransaction({
-                            'gasPrice': Web3.toWei(gas, 'gwei'),
-                            'gas': gaslimit,
-                            'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                            'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
-                        })
+                    transaction = routerContract.functions.swapExactTokensForTokens(
+                        amount,
+                        min_tokens,
+                        [inToken, outToken],
+                        Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                        deadline
+                    ).buildTransaction({
+                        'gasPrice': Web3.toWei(gas, 'gwei'),
+                        'gas': gaslimit,
+                        'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                        'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
+                    })
 
-            sync(inToken, outToken)
-            signed_txn = client.eth.account.signTransaction(transaction, private_key=settings['PRIVATEKEY'])
+        sync(inToken, outToken)
+        signed_txn = client.eth.account.signTransaction(transaction, private_key=settings['PRIVATEKEY'])
 
-            try:
-                return client.eth.sendRawTransaction(signed_txn.rawTransaction)
-            finally:
-                print(timestamp(), "Transaction Hash = ", Web3.toHex(client.keccak(signed_txn.rawTransaction)))
-                # LOG TX TO JSON
-                with open('./transactions.json', 'r') as fp:
-                    data = json.load(fp)
-                tx_hash = client.toHex(client.keccak(signed_txn.rawTransaction))
-                tx_input = {"hash": tx_hash}
-                data.append(tx_input)
-                with open('./transactions.json', 'w') as fp:
-                    json.dump(data, fp, indent=2)
-                fp.close()
+        try:
+            return client.eth.sendRawTransaction(signed_txn.rawTransaction)
+        finally:
+            print(timestamp(), "Transaction Hash = ", Web3.toHex(client.keccak(signed_txn.rawTransaction)))
+            # LOG TX TO JSON
+            with open('./transactions.json', 'r') as fp:
+                data = json.load(fp)
+            tx_hash = client.toHex(client.keccak(signed_txn.rawTransaction))
+            tx_input = {"hash": tx_hash}
+            data.append(tx_input)
+            with open('./transactions.json', 'w') as fp:
+                json.dump(data, fp, indent=2)
+            fp.close()
 
-                return tx_hash
-
-        else:
-            print("The Rugdoc check was not OK, so the bot did not buy the ", outToken, "token")
-            logging.info("The Rugdoc check was not OK, so the bot did not buy the " + outToken + " token")
-            sys.exit()
-
+            return tx_hash
 
     else:
         print(timestamp(), "Not Enough " + base + " Balance to make buys")
@@ -1332,6 +1308,32 @@ def run():
         else:
             pass
 
+        for token in tokens:
+
+            if token['RUGDOC_CHECK'].lower() == 'true':
+
+                honeypot = honeypot_check(address=token['ADDRESS'])
+                d = json.loads(honeypot.content)
+                for key, value in interpretations.items():
+                    if d["status"] in key:
+                        honeypot_status = value
+                        honeypot_code = key
+                        print(honeypot_status)
+
+                decision = ""
+                while decision != "y" and decision != "n":
+                    print (style.WHITE + "\nWhat is your decision?")
+                    decision = input("Would you like to snipe this token (y/n): ")
+
+                if decision == "y":
+                    print (style.WHITE + "\nOK let's go!!")
+                    pass
+                else:
+                    sys.exit()
+
+            else:
+                pass
+
         while True:
             s = open('./tokens.json', )
             tokens = json.load(s)
@@ -1379,8 +1381,7 @@ def run():
                                     tx = buy(token['BUYAMOUNTINBASE'], outToken, inToken, token['GAS'],
                                              token['SLIPPAGE'], token['GASLIMIT'], token['BOOSTPERCENT'],
                                              token["HASFEES"], token['USECUSTOMBASEPAIR'], token['SYMBOL'],
-                                             token['BASESYMBOL'], token['LIQUIDITYINNATIVETOKEN'],
-                                             token['RUGDOC_CHECK'])
+                                             token['BASESYMBOL'], token['LIQUIDITYINNATIVETOKEN'])
 
                                     if tx != False:
                                         tx = wait_for_tx(tx, token['ADDRESS'], True)
@@ -1402,7 +1403,7 @@ def run():
                                 tx = buy(token['BUYAMOUNTINBASE'], outToken, inToken, token['GAS'], token['SLIPPAGE'],
                                          token['GASLIMIT'], token['BOOSTPERCENT'], token["HASFEES"],
                                          token['USECUSTOMBASEPAIR'], token['SYMBOL'], token['BASESYMBOL'],
-                                         token['LIQUIDITYINNATIVETOKEN'], token['RUGDOC_CHECK'])
+                                         token['LIQUIDITYINNATIVETOKEN'])
 
                                 if tx != False:
                                     tx = wait_for_tx(tx, token['ADDRESS'], True)
@@ -1416,7 +1417,7 @@ def run():
 
                         else:
                             print(
-                                timestamp(), "You own more tokens than your MAXTOKENS parameter for ", token['SYMBOL'])
+                            timestamp(), "You own more tokens than your MAXTOKENS parameter for ", token['SYMBOL'])
 
                             if quote > Decimal(token['SELLPRICEINBASE']):
                                 DECIMALS = decimals(inToken)
@@ -1462,7 +1463,7 @@ def run():
                                     tx = buy(token['BUYAMOUNTINBASE'], outToken, inToken, token['GAS'],
                                              token['SLIPPAGE'], token['GASLIMIT'], token['BOOSTPERCENT'],
                                              token["HASFEES"], token['USECUSTOMBASEPAIR'], token['SYMBOL'],
-                                             token['LIQUIDITYINNATIVETOKEN'], token['RUGDOC_CHECK'])
+                                             token['LIQUIDITYINNATIVETOKEN'])
                                     wait_for_tx(tx, token['ADDRESS'], False)
                                 else:
                                     print(timestamp(), "Bot has reached MAXTOKENS Position Size for ", token['SYMBOL'])
@@ -1538,3 +1539,6 @@ except Exception as e:
         sleep(1)
         if nonce > timeout:
             run()
+
+
+
