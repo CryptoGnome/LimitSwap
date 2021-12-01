@@ -422,8 +422,7 @@ def save_settings(pwd):
 
     if len(pwd) > 0:
         encrypted_settings = settings.copy()
-        encrypted_settings['LIMITWALLETPRIVATEKEY'] = 'aes:' + cryptocode.encrypt(settings['LIMITWALLETPRIVATEKEY'],
-                                                                                  pwd)
+        encrypted_settings['LIMITWALLETPRIVATEKEY'] = 'aes:' + cryptocode.encrypt(settings['LIMITWALLETPRIVATEKEY'], pwd)
         encrypted_settings['PRIVATEKEY'] = 'aes:' + cryptocode.encrypt(settings['PRIVATEKEY'], pwd)
 
     # MASSAGE OUTPUT - LimitSwap currently loads settings.json as a [0] element, so we need to massage our
