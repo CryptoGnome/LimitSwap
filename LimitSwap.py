@@ -622,7 +622,7 @@ def approve(address, amount):
 
             return tx_hash
     else:
-        print(timestamp(),"You have less than 0.01 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
+        print(timestamp(), "You have less than 0.01 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
         logging.info("You have less than 0.01 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
         exit()
 
@@ -661,7 +661,7 @@ def check_balance(address, symbol):
     DECIMALS = decimals(address)
     balanceContract = client.eth.contract(address=address, abi=standardAbi)
     balance = balanceContract.functions.balanceOf(settings['WALLETADDRESS']).call()
-    print(timestamp(), "Current Wallet Balance is: " + str(balance / DECIMALS) + " " + symbol)
+    print(timestamp(), "Current Wallet Balance is: " + str(balance/DECIMALS) + " " + symbol)
 
     return balance
 
