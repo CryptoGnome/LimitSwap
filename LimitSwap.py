@@ -1001,8 +1001,8 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
                 return tx_hash
 
         else:
-            print("rugdoc not OK")
-            logging.info("Restarting LimitSwap")
+            print("The Rugdoc check was not OK, so the bot did not buy the ", outToken, "token")
+            logging.info("The Rugdoc check was not OK, so the bot did not buy the " + outToken + " token")
             sys.exit()
 
 
