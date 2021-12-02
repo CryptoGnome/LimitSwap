@@ -734,10 +734,11 @@ def check_price(inToken, outToken, symbol, base, custom, routing, buypriceinbase
 
 
 def wait_for_tx(tx_hash, address, check):
-    print(timestamp(), "Waiting 1 minute for TX to Confirm....")
+    print(timestamp(), "............Waiting 1 minute for TX to Confirm............")
     timeout = time() + 60
     while True:
-        print(timestamp(), ".........Waiting 1 minute for TX to Confirm............")
+        print(timestamp(), "............Waiting 1 minute for TX to Confirm............")
+        sleep(1)
         try:
             txn_receipt = client.eth.getTransactionReceipt(tx_hash)
             return txn_receipt['status']
@@ -764,6 +765,7 @@ def wait_for_tx(tx_hash, address, check):
 
         while True:
             print(timestamp(), ".........Waiting 30s to check tokens balance in your wallet after purchase............")
+            sleep(1)
 
             balance = check_balance(address, address)
 
