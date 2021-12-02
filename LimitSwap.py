@@ -754,6 +754,8 @@ def wait_for_tx(tx_hash, address, check):
                                "Please check if :\n"
                                "- your node is running correctly\n"
                                "- you have enough Gaslimit (check 'Gas Used by Transaction') if you have a failed Tx")
+            print(style.WHITE + "\n")
+            
             logging.info("Transaction was not confirmed after 1 minute, breaking Check Cycle....")
             sleep(5)
             break
