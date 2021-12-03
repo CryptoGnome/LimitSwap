@@ -629,7 +629,7 @@ def approve(address, amount):
         logging.info(
             "You have less than 0.01 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
         sleep(10)
-        exit()
+        sys.exit()
 
 
 def check_approval(address, balance):
