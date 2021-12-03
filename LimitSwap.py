@@ -756,7 +756,7 @@ def wait_for_tx(tx_hash, address, check):
                                "Please check if :\n"
                                "- your node is running correctly\n"
                                "- you have enough Gaslimit (check 'Gas Used by Transaction') if you have a failed Tx")
-            print(style.WHITE + "\n")
+            print(style.RESET + "\n")
 
             logging.info("Transaction was not confirmed after 1 minute, breaking Check Cycle....")
             sleep(5)
@@ -766,7 +766,7 @@ def wait_for_tx(tx_hash, address, check):
     # loop to check for balance after purchase
     if check == True:
         timeout = time() + 30
-        print(style.WHITE + "\n")
+        print(style.RESET + "\n")
         print(style.GREEN + "\nBUY SUCCEEDED")
 
         while True:
@@ -1358,11 +1358,11 @@ def run():
 
                 decision = ""
                 while decision != "y" and decision != "n":
-                    print (style.WHITE + "\nWhat is your decision?")
+                    print (style.RESET + "\nWhat is your decision?")
                     decision = input("Would you like to snipe this token? (y/n): ")
 
                 if decision == "y":
-                    print (style.WHITE + "\nOK let's go!!\n")
+                    print (style.RESET + "\nOK let's go!!\n")
                     pass
                 else:
                     sys.exit()
@@ -1424,10 +1424,10 @@ def run():
                                         print(style.GREEN + "\n                           -------------------------------------------------\n"
                                                             "                            √ SUCCESS ! Bot has bought the tokens. Enjoy :)\n"
                                                             "                           -------------------------------------------------")
-                                        print(style.WHITE + "")
+                                        print(style.RESET + "")
                                         sleep(3)
                                         check_balance(token['ADDRESS'], token['SYMBOL'])
-                                        print(style.WHITE + "\n")
+                                        print(style.RESET + "\n")
                                         sleep(3)
 
                                         if tx != 1:
@@ -1455,10 +1455,10 @@ def run():
                                     print(style.GREEN + "\n                           -------------------------------------------------\n"
                                                         "                            √ SUCCESS ! Bot has bought the tokens. Enjoy :)\n"
                                                         "                           -------------------------------------------------")
-                                    print(style.WHITE + "")
+                                    print(style.RESET + "")
                                     sleep(3)
                                     check_balance(token['ADDRESS'], token['SYMBOL'])
-                                    print(style.WHITE + "\n")
+                                    print(style.RESET + "\n")
                                     sleep(3)
 
                                     if tx != 1:
