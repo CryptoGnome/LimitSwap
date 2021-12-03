@@ -1562,7 +1562,6 @@ def run():
                                              token['SLIPPAGE'], token['GASLIMIT'], token['BOOSTPERCENT'],
                                              token["HASFEES"], token['USECUSTOMBASEPAIR'], token['SYMBOL'],
                                              token['LIQUIDITYINNATIVETOKEN'], token['BUYAFTER_XXX_SECONDS'], token['MAX_FAILED_TRANSACTIONS_IN_A_ROW'])
-                                    print("debug 1504")
                                     wait_for_tx(tx, token['ADDRESS'], False)
                                 else:
                                     print(timestamp(), "Bot has reached MAXTOKENS Position Size for ", token['SYMBOL'])
