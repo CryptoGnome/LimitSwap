@@ -14,7 +14,6 @@ import cryptocode, re, pwinput
 settings_changed = False
 
 failedtransactionsamount = 0
-print("j initialise failedtransactionsamount")
 
 # color styles
 class style():  # Class of different text colours - default is white
