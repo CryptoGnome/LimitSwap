@@ -20,12 +20,10 @@ def timestamp():
     dt_object = datetime.fromtimestamp(timestamp)
     return dt_object
 
-# Function to cleanly exit on SIGINT
-def signal_handler(sig, frame):
-    sys.exit(0)
-
-signal.signal(signal.SIGINT, signal_handler)
-
+# # Function to cleanly exit on SIGINT
+# signal.signal(signal.SIGINT, signal_handler)
+# def signal_handler(sig, frame):
+#     sys.exit(0)
 
 """""""""""""""""""""""""""
 //COMMAND-LINE ARGUMENTS
@@ -1242,19 +1240,27 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
         pass
 
 def run():
-    try:
+
+    x=0
+
+    try:    
         s = open('./tokens.json', )
         tokens = json.load(s)
         s.close()
+
         if settings['PREAPPROVE'].lower() == 'true':
             preapprove(tokens)
         else:
             pass
 
         while True:
-            s = open('./tokens.json', )
-            tokens = json.load(s)
-            s.close()
+            if x == 0:
+                s = open('./tokens.json', )
+                tokens = json.load(s)
+                s.close()
+            else:
+                x-=1
+
 
             for token in tokens:
 
