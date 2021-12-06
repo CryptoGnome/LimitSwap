@@ -163,6 +163,41 @@ if settings['EXCHANGE'].lower() == 'traderjoe':
     rugdocchain = '&chain=avax'
     modified = True
 
+elif settings['EXCHANGE'].lower() == 'pinkswap':
+    if settings['USECUSTOMNODE'].lower() == 'true':
+        my_provider = settings['CUSTOMNODE']
+        print(timestamp(), 'Using custom node.')
+    else:
+        my_provider = "https://bsc-dataseed4.defibit.io"
+
+    if not my_provider:
+        print(timestamp(), 'Custom node empty. Exiting')
+        exit(1)
+
+    if my_provider[0].lower() == 'h':
+        print(timestamp(), 'Using HTTPProvider')
+        client = Web3(Web3.HTTPProvider(my_provider))
+    elif my_provider[0].lower() == 'w':
+        print(timestamp(), 'Using WebsocketProvider')
+        client = Web3(Web3.WebsocketProvider(my_provider))
+    else:
+        print(timestamp(), 'Using IPCProvider')
+        client = Web3(Web3.IPCProvider(my_provider))
+
+    print(timestamp(), "Binance Smart Chain Connected =", client.isConnected())
+    print(timestamp(), "Loading PinkSwap Smart Contracts...")
+
+    routerAddress = Web3.toChecksumAddress("0x319EF69a98c8E8aAB36Aea561Daba0Bf3D0fa3ac")
+    factoryAddress = Web3.toChecksumAddress("0x7d2ce25c28334e40f37b2a068ec8d5a59f11ea54")
+
+    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
+    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
+
+    weth = Web3.toChecksumAddress("0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c")
+    base_symbol = "BNB"
+    rugdocchain = '&chain=bsc'
+    modified = False
+    
 elif settings['EXCHANGE'].lower() == 'apeswap':
     if settings['USECUSTOMNODE'].lower() == 'true':
         my_provider = settings['CUSTOMNODE']
