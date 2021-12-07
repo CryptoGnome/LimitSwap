@@ -1,3 +1,6 @@
+#Ignore log files
+*.log
+
 # Default ignored files
 /shelf/
 /workspace.xml
