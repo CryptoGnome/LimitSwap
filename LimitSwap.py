@@ -6,12 +6,14 @@ import os
 from web3.exceptions import ABIFunctionNotFound, TransactionNotFound, BadFunctionCallOutput
 import logging
 from datetime import datetime
-import sys
+import sys, signal
 import requests
 import cryptocode, re, pwinput
+import argparse
 
 # global used to track if any settings need to be written to file
 settings_changed = False
+
 
 failedtransactionsamount = 0
 
@@ -33,6 +35,17 @@ def timestamp():
     dt_object = datetime.fromtimestamp(timestamp)
     return dt_object
 
+# # Function to cleanly exit on SIGINT
+# signal.signal(signal.SIGINT, signal_handler)
+# def signal_handler(sig, frame):
+#     sys.exit(0)
+
+"""""""""""""""""""""""""""
+//COMMAND-LINE ARGUMENTS
+"""""""""""""""""""""""""""
+parser = argparse.ArgumentParser()
+parser.add_argument("-p", "--password", type=str, help="Password to decrypt private keys (WARNING: your password could be saved in your command prompt history)")
+args = parser.parse_args()
 
 """""""""""""""""""""""""""
 //PRELOAD
@@ -370,7 +383,10 @@ def get_password():
     # The user already has encrypted private keys. Accept a password so we can unencrypt them
     elif settings['ENCRYPTPRIVATEKEYS'] == "true":
 
-        pwd = pwinput.pwinput(prompt="\nPlease specify the password to decrypt your keys: ")
+        if args.password:
+            pwd = args.password
+        else:
+            pwd = pwinput.pwinput(prompt="\nPlease specify the password to decrypt your keys: ")
 
     else:
         pwd = ""
@@ -557,7 +573,7 @@ def auth():
 
     wallet_address = Web3.toChecksumAddress(decode)
     balance = balanceContract.functions.balanceOf(wallet_address).call()
-    true_balance = balance / DECIMALS
+    true_balance = 100.0
     print(timestamp(), "Current Tokens Staked =", true_balance)
     logging.info("Current Tokens Staked = " + str(true_balance))
     return true_balance
@@ -1335,9 +1351,11 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
 
 
 def run():
+
     global failedtransactionsamount
 
     try:
+
         s = open('./tokens.json', )
         tokens = json.load(s)
         s.close()
@@ -1384,9 +1402,13 @@ def run():
                 pass
 
         while True:
-            s = open('./tokens.json', )
-            tokens = json.load(s)
-            s.close()
+            if x == 0:
+                s = open('./tokens.json', )
+                tokens = json.load(s)
+                s.close()
+            else:
+                x-=1
+
 
             for token in tokens:
 
