@@ -280,7 +280,7 @@ elif settings["EXCHANGE"].lower() == 'quickswap':
     if settings['USECUSTOMNODE'].lower() == 'true':
         my_provider = settings['CUSTOMNODE']
     else:
-        my_provider = "https://rpc-mainnet.matic.network"
+        my_provider = "https://polygon-rpc.com"
 
     client = Web3(Web3.HTTPProvider(my_provider))
     print(timestamp(), "Matic Chain Connected =", client.isConnected())
