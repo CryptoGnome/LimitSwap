@@ -6,10 +6,11 @@ import os
 from web3.exceptions import ABIFunctionNotFound, TransactionNotFound, BadFunctionCallOutput
 import logging
 from datetime import datetime
-import sys, signal
+import sys
 import requests
 import cryptocode, re, pwinput
 import argparse
+import signal
 
 # global used to track if any settings need to be written to file
 settings_changed = False
@@ -36,22 +37,27 @@ def timestamp():
     return dt_object
 
 # # Function to cleanly exit on SIGINT
-# signal.signal(signal.SIGINT, signal_handler)
-# def signal_handler(sig, frame):
-#     sys.exit(0)
+def signal_handler(sig, frame):
+    sys.exit(0)
+signal.signal(signal.SIGINT, signal_handler)
 
 """""""""""""""""""""""""""
 //COMMAND-LINE ARGUMENTS
 """""""""""""""""""""""""""
 parser = argparse.ArgumentParser()
 parser.add_argument("-p", "--password", type=str, help="Password to decrypt private keys (WARNING: your password could be saved in your command prompt history)")
+parser.add_argument("-s", "--settings", type=str, help="Specify the file to user for settings (default: settings.json)", default="./settings.json")
+parser.add_argument("-t", "--tokens"  , type=str, help="Specify the file to use for tokens to trade (default: tokens.json)", default="./tokens.json")
+parser.add_argument("-v", "--verbose" , action="store_true", help="Print detailed messages to stdout")
 args = parser.parse_args()
 
 """""""""""""""""""""""""""
 //PRELOAD
 """""""""""""""""""""""""""
 print(timestamp(), "Preloading Data")
-f = open('./settings.json', )
+
+print(timestamp(), "Loading settings from", args.settings)
+f = open(args.settings, )
 settings = json.load(f)[0]
 f.close()
 
@@ -454,7 +460,7 @@ def save_settings(pwd):
         else:
             output_settings = settings
 
-        with open('settings.json', 'w') as f:
+        with open(args.settings, 'w') as f:
             f.write("[\n")
             f.write(json.dumps(output_settings, indent=4))
             f.write("\n]\n")
@@ -573,7 +579,7 @@ def auth():
 
     wallet_address = Web3.toChecksumAddress(decode)
     balance = balanceContract.functions.balanceOf(wallet_address).call()
-    true_balance = 100.0
+    
     print(timestamp(), "Current Tokens Staked =", true_balance)
     logging.info("Current Tokens Staked = " + str(true_balance))
     return true_balance
@@ -641,7 +647,7 @@ def approve(address, amount):
             return tx_hash
     else:
         print(timestamp(),
-              "You have less than 0.01 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
+              style.RED + "You have less than 0.01 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet." + style.RESET)
         logging.info(
             "You have less than 0.01 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
         sleep(10)
@@ -1355,8 +1361,8 @@ def run():
     global failedtransactionsamount
 
     try:
-
-        s = open('./tokens.json', )
+        print(timestamp(), "Loading tokens from", args.tokens)
+        s = open(args.tokens, )
         tokens = json.load(s)
         s.close()
 
@@ -1365,7 +1371,7 @@ def run():
         if eth_balance > 0.05:
             pass
         else:
-            print(style.RED + "\nYou have less than 0.05 ETH/BNB/FTM/MATIC/Etc. token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet")
+            print(style.RED + "\nYou have less than 0.05 ETH/BNB/FTM/MATIC/Etc. token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet" + style.RESET)
             logging.info("You have less than 0.05 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
             sleep(10)
             sys.exit()
@@ -1375,7 +1381,15 @@ def run():
         else:
             pass
 
+        
         for token in tokens:
+            
+            if 'RUGDOC_CHECK' not in token:
+                token['RUGDOC_CHECK'] = 'false'
+            if 'BUYAFTER_XXX_SECONDS' not in token:
+                token['BUYAFTER_XXX_SECONDS'] = 0
+            if 'MAX_FAILED_TRANSACTIONS_IN_A_ROW' not in token:
+                token['MAX_FAILED_TRANSACTIONS_IN_A_ROW'] = 2
 
             if token['RUGDOC_CHECK'].lower() == 'true':
 
@@ -1402,15 +1416,19 @@ def run():
                 pass
 
         while True:
-            if x == 0:
-                s = open('./tokens.json', )
-                tokens = json.load(s)
-                s.close()
-            else:
-                x-=1
 
+            s = open(args.tokens, )
+            tokens = json.load(s)
+            s.close()
 
             for token in tokens:
+
+                if 'RUGDOC_CHECK' not in token:
+                    token['RUGDOC_CHECK'] = 'false'
+                if 'BUYAFTER_XXX_SECONDS' not in token:
+                    token['BUYAFTER_XXX_SECONDS'] = 0
+                if 'MAX_FAILED_TRANSACTIONS_IN_A_ROW' not in token:
+                    token['MAX_FAILED_TRANSACTIONS_IN_A_ROW'] = 2
 
                 if token['ENABLED'].lower() == 'true':
                     inToken = Web3.toChecksumAddress(token['ADDRESS'])

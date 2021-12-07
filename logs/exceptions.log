@@ -1,0 +1,15 @@
+EOF when reading a line
+Traceback (most recent call last):
+  File "<stdin>", line 1369, in <module>
+  File "<stdin>", line 307, in get_password
+EOFError: EOF when reading a line
+EOF when reading a line
+Traceback (most recent call last):
+  File "<stdin>", line 1369, in <module>
+  File "<stdin>", line 307, in get_password
+EOFError: EOF when reading a line
+EOF when reading a line
+Traceback (most recent call last):
+  File "<stdin>", line 1369, in <module>
+  File "<stdin>", line 307, in get_password
+EOFError: EOF when reading a line
