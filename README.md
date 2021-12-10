@@ -44,9 +44,9 @@ Please install the default package and all those options :
 - Navigate into the unzipped folder 
 - Run command: "**pip install -r requirements.txt**"  --> this will install all the packages needed to run LimitSwap
 
-==> And it's done! 
+==> And it's done! ✅
 
-Simply **double-click on "LimitSwap.py"** and it will run, since you've installed Pythin 👍👍
+Simply **double-click on "LimitSwap.py"** and it will run, since you've installed Python 👍👍
 
 &nbsp;
 
