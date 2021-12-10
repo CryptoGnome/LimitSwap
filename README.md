@@ -19,12 +19,8 @@ There are 2 ways to install LimitSwap :
 ### 1/ Download the pre-compiled package 
 That we provide on the Release page : it's a .exe file that you can run on your computer.
 
-&nbsp;
-
-
 #### Pros and cons
 🟢 : very easy to setup
-
 🔴 : it's pre-compiled, so you cannot check the Source Code
 
 &nbsp;
@@ -56,7 +52,6 @@ Please install the default package and all those options :
 
 #### Pros and cons
 🟢 : you are sure of the code that is running on your computer
-
 🔴 : little bit complicated
 
 &nbsp;
