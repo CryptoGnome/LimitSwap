@@ -18,8 +18,8 @@ There are 2 ways to install LimitSwap :
 
 ### 1/ Download the pre-compiled package 
 That we provide on the Release page : it's a .exe file that you can run on your computer.
-- Pros : very easy to setup
-- Cons : it's pre-compiled, so you cannot check the Source Code
+- 🟢 : very easy to setup
+- 🔴 : it's pre-compiled, so you cannot check the Source Code
 
 
 ### 2/ Compile yourself the Source Code
@@ -41,6 +41,9 @@ Please install the default package and all those options :
 - Go to /build folder and copy LimitSwap.exe
 - Move it to the root folder (where you were before)
 - Run it
+
+- 🟢 : you are sure of the code that is running on your computer
+- 🔴 : little bit complicated
 
 
 ## Developers 🔧
