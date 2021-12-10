@@ -41,13 +41,9 @@ Please install the default package and all those options :
 ![image](https://user-images.githubusercontent.com/70858574/145580447-bd648d6d-c3ce-4dd9-8527-84ecfb5f30cc.png)
 
 - Open **Windows Powershell** (or Mac Terminal on MacOs)
-- Run command: "**pip install pyinstaller**" 
 - Navigate into the unzipped folder 
 - Run command: "**pip install -r requirements.txt**"  --> this will install all the packages needed to run LimitSwap
-- Run command: "**pyinstaller --onefile LimitSwap.py**" --> this will create an executable of the app in the /build folder
-- Go to /build folder and copy LimitSwap.exe
-- Move it to the root folder (where you were before)
-- Run it 👍👍
+- ... and it's done! Simply **double-click on "LimitSwap.py"** and it will run, since you've installed Pythin 👍👍
 
 &nbsp;
 
