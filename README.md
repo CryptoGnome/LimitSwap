@@ -40,7 +40,7 @@ Here is a tutorial step-by-step:
 - Install Python on your computer : https://www.python.org/downloads/
 - Install Visual Studio : https://visualstudio.microsoft.com/fr/thank-you-downloading-visual-studio/?sku=Community&rel=17
 Please install the default package and all those options :
-![image](https://user-images.githubusercontent.com/70858574/145568310-f4a41bfb-e7ac-43d8-8c40-3f8ded69e19a.png)
+![image](https://user-images.githubusercontent.com/70858574/145580447-bd648d6d-c3ce-4dd9-8527-84ecfb5f30cc.png)
 
 - Open **Windows Powershell** (or Mac Terminal on MacOs)
 - Run command: "**pip install pyinstaller**" 
@@ -49,7 +49,7 @@ Please install the default package and all those options :
 - Run command: "**pyinstaller --onefile LimitSwap.py**" --> this will create an executable of the app in the /build folder
 - Go to /build folder and copy LimitSwap.exe
 - Move it to the root folder (where you were before)
-- Run it
+- Run it 👍👍
 
 &nbsp;
 
