@@ -19,9 +19,16 @@ There are 2 ways to install LimitSwap :
 ### 1/ Download the pre-compiled package 
 That we provide on the Release page : it's a .exe file that you can run on your computer.
 
+&nbsp;
+
+
 #### Pros and cons
 🟢 : very easy to setup
+
 🔴 : it's pre-compiled, so you cannot check the Source Code
+
+&nbsp;
+&nbsp;
 
 
 ### 2/ Compile yourself the Source Code
@@ -44,15 +51,22 @@ Please install the default package and all those options :
 - Move it to the root folder (where you were before)
 - Run it
 
+&nbsp;
+
 #### Pros and cons
 🟢 : you are sure of the code that is running on your computer
+
 🔴 : little bit complicated
+
+&nbsp;
+&nbsp;
 
 
 ## Developers 🔧
 Want to help contribute to LimitSwap, reach out on telegram all you need to do is make changes or fix bugs and we will pay developer bounties in $LIMIT for helping make the bot batter!
 
-## Links & Socials:
+
+## Links & Socials
 
 #### WiKi
 https://limitswapv3.gitbook.io/limitswap/
