@@ -39,6 +39,7 @@ Here is a tutorial step-by-step:
 - Unzip file
 - Install Python on your computer : https://www.python.org/downloads/
 - Install Visual Studio : https://visualstudio.microsoft.com/fr/thank-you-downloading-visual-studio/?sku=Community&rel=17
+
 Please install the default package and all those options :
 ![image](https://user-images.githubusercontent.com/70858574/145580447-bd648d6d-c3ce-4dd9-8527-84ecfb5f30cc.png)
 
