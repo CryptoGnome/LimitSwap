@@ -17,13 +17,12 @@ https://github.com/CryptoGnome/LimitSwap/releases
 There are 2 ways to install LimitSwap : 
 
 ### 1/ Download the pre-compiled package 
-that we provide on the Release page : it's a .exe file that you can run on your computer.
+That we provide on the Release page : it's a .exe file that you can run on your computer.
 - Pros : very easy to setup
 - Cons : it's pre-compiled, so you cannot check the Source Code
 
 
 ### 2/ Compile yourself the Source Code
-
 Here is a tutorial step-by-step: 
 - Download last LimitSwap code here : 
 <img src="https://user-images.githubusercontent.com/70858574/145568534-e22c2887-d761-4fba-8dd0-f765b4300a6c.png" width="300">
