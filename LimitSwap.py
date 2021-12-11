@@ -10,10 +10,29 @@ from datetime import datetime
 import sys
 import requests
 import cryptocode, re, pwinput
+import argparse
+import signal
 
-# global used to track if any settings need to be written to file
-settings_changed = False
+# DEVELOPER CONSIDERATIONS
+#
+# USER INTERACTION - Do not depend on user interaction. If you develop a setting that is going to require
+#    user interaction while the bot is running, warn the user before hand. Accept a value before the check
+#    for liquidity, and provide a command line flag. Basically, provide ways for the bot to continue it's 
+#    entire process from buying all the way to selling multiple positions and multiple pairs with zero user
+#    interaction.
+#
+# HANDLING NEW ENTRIES IN settings.json - When adding a new configuration item in settings.json be sure to
+#    review comment "COMMAND LINE ARGUMENTS" and the functions load_settings_file and save_settings_file.
+#    Do not assume a user has changed their settings.json file to work with the new version, your additions
+#    should be backwards compatible and have safe default values if possible
+#
+# HANDLING NEW ENTRIES IN tokens.json - When adding a new configuration item in tokens.json be sure to
+#    review comment "COMMAND LINE ARGUMENTS" and the functions load_settings_file and save_settings_file
+#    Do not assume a user has changed their tokens.json file to work with the new version, your additions
+#    should be backwards compatible and have safe default values if possible
 
+
+# initialization of number of failed transactions
 failedtransactionsamount = 0
 
 
@@ -29,21 +48,157 @@ class style():  # Class of different text colours - default is white
     WHITE = '\033[37m'
     UNDERLINE = '\033[4m'
     RESET = '\033[0m'
-
+    
+# Function to cleanly exit on SIGINT
+def signal_handler(sig, frame):
+    sys.exit(0)
+signal.signal(signal.SIGINT, signal_handler)
 
 def timestamp():
     timestamp = time()
     dt_object = datetime.fromtimestamp(timestamp)
     return dt_object
 
+#
+# COMMAND LINE ARGUMENTS
+#
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-p", "--password", type=str, help="Password to decrypt private keys (WARNING: your password could be saved in your command prompt history)")
+parser.add_argument("-s", "--settings", type=str, help="Specify the file to user for settings (default: settings.json)", default="./settings.json")
+parser.add_argument("-t", "--tokens"  , type=str, help="Specify the file to use for tokens to trade (default: tokens.json)", default="./tokens.json")
+parser.add_argument("-v", "--verbose" , action='store_true', help="Print detailed messages to stdout")
+command_line_args = parser.parse_args()
+
+def printt(*print_args):
+    # Function: printt
+    # ----------------------------
+    # provides normal print() functionality but also prints our timestamp
+    #
+    # returns: nothing
+
+    print(timestamp(),' '.join(map(str,print_args)))
+
+def printt_v(*print_args):
+    # Function: printt
+    # ----------------------------
+    # provides normal print() functionality but also prints our timestamp and pays attention to user set verbosity.
+    #
+    # returns: nothing
+
+    if command_line_args.verbose == True:
+        print(timestamp(),' '.join(map(str,print_args)))
+
+def printt_err(*print_args):
+    # Function: printt_err
+    # --------------------
+    # provides normal print() functionality but also prints our timestamp and the text highlighted to display an error
+    #
+    # returns: nothing
+
+    print(timestamp(), " ", style.RED, ' '.join(map(str,print_args)), style.RESET, sep="")
+
+def load_settings_file(settings_path, load_message = True):
+    # Function: load_settings_file
+    # ----------------------------
+    # loads the settings file defined by command_line_args.settings, sets sane defaults if variables aren't found in settings file
+    # exits with an error message if necessary variables are not found in the settings files
+    #
+    # settings_path = the path of the file to load settings from
+    #
+    # returns: a dictionary with the settings from the file loaded
+
+    if load_message == True:
+        print(timestamp(), "Loading settings from", command_line_args.settings)
+
+    f = open(command_line_args.settings, )
+    settings = json.load(f)[0]
+    f.close()
+
+    for default_false in ['UNLIMITEDSLIPPAGE', 'USECUSTOMNODE']:
+        if default_false not in settings:    
+            printt_v (default_false, "not found in settings configuration file, settings a default value of false.")
+            settings[default_false] = "false"
+        else:
+            settings[default_false] = settings[default_false].lower()
+
+    for default_true in ['PREAPPROVE']:
+        if default_true not in settings:
+            printt_v (default_true, "not found in settings configuration file, settings a default value of true.")
+            settings[default_true] = "true"
+        else:
+            settings[default_true] = settings[default_true].lower()
+
+    # Keys that must be set
+    for required_key in ['EXCHANGE']:
+        if required_key not in settings:
+            printt_err (required_key, "not found in settings configuration file.")
+            exit (-1)
+        else:
+            settings[required_key] = settings[required_key].lower()
+
+    return settings
+
+def load_tokens_file(tokens_path, load_message = True):
+    # Function: load_tokens_File
+    # ----------------------------
+    # loads the token definition file defined by command_line_args.settings, sets sane defaults if variables aren't found in settings file
+    # exits with an error message if necessary variables are not found in the settings files
+    #
+    # tokens_path: the path of the file to load tokens from
+    #
+    # returns: a dictionary with the settings from the file loaded
+
+    if load_message == True:
+        print(timestamp(), "Loading tokens from", command_line_args.tokens)
+
+    s = open(command_line_args.tokens, )
+    tokens = json.load(s)
+    s.close()
+
+    # Make sure all values are lowercase
+    for token in tokens:
+
+        for default_false in ['ENABLED', 'LIQUIDITYCHECK', 'LIQUIDITYINNATIVETOKEN', 'USECUSTOMBASEPAIR', 'HASFEES']:
+            if default_false not in token:
+                printt_v (default_false, "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a default value of false")
+                token[default_false] = "false"
+            else:
+                token[default_false] = token[default_false].lower()
+
+
+        # Keys that must be set
+        for required_key in ['ADDRESS', 'BUYAMOUNTINBASE', 'BUYPRICEINBASE', 'SELLPRICEINBASE' ]:
+            if required_key not in token:
+                printt_err (required_key, "not found in configuration file in configuration for to token", token['SYMBOL'])
+                exit (-1)
+
+        token_defaults = {
+            'SLIPPAGE' : 49,
+            'MAXTOKENS' : 0,
+            'MOONBAG' : 0,
+            'SELLAMOUNTINTOKENS' : 'all',
+            'GAS' : 20,
+            'BOOSTPERCENT' : 50,
+            'GASLIMIT' : 1000000
+
+        }
+
+        for default_key in token_defaults:
+            if default_key not in token:
+                printt_v (default_key , "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a value of", token_defaults['default_key'])
+                token[default_key] = token_defaults[default_key]
+            elif default_key == 'SELLAMOUNTINTOKENS':
+                token_defaults[default_key] = token_defaults[default_key].lower()
+
+    return tokens
+
 
 """""""""""""""""""""""""""
 //PRELOAD
 """""""""""""""""""""""""""
 print(timestamp(), "Preloading Data")
-f = open('./settings.json', )
-settings = json.load(f)[0]
-f.close()
+settings = load_settings_file(command_line_args.settings)
 
 directory = './abi/'
 filename = "standard.json"
@@ -90,6 +245,14 @@ with open(file_path) as json_file:
 """""""""""""""""""""""""""
 //ERROR LOGGING
 """""""""""""""""""""""""""
+os.makedirs('./logs', exist_ok=True)
+
+if not os.path.exists('./logs/errors.log'):
+    open('./logs/errors.log', 'w').close()
+
+if not os.path.exists('./logs/exceptions.log'):
+    open('./logs/exceptions.log', 'w').close()
+    
 log_format = '%(levelname)s: %(asctime)s %(message)s'
 logging.basicConfig(filename='./logs/errors.log',
                     level=logging.INFO,
@@ -405,7 +568,13 @@ elif settings["EXCHANGE"].lower() == 'pangolin':
 
 
 def get_password():
-    global settings_changed
+    # Function: get_password
+    # ----------------------------
+    # Handles the decision making logic concerning private key encryption and asking the user for their password.
+    #
+    # returns: the user's password
+
+    settings_changed = False
     setnewpassword = False
 
     # Check to see if the user has a version of the settings file before private key encryption existed
@@ -443,8 +612,11 @@ def get_password():
     # The user already has encrypted private keys. Accept a password so we can unencrypt them
     elif settings['ENCRYPTPRIVATEKEYS'] == "true":
 
-        pwd = pwinput.pwinput(prompt="\nPlease specify the password to decrypt your keys: ")
-
+        if command_line_args.password:
+            pwd = command_line_args.password
+        else:
+            pwd = pwinput.pwinput(prompt="\nPlease specify the password to decrypt your keys: ")
+            
     else:
         pwd = ""
 
@@ -457,6 +629,9 @@ def get_password():
         print("X       and anyone with physical access to the machine or hard drives.           X")
         print("X WARNING =-= WARNING =-= WARNING =-= WARNING =-= WARNING =-= WARNING=-= WARNING X")
         print()
+        
+    if settings_changed == True:
+        save_settings(settings, pwd)
 
     return pwd
 
@@ -495,36 +670,40 @@ def honeypot_check(address):
     return requests.get(url)
 
 
-def save_settings(pwd):
-    global settings_changed
-
+def save_settings(settings, pwd):
+    
     if len(pwd) > 0:
         encrypted_settings = settings.copy()
         encrypted_settings['LIMITWALLETPRIVATEKEY'] = 'aes:' + cryptocode.encrypt(settings['LIMITWALLETPRIVATEKEY'],
                                                                                   pwd)
         encrypted_settings['PRIVATEKEY'] = 'aes:' + cryptocode.encrypt(settings['PRIVATEKEY'], pwd)
 
-    # MASSAGE OUTPUT - LimitSwap currently loads settings.json as a [0] element, so we need to massage our
+    # TODO: MASSAGE OUTPUT - LimitSwap currently loads settings.json as a [0] element, so we need to massage our
     #                  settings.json output so that it's reasable. This should probably be fixed by us importing
     #                  the entire json file, instead of just the [0] element.
-    if settings_changed == True:
-        print(timestamp(), "Writing settings to file.")
+    print(timestamp(), "Writing settings to file.")
 
-        if settings['ENCRYPTPRIVATEKEYS'] == "true":
-            output_settings = encrypted_settings
-        else:
-            output_settings = settings
+    if settings['ENCRYPTPRIVATEKEYS'] == "true":
+        output_settings = encrypted_settings
+    else:
+        output_settings = settings
 
-        with open('settings.json', 'w') as f:
-            f.write("[\n")
-            f.write(json.dumps(output_settings, indent=4))
-            f.write("\n]\n")
+    with open(command_line_args.settings, 'w') as f:
+        f.write("[\n")
+        f.write(json.dumps(output_settings, indent=4))
+        f.write("\n]\n")
 
 
-def load_wallet_settings(pwd):
-    global settings
-    global settings_changed
+def parse_wallet_settings(settings, pwd):
+    # Function: load_wallet_settings
+    # ----------------------------
+    # Handles the process of deciding whether or not the user's private key needs to be decrypted
+    # Accepts user input for new private keys and wallet addresses
+    #
+    # returns: none (exits on incorrect password)
 
+    settings_changed = False
+    
     # Check for limit wallet information
     if " " in settings['LIMITWALLETADDRESS'] or settings['LIMITWALLETADDRESS'] == "":
         settings_changed = True
@@ -538,7 +717,7 @@ def load_wallet_settings(pwd):
 
     # If the limit wallet private key is already set and encrypted, decrypt it
     elif settings['LIMITWALLETPRIVATEKEY'].startswith('aes:'):
-        print(timestamp(), "Decrypting limit wallet private key.")
+        printt("Decrypting limit wallet private key.")
         settings['LIMITWALLETPRIVATEKEY'] = settings['LIMITWALLETPRIVATEKEY'].replace('aes:', "", 1)
         settings['LIMITWALLETPRIVATEKEY'] = cryptocode.decrypt(settings['LIMITWALLETPRIVATEKEY'], pwd)
 
@@ -564,6 +743,8 @@ def load_wallet_settings(pwd):
         settings['PRIVATEKEY'] = settings['PRIVATEKEY'].replace('aes:', "", 1)
         settings['PRIVATEKEY'] = cryptocode.decrypt(settings['PRIVATEKEY'], pwd)
 
+    if settings_changed == True:
+        save_settings(settings, pwd)
 
 def decimals(address):
     try:
