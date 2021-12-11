@@ -14,13 +14,18 @@ There are 2 ways to install LimitSwap :
 &nbsp;
 
 
-### 1.) Run The Python Code Locally [*this is most ideal and can work on any OS*]
+### 1. Run The Python Code Locally [*this is most ideal and can work on any OS*]
 Here is a tutorial step-by-step: 
 - Download last LimitSwap code here : 
 <img src="https://user-images.githubusercontent.com/70858574/145568534-e22c2887-d761-4fba-8dd0-f765b4300a6c.png" width="300">
 
 - Unzip file
-- Install Python on your computer : https://www.python.org/downloads/
+- Install Python on your computer : https://www.python.org/downloads/ 
+
+**PLEASE ADD IT TO PATH BY CHECKING THIS OPTION:**
+
+<img src="https://user-images.githubusercontent.com/70858574/145692350-b2cb248a-8888-4471-8a63-2b6654e9b671.png" width="500">
+
 - Install Visual Studio : https://visualstudio.microsoft.com/fr/thank-you-downloading-visual-studio/?sku=Community&rel=17
 
 Please install the default package and all those options :
@@ -44,7 +49,7 @@ Simply **double-click on "LimitSwap.py"** and it will run, since you've installe
 &nbsp;
 &nbsp;
 
-### 2.) Download the pre-compiled package [*This can lag behind current version*]
+### 2. Download the pre-compiled package [*This can lag behind current version*]
 That we provide on the Release page : it's a .exe file that you can run on your computer.
 https://github.com/CryptoGnome/LimitSwap/releases
 
