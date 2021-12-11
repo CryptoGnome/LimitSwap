@@ -16,28 +16,48 @@ There are 3 ways to install LimitSwap :
 
 ### 1. Run The Python Code Locally [*this is most ideal and can work on any OS*]
 Here is a tutorial step-by-step: 
-- Download last LimitSwap code here : 
+- [x] Download last LimitSwap code here : 
 <img src="https://user-images.githubusercontent.com/70858574/145568534-e22c2887-d761-4fba-8dd0-f765b4300a6c.png" width="300">
 
-- Unzip file
-- Install Python on your computer : https://www.python.org/downloads/ 
+- [x] Unzip file
+- [x] Install Python on your computer : https://www.python.org/downloads/ 
 
 **PLEASE ADD IT TO PATH BY CHECKING THIS OPTION:**
 
 <img src="https://user-images.githubusercontent.com/70858574/145692350-b2cb248a-8888-4471-8a63-2b6654e9b671.png" width="500">
 
-- Install Visual Studio : https://visualstudio.microsoft.com/fr/thank-you-downloading-visual-studio/?sku=Community&rel=17
+- [x] Install Visual Studio : https://visualstudio.microsoft.com/fr/thank-you-downloading-visual-studio/?sku=Community&rel=17
 
 Please install the default package and all those options :
 ![image](https://user-images.githubusercontent.com/70858574/145580447-bd648d6d-c3ce-4dd9-8527-84ecfb5f30cc.png)
 
-- Open **Windows Powershell** (or Mac Terminal on MacOs)
-- Navigate into the unzipped folder 
-- Run command: `pip install -r requirements.txt`  --> this will install all the packages needed to run LimitSwap
+- [x] Open **Windows Powershell** (or Mac Terminal on MacOs)
 
-==> And it's done! ✅
+- [X] Run this command to locate LimitSwap folder : 
 
-Simply **double-click on "LimitSwap.py"** and it will run, since you've installed Python 👍👍
+`Get-ChildItem -Filter LimitSwap.py -Recurse -ErrorAction SilentlyContinue -Force`
+
+- [X] Copy the Directory 
+
+(example : `C:\Users\Administrator\Desktop\LimitSwap-master`)
+
+- [X] Paste the Directory after the "cd" command to navigate through the bot folder 
+
+(example : ` cd C:\Users\Administrator\Desktop\LimitSwap-master`)
+
+- [x] It should look like this:
+
+<img src="https://user-images.githubusercontent.com/70858574/145693132-509cb684-8fd8-45d3-8ecf-0e90a5c7e513.png" width="700">
+
+- [x] Run command: `pip install -r requirements.txt`  --> this will install all the packages needed to run LimitSwap
+
+&nbsp;
+
+✅ ✅ ✅ And it's done! ✅ ✅ ✅
+
+&nbsp;
+
+- [x] Simply **double-click on "LimitSwap.py"** and it will run, since you've installed Python 👍👍
 
 &nbsp;
 
@@ -90,8 +110,6 @@ To stop the bot `docker stop limit_swap_v4`
 🟢 : easy to setup if you know Docker
 
 🔴 : needs Docker
-
-&nbsp;
 
 &nbsp;
 
