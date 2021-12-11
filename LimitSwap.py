@@ -192,7 +192,7 @@ def load_tokens_file(tokens_path, load_message=True):
             'MAXTOKENS': 0,
             'MOONBAG': 0,
             'SELLAMOUNTINTOKENS': 'all',
-            'GAS': 20,
+            'GAS': 8,
             'BOOSTPERCENT': 50,
             'GASLIMIT': 1000000
 
