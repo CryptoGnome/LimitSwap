@@ -87,6 +87,14 @@ with open(file_path) as json_file:
 """""""""""""""""""""""""""
 //ERROR LOGGING
 """""""""""""""""""""""""""
+os.makedirs('./logs', exist_ok=True)
+
+if not os.path.exists('./logs/errors.log'):
+    open('./logs/errors.log', 'w').close()
+
+if not os.path.exists('./logs/exceptions.log'):
+    open('./logs/exceptions.log', 'w').close()
+
 log_format = '%(levelname)s: %(asctime)s %(message)s'
 logging.basicConfig(filename='./logs/errors.log',
                     level=logging.INFO,
