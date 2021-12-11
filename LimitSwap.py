@@ -972,9 +972,23 @@ def check_pool(inToken, outToken, symbol):
     DECIMALS = decimals(outToken)
     pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
     reserves = pair_contract.functions.getReserves().call()
-    pooled = reserves[1] / DECIMALS
-    # print("Debug LIQUIDITYAMOUNT line 627 :", pooled, "in token:", outToken)
 
+    # This is a little trick to improve reliability of LIQUIDITYCHECK, before we're able to solve this bug completely
+    # We check if reserves[1] is a "regular number", otherwise we use reserves[0]. No better idea for now.
+    # print("----------------------------------------------------------------------")
+    if 0.01 <= (int(reserves[1]) / DECIMALS) <= 10000000:
+        pooled = reserves[1] / DECIMALS
+        #     print("on choisit reserves[1]")
+    else:
+        pooled = reserves[0] / DECIMALS
+        #     print("on choisit reserves[0]")
+    # print("----------------------------------------------------------------------")
+    # print("Debug reserves[0] line 982:     ", reserves[0] / DECIMALS)
+    # print("Debug reserves[1] line 982:     ", reserves[1] / DECIMALS)
+    # print("----------------------------------------------------------------------")
+    # print("Debug LIQUIDITYAMOUNT line 981 :", pooled, "in token:", outToken)
+    # print("----------------------------------------------------------------------")
+    # sleep(50)
     return pooled
 
 
