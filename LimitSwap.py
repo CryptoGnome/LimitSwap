@@ -896,10 +896,6 @@ def check_approval(address, balance):
     contract = client.eth.contract(address=Web3.toChecksumAddress(address), abi=standardAbi)
     allowance = contract.functions.allowance(Web3.toChecksumAddress(settings['WALLETADDRESS']), routerAddress).call()
 
-    print("debut allowance:", allowance)
-    print("debut balance:", balance)
-    sleep(10)
-
     if int(allowance) < int(balance):
 
         if settings["EXCHANGE"].lower() == 'quickswap':
