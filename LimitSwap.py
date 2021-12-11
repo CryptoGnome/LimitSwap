@@ -761,7 +761,6 @@ def check_pool(inToken, outToken, symbol):
     pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
     reserves = pair_contract.functions.getReserves().call()
     pooled = reserves[1] / DECIMALS
-    # print("Debug LIQUIDITYAMOUNT line 627 :", pooled, "in token:", outToken)
 
     return pooled
 
@@ -1121,12 +1120,10 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
             balance = check_balance(inToken, symbol)
             moonbag = int(Decimal(moonbag) * DECIMALS)
             amount = int(Decimal(balance - moonbag))
-            print("debug 1036 amount ALL:", amount)
 
         else:
             balance = check_balance(inToken, symbol)
             amount = Decimal(amount) * DECIMALS
-            print("debug 1040 amount:", amount)
             moonbag = int(Decimal(moonbag) * DECIMALS)
 
             if balance < amount:
@@ -1473,8 +1470,6 @@ def run():
                                             token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'],
                                             token['BUYPRICEINBASE'])
                         pool = check_pool(inToken, outToken, token['BASESYMBOL'])
-                    # print("Debug Liquidity Reserves ligne 1267:", float(pool))
-                    # print("Debug inToken : ", inToken, "outToken :", outToken)
 
                     except Exception:
                         print(timestamp(), token['SYMBOL'],
@@ -1688,6 +1683,7 @@ try:
     else:
         print(timestamp(),
               "10 - 50 $LIMIT tokens needed to use this bot, please visit the LimitSwap.com for more info or buy more tokens on Uniswap to use!")
+        sleep(10)
         logging.exception(
             "10 - 50 $LIMIT tokens needed to use this bot, please visit the LimitSwap.com for more info or buy more tokens on Uniswap to use!")
 
