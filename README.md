@@ -7,8 +7,8 @@ LimitSwap is a trading bot for UniSwap & Many Other DEXs. It has the ability to 
 &nbsp;
 &nbsp;
 
-## Install LimitSwap
-There are 2 ways to install LimitSwap : 
+## HOW TO INSTALL LimitSwap
+There are 3 ways to install LimitSwap : 
 
 &nbsp;
 &nbsp;
@@ -33,7 +33,7 @@ Please install the default package and all those options :
 
 - Open **Windows Powershell** (or Mac Terminal on MacOs)
 - Navigate into the unzipped folder 
-- Run command: "**pip install -r requirements.txt**"  --> this will install all the packages needed to run LimitSwap
+- Run command: `pip install -r requirements.txt`  --> this will install all the packages needed to run LimitSwap
 
 ==> And it's done! ✅
 
@@ -57,6 +57,47 @@ https://github.com/CryptoGnome/LimitSwap/releases
 🟢 : very easy to setup
 
 🔴 : it's pre-compiled, so you cannot check the Source Code
+
+&nbsp;
+&nbsp;
+
+### 3. With Docker
+
+#### Requirements
+MacOS and Windows users require Docker for Desktop https://www.docker.com/products/docker-desktop
+Ubuntu Linux require Docker installed `sudo apt-get install docker.io`
+
+#### Usage
+Navigate into the bot directory and build the Docker image by executing the following command:
+
+`docker build -t limit_swap_v4 .`
+
+(For MacOS and Linux) Still within the main directory you can run Docker via:
+
+`docker run --rm --name limit-swap_v4 -it -v $(pwd)/settings.json:/app/settings.json -v $(pwd)/tokens.json:/app/tokens.json limit_swap_v4`
+
+(For Windows with Powershell)
+
+`docker run --rm --name limit-swap_v4 -it -v $PWD/settings.json:/app/settings.json -v $PWD/tokens.json:/app/tokens.json limit_swap_v4`
+
+If you wish to run the container in the background please include -d for detached.
+
+The streaming container logs can be visualised with `docker logs -f limit_swap_v4`
+
+To stop the bot `docker stop limit_swap_v4`
+
+#### Pros and cons
+🟢 : easy to setup if you know Docker
+
+🔴 : needs Docker
+
+&nbsp;
+
+&nbsp;
+
+&nbsp;
+
+&nbsp;
 
 
 ## Developers 🔧
