@@ -1805,17 +1805,14 @@ def run():
     global failedtransactionsamount
 
     try:
-        s = open('./tokens.json', )
-        tokens = json.load(s)
-        s.close()
+        tokens = load_tokens_file(command_line_args.tokens, True)
 
         eth_balance = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
 
         if eth_balance > 0.05:
             pass
         else:
-            print(
-                style.RED + "\nYou have less than 0.05 ETH/BNB/FTM/MATIC/Etc. token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet")
+            print(style.RED + "\nYou have less than 0.05 ETH/BNB/FTM/MATIC/Etc. token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet")
             logging.info(
                 "You have less than 0.05 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
             sleep(10)
@@ -1827,7 +1824,15 @@ def run():
             pass
 
         for token in tokens:
-
+            # Initialization of values, in case the user re-used some old tokens.json files
+            if 'RUGDOC_CHECK' not in token:
+                token['RUGDOC_CHECK'] = 'false'
+            if 'BUYAFTER_XXX_SECONDS' not in token:
+                token['BUYAFTER_XXX_SECONDS'] = 0
+            if 'MAX_FAILED_TRANSACTIONS_IN_A_ROW' not in token:
+                token['MAX_FAILED_TRANSACTIONS_IN_A_ROW'] = 2
+            # End of initialization of values
+                
             if token['RUGDOC_CHECK'].lower() == 'true':
 
                 honeypot = honeypot_check(address=token['ADDRESS'])
@@ -1853,12 +1858,18 @@ def run():
                 pass
 
         while True:
-            s = open('./tokens.json', )
-            tokens = json.load(s)
-            s.close()
-
+            tokens = load_tokens_file(command_line_args.tokens, False)
+            
             for token in tokens:
-
+                # Initialization of values, in case the user re-used some old tokens.json files
+                if 'RUGDOC_CHECK' not in token:
+                    token['RUGDOC_CHECK'] = 'false'
+                if 'BUYAFTER_XXX_SECONDS' not in token:
+                    token['BUYAFTER_XXX_SECONDS'] = 0
+                if 'MAX_FAILED_TRANSACTIONS_IN_A_ROW' not in token:
+                    token['MAX_FAILED_TRANSACTIONS_IN_A_ROW'] = 2
+                # End of initialization of values
+                
                 if token['ENABLED'].lower() == 'true':
                     inToken = Web3.toChecksumAddress(token['ADDRESS'])
 
@@ -1990,8 +2001,7 @@ def run():
 
 
                         else:
-                            print(
-                                timestamp(), "You own more tokens than your MAXTOKENS parameter for ", token['SYMBOL'])
+                            print(timestamp(), "You own more tokens than your MAXTOKENS parameter for ", token['SYMBOL'])
 
                             if quote > Decimal(token['SELLPRICEINBASE']):
                                 DECIMALS = decimals(inToken)
@@ -2082,10 +2092,15 @@ def run():
 try:
 
     check_logs()
+
+    # Get the user password on first run
     userpassword = get_password()
-    load_wallet_settings(userpassword)
+
+    # Handle any proccessing that is necessary to load the private key for the wallet
+    parse_wallet_settings(settings, userpassword)
+
+    # The LIMIT balance of the user.
     true_balance = auth()
-    save_settings(userpassword)
 
     version = 3.36
     logging.info("YOUR BOT IS CURRENTLY RUNNING VERSION " + str(version))
