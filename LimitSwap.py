@@ -48,7 +48,7 @@ class style():  # Class of different text colours - default is white
     WHITE = '\033[37m'
     UNDERLINE = '\033[4m'
     RESET = '\033[0m'
-    
+
 # Function to cleanly exit on SIGINT
 def signal_handler(sig, frame):
     sys.exit(0)
@@ -252,7 +252,7 @@ if not os.path.exists('./logs/errors.log'):
 
 if not os.path.exists('./logs/exceptions.log'):
     open('./logs/exceptions.log', 'w').close()
-    
+
 log_format = '%(levelname)s: %(asctime)s %(message)s'
 logging.basicConfig(filename='./logs/errors.log',
                     level=logging.INFO,
@@ -616,7 +616,7 @@ def get_password():
             pwd = command_line_args.password
         else:
             pwd = pwinput.pwinput(prompt="\nPlease specify the password to decrypt your keys: ")
-            
+
     else:
         pwd = ""
 
@@ -671,7 +671,7 @@ def honeypot_check(address):
 
 
 def save_settings(settings, pwd):
-    
+
     if len(pwd) > 0:
         encrypted_settings = settings.copy()
         encrypted_settings['LIMITWALLETPRIVATEKEY'] = 'aes:' + cryptocode.encrypt(settings['LIMITWALLETPRIVATEKEY'],
@@ -681,6 +681,7 @@ def save_settings(settings, pwd):
     # TODO: MASSAGE OUTPUT - LimitSwap currently loads settings.json as a [0] element, so we need to massage our
     #                  settings.json output so that it's reasable. This should probably be fixed by us importing
     #                  the entire json file, instead of just the [0] element.
+    
     print(timestamp(), "Writing settings to file.")
 
     if settings['ENCRYPTPRIVATEKEYS'] == "true":
@@ -745,6 +746,7 @@ def parse_wallet_settings(settings, pwd):
 
     if settings_changed == True:
         save_settings(settings, pwd)
+
 
 def decimals(address):
     try:
@@ -882,9 +884,9 @@ def approve(address, amount):
             return tx_hash
     else:
         print(timestamp(),
-              "You have less than 0.01 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
+              "You have less than 0.05 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
         logging.info(
-            "You have less than 0.01 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
+            "You have less than 0.05 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
         sleep(10)
         sys.exit()
 
@@ -1057,12 +1059,10 @@ def preapprove(tokens):
                            115792089237316195423570985008687907853269984665640564039457584007913129639934)
 
 
-def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom, symbol, base, routing, waitseconds,
-        failedtransactionsnumber):
+def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom, symbol, base, routing, waitseconds, failedtransactionsnumber):
     seconds = int(waitseconds)
     if int(failedtransactionsamount) == int(failedtransactionsnumber):
-        print(
-            style.RED + "\n                           ---------------------------------------------------------------\n"
+        print(style.RED + "\n                           ---------------------------------------------------------------\n"
                         "                             Bot has reached maximum FAILED TRANSACTIONS number: it stops\n"
                         "                           ---------------------------------------------------------------\n\n")
 
@@ -1078,8 +1078,7 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
         print(timestamp(), "Placing New Buy Order for " + symbol)
 
         if int(gaslimit) < 250000:
-            print(
-                "Your GASLIMIT parameter is too low : LimitSwap has forced it to 300000 otherwise your transaction would fail for sure. We advise you to raise it to 1000000.")
+            print("Your GASLIMIT parameter is too low : LimitSwap has forced it to 300000 otherwise your transaction would fail for sure. We advise you to raise it to 1000000.")
             gaslimit = 300000
 
         if custom.lower() == 'false':
@@ -1802,9 +1801,11 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
 
 
 def run():
+    
     global failedtransactionsamount
 
     try:
+        
         tokens = load_tokens_file(command_line_args.tokens, True)
 
         eth_balance = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
@@ -1813,8 +1814,7 @@ def run():
             pass
         else:
             print(style.RED + "\nYou have less than 0.05 ETH/BNB/FTM/MATIC/Etc. token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet")
-            logging.info(
-                "You have less than 0.05 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
+            logging.info("You have less than 0.05 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
             sleep(10)
             sys.exit()
 
