@@ -815,7 +815,7 @@ def auth():
     client2 = Web3(Web3.HTTPProvider(my_provider2))
     print(timestamp(), "Connected to Ethereum BlockChain =", client2.isConnected())
     # Insert LIMITSWAP Token Contract Here To Calculate Staked Verification
-    address = Web3.toChecksumAddress("0xab95e915c123fded5bdfb6325e35ef5515f1ea69")
+    address = Web3.toChecksumAddress("0x1712aad2c773ee04bdc9114b32163c058321cd85")
     abi = standardAbi
     balanceContract = client2.eth.contract(address=address, abi=abi)
     decimals = balanceContract.functions.decimals().call()
@@ -842,7 +842,7 @@ def approve(address, amount):
 
     eth_balance = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
 
-    if eth_balance > 0.00005:
+    if eth_balance > 0.05:
         print("Estimating Gas Cost Using Web3")
         if settings['EXCHANGE'].lower() == 'uniswap':
             print("Estimating Gas Cost Using Web3")
@@ -1835,7 +1835,7 @@ def run():
 
         eth_balance = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
 
-        if eth_balance > 0.000005:
+        if eth_balance > 0.05:
             pass
         else:
             print(
