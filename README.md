@@ -20,7 +20,11 @@ Here is a tutorial step-by-step:
 <img src="https://user-images.githubusercontent.com/70858574/145568534-e22c2887-d761-4fba-8dd0-f765b4300a6c.png" width="300">
 
 - Unzip file
-- Install Python on your computer : https://www.python.org/downloads/
+- Install Python on your computer : https://www.python.org/downloads/   and ADD IT TO YOUR PATH:
+<img src="https://user-images.githubusercontent.com/70858574/145666362-f9d9d15d-0045-4d6d-9f70-67e8f8b9bb0f.jpg" width="500">
+
+
+
 - Install Visual Studio : https://visualstudio.microsoft.com/fr/thank-you-downloading-visual-studio/?sku=Community&rel=17
 
 Please install the default package and all those options :
