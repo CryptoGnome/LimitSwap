@@ -194,7 +194,8 @@ def load_tokens_file(tokens_path, load_message=True):
             'SELLAMOUNTINTOKENS': 'all',
             'GAS': 8,
             'BOOSTPERCENT': 50,
-            'GASLIMIT': 1000000
+            'GASLIMIT': 1000000,
+            'STOPLOSSPRICEINBASE': 0
 
         }
 
@@ -845,7 +846,6 @@ def approve(address, amount):
     if eth_balance > 0.05:
         print("Estimating Gas Cost Using Web3")
         if settings['EXCHANGE'].lower() == 'uniswap':
-            print("Estimating Gas Cost Using Web3")
             gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
             print("Current Gas Price =", gas)
 
@@ -916,7 +916,7 @@ def check_approval(address, balance):
             print("Revert to Zero To change approval")
             tx = approve(address, 0)
             wait_for_tx(tx, address, False)
-            tx = approve(address, 115792089237316195423570985008687907853269984665640564039457584007913129639934)
+            tx = approve(address, 115792089237316195423570985008687907853269984665640564039457584007913129639935)
             wait_for_tx(tx, address, False)
         else:
             print(style.YELLOW + "\n                           ---------------------------------------------------------------------------\n"
@@ -924,10 +924,10 @@ def check_approval(address, balance):
                         "                           ---------------------------------------------------------------------------")
             print(style.RESET + "\n")
 
-            tx = approve(address, 115792089237316195423570985008687907853269984665640564039457584007913129639934)
+            tx = approve(address, 115792089237316195423570985008687907853269984665640564039457584007913129639935)
             wait_for_tx(tx, address, False)
             print(style.GREEN + "\n                           ---------------------------------------------------------\n"
-                        "                           Token is now approved : LimitSwap will make a BUY order\n"
+                        "                             Token is now approved : LimitSwap can sell this token\n"
                         "                           ---------------------------------------------------------")
             print(style.RESET + "\n")
 
@@ -996,7 +996,7 @@ def check_pool(inToken, outToken, symbol):
     return pooled
 
 
-def check_price(inToken, outToken, symbol, base, custom, routing, buypriceinbase, sellpriceinbase):
+def check_price(inToken, outToken, symbol, base, custom, routing, buypriceinbase, sellpriceinbase, stoplosspriceinbase):
     # CHECK GET RATE OF THE TOKEn
 
     DECIMALS = decimals(inToken)
@@ -1013,14 +1013,14 @@ def check_price(inToken, outToken, symbol, base, custom, routing, buypriceinbase
             DECIMALS = decimals(outToken)
             tokenPrice = price_check / DECIMALS
             print(stamp, symbol, " Price ", tokenPrice, base, "//// your buyprice =", buypriceinbase, base,
-                  "//// your sellprice =", sellpriceinbase, base)
+                  "//// your sellprice =", sellpriceinbase, base, "//// your stoplossprice =", stoplosspriceinbase, base)
         else:
             price_check = routerContract.functions.getAmountsOut(1 * DECIMALS, [inToken, weth]).call()[-1]
             DECIMALS = decimals(outToken)
             tokenPrice = price_check / DECIMALS
             price_output = "{:.18f}".format(tokenPrice)
             print(stamp, symbol, "Price =", price_output, base, "//// your buyprice =", buypriceinbase, base,
-                  "//// your sellprice =", sellpriceinbase, base)
+                  "//// your sellprice =", sellpriceinbase, base, "//// your stoplossprice =", stoplosspriceinbase, base)
 
     else:
         if outToken != weth:
@@ -1028,14 +1028,14 @@ def check_price(inToken, outToken, symbol, base, custom, routing, buypriceinbase
             DECIMALS = decimals(outToken)
             tokenPrice = price_check / DECIMALS
             print(stamp, symbol, " Price ", tokenPrice, base, "//// your buyprice =", buypriceinbase, base,
-                  "//// your sellprice =", sellpriceinbase, base)
+                  "//// your sellprice =", sellpriceinbase, base, "//// your stoplossprice =", stoplosspriceinbase, base)
         else:
             price_check = routerContract.functions.getAmountsOut(1 * DECIMALS, [inToken, weth]).call()[-1]
             DECIMALS = decimals(outToken)
             tokenPrice = price_check / DECIMALS
             price_output = "{:.18f}".format(tokenPrice)
             print(stamp, symbol, "Price =", price_output, base, "//// your buyprice =", buypriceinbase, base,
-                  "//// your sellprice =", sellpriceinbase, base)
+                  "//// your sellprice =", sellpriceinbase, base, "//// your stoplossprice =", stoplosspriceinbase, base)
 
     return tokenPrice
 
@@ -1091,13 +1091,13 @@ def wait_for_tx(tx_hash, address, check):
 
 def preapprove(tokens):
     for token in tokens:
-        check_approval(token['ADDRESS'], 115792089237316195423570985008687907853269984665640564039457584007913129639934)
+        check_approval(token['ADDRESS'], 115792089237316195423570985008687907853269984665640564039457584007913129639935)
 
         if token['USECUSTOMBASEPAIR'].lower() == 'false':
-            check_approval(weth, 115792089237316195423570985008687907853269984665640564039457584007913129639934)
+            check_approval(weth, 115792089237316195423570985008687907853269984665640564039457584007913129639935)
         else:
             check_approval(token['BASEADDRESS'],
-                           115792089237316195423570985008687907853269984665640564039457584007913129639934)
+                           115792089237316195423570985008687907853269984665640564039457584007913129639935)
 
 
 def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom, symbol, base, routing, waitseconds,
@@ -1926,7 +1926,7 @@ def run():
                     try:
                         quote = check_price(inToken, outToken, token['SYMBOL'], token['BASESYMBOL'],
                                             token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'],
-                                            token['BUYPRICEINBASE'], token['SELLPRICEINBASE'])
+                                            token['BUYPRICEINBASE'], token['SELLPRICEINBASE'], token['STOPLOSSPRICEINBASE'])
                         pool = check_pool(inToken, outToken, token['BASESYMBOL'])
                     # print("Debug Liquidity Reserves ligne 1267:", float(pool))
                     # print("Debug inToken : ", inToken, "outToken :", outToken)
@@ -1985,7 +1985,7 @@ def run():
                                         else:
                                             # transaction is a SUCCESS
                                             print(
-                                                style.GREEN + "\n                           ----------------------------------\n"
+                                                style.GREEN + "                           ----------------------------------\n"
                                                               "                           SUCCESS : your Tx is confirmed :)\n"
                                                               "                           ----------------------------------\n")
                                             print(style.RESET + "")
@@ -2035,7 +2035,7 @@ def run():
                                     else:
                                         # transaction is a SUCCESS
                                         print(
-                                            style.GREEN + "\n                           ----------------------------------\n"
+                                            style.GREEN + "                           ----------------------------------\n"
                                                           "                           SUCCESS : your Tx is confirmed :)\n"
                                                           "                           ----------------------------------\n")
                                         print(style.RESET + "")
@@ -2049,7 +2049,7 @@ def run():
                             print(timestamp(), "You own more tokens than your MAXTOKENS parameter for ",
                                   token['SYMBOL'])
 
-                            if quote > Decimal(token['SELLPRICEINBASE']):
+                            if (quote > Decimal(token['SELLPRICEINBASE'])) or (quote < Decimal(token['STOPLOSSPRICEINBASE'])):
                                 DECIMALS = decimals(inToken)
                                 balance = check_balance(inToken, token['SYMBOL'])
                                 moonbag = int(Decimal(token['MOONBAG']) * DECIMALS)
@@ -2068,13 +2068,15 @@ def run():
                                         style.RESET + "\n                           --------------------------------------\n"
                                                       "                            √  Tx done. Check your wallet \n"
                                                       "                           --------------------------------------")
-                                    sleep(5)
-                                    print(style.RESET + "")
+                                    sleep(3)
+                                    check_balance(token['ADDRESS'], token['SYMBOL'])
+                                    print(style.RESET + "\n")
+                                    sleep(3)
                                 else:
                                     pass
 
 
-                    elif quote > Decimal(token['SELLPRICEINBASE']) and quote != 0:
+                    elif ((quote > Decimal(token['SELLPRICEINBASE']) or quote < Decimal(token['STOPLOSSPRICEINBASE'])) and quote != 0):
                         DECIMALS = decimals(inToken)
                         balance = check_balance(inToken, token['SYMBOL'])
                         moonbag = int(Decimal(token['MOONBAG']) * DECIMALS)
@@ -2092,8 +2094,10 @@ def run():
                                 style.RESET + "\n                           --------------------------------------\n"
                                               "                            √  Tx done. Check your wallet \n"
                                               "                           --------------------------------------")
-                            sleep(5)
-                            print(style.RESET + "")
+                            sleep(3)
+                            check_balance(token['ADDRESS'], token['SYMBOL'])
+                            print(style.RESET + "\n")
+                            sleep(3)
 
                         else:
                             # Double Check For Buy if Sell Signal Triggers
