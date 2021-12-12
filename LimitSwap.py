@@ -2177,7 +2177,7 @@ try:
     # The LIMIT balance of the user.
     true_balance = auth()
 
-    version = 3.36
+    version = 3.44
     logging.info("YOUR BOT IS CURRENTLY RUNNING VERSION " + str(version))
     print("YOUR BOT IS CURRENTLY RUNNING VERSION " + str(version))
     check_release()
