@@ -3,7 +3,6 @@ from time import sleep, time
 import json
 from decimal import Decimal
 import os
-import web3
 from web3.exceptions import ABIFunctionNotFound, TransactionNotFound, BadFunctionCallOutput
 import logging
 from datetime import datetime
@@ -12,7 +11,6 @@ import requests
 import cryptocode, re, pwinput
 import argparse
 import signal
-import yaml
 
 # DEVELOPER CONSIDERATIONS
 #
