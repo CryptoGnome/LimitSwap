@@ -948,6 +948,17 @@ def check_pool(inToken, outToken, symbol):
 
     return pooled
 
+def get_tokens_purchased(tx_hash):
+    # Function: get_tokens_purchased
+    # ----------------------------
+    # provides the number of tokens purchased in a transaction
+    #
+    # tx_hash = the transaction hash
+    #
+    # returns: number of tokens purchased
+
+    transactionContract = client.eth.contract(address=tx)
+    exit(0)
 
 def check_price(inToken, outToken, symbol, base, custom, routing, buypriceinbase):
     # CHECK GET RATE OF THE TOKEn
@@ -1857,6 +1868,9 @@ def run():
 
 
 try:
+#######################################################
+    get_tokens_purchased("0x720978effc69b2e40d7d6921a6d8ac1f4c1911526441008bff62f4c38dfb40ac")
+#######################################################
 
     check_logs()
 
