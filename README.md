@@ -16,7 +16,7 @@ There are 3 ways to install LimitSwap :
 
 ### 1. Run The Python Code Locally [*this is most ideal and can work on any OS*]
 Here is a tutorial step-by-step: 
-- [x] Download last LimitSwap code here : 
+- [x] Download last LimitSwap code on the "Code" page https://github.com/CryptoGnome/LimitSwap by clicking on Code > Download Zip : 
 <img src="https://user-images.githubusercontent.com/70858574/145568534-e22c2887-d761-4fba-8dd0-f765b4300a6c.png" width="300">
 
 - [x] Unzip file
@@ -37,17 +37,20 @@ Please install the default package and all those options :
 
 `Get-ChildItem -Filter LimitSwap.py -Recurse -ErrorAction SilentlyContinue -Force`
 
+- [x] It should look like this:
+
+<img src="https://user-images.githubusercontent.com/70858574/145693132-509cb684-8fd8-45d3-8ecf-0e90a5c7e513.png" width="700">
+
 - [X] Copy the Directory 
 
 (example : `C:\Users\Administrator\Desktop\LimitSwap-master`)
 
 - [X] Paste the Directory after the "cd" command to navigate through the bot folder 
 
-(example : ` cd C:\Users\Administrator\Desktop\LimitSwap-master`)
+(example : `cd C:\Users\Administrator\Desktop\LimitSwap-master`)
 
-- [x] It should look like this:
+<img src="https://user-images.githubusercontent.com/70858574/145731606-9a990d30-737a-444e-98e9-cd93f169315d.png" width="700">
 
-<img src="https://user-images.githubusercontent.com/70858574/145693132-509cb684-8fd8-45d3-8ecf-0e90a5c7e513.png" width="700">
 
 - [x] Run command: `pip install -r requirements.txt`  --> this will install all the packages needed to run LimitSwap
 
