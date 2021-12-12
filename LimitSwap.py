@@ -3,6 +3,7 @@ from time import sleep, time
 import json
 from decimal import Decimal
 import os
+import web3
 from web3.exceptions import ABIFunctionNotFound, TransactionNotFound, BadFunctionCallOutput
 import logging
 from datetime import datetime
@@ -72,6 +73,8 @@ def printt(*print_args):
     # ----------------------------
     # provides normal print() functionality but also prints our timestamp
     #
+    # print_args - normal arguments that would be passed to the print() function
+    #
     # returns: nothing
 
     print(timestamp(),' '.join(map(str,print_args)))
@@ -81,19 +84,38 @@ def printt_v(*print_args):
     # ----------------------------
     # provides normal print() functionality but also prints our timestamp and pays attention to user set verbosity.
     #
+    # print_args - normal arguments that would be passed to the print() function
+    #
     # returns: nothing
     
     if command_line_args.verbose == True:
         print(timestamp(),' '.join(map(str,print_args)))
 
-def printt_err(*print_args):
+def printt_err(*print_args, write_to_log=True):
     # Function: printt_err
     # --------------------
     # provides normal print() functionality but also prints our timestamp and the text highlighted to display an error
+    # 
+    # print_args - normal arguments that would be passed to the print() function
+    # write_to_log - wether or not to write the same text to the log file
     #
     # returns: nothing
 
     print(timestamp(), " ", style.RED, ' '.join(map(str,print_args)), style.RESET, sep="")
+    
+    if write_to_log == True:
+        logging.info(' '.join(map(str,print_args)))
+
+def printt_warn(*print_args):
+    # Function: printt_warn
+    # --------------------
+    # provides normal print() functionality but also prints our timestamp and the text highlighted to display a warning
+    #
+    # print_args - normal arguments that would be passed to the print() function
+    #
+    # returns: nothing
+
+    print(timestamp(), " ", style.YELLOW, ' '.join(map(str,print_args)), style.RESET, sep="")
 
 def load_settings_file(settings_path, load_message = True):
     # Function: load_settings_file
@@ -153,42 +175,78 @@ def load_tokens_file(tokens_path, load_message = True):
     tokens = json.load(s)
     s.close()
 
-    # Make sure all values are lowercase
+    required_user_settings =[
+        'ADDRESS',
+        'BUYAMOUNTINBASE',
+        'BUYPRICEINBASE',
+        'SELLPRICEINBASE'
+    ]
+
+    default_false_settings = [
+        'ENABLED',
+        'LIQUIDITYCHECK',
+        'LIQUIDITYINNATIVETOKEN',
+        'USECUSTOMBASEPAIR',
+        'HASFEES',
+        'RUGDOC_CHECK'
+    ]
+
+    default_value_settings = {
+        'SLIPPAGE' : 49,
+        'MAXTOKENS' : 0,
+        'MOONBAG' : 0,
+        'SELLAMOUNTINTOKENS' : 'all',
+        'GAS' : 20,
+        'BOOSTPERCENT' : 50,
+        'GASLIMIT' : 1000000,
+        'BUYAFTER_XXX_SECONDS' : 0,
+        'MAX_FAILED_TRANSACTIONS_IN_A_ROW' : 0
+    }
+
     for token in tokens:
 
-        for default_false in ['ENABLED', 'LIQUIDITYCHECK', 'LIQUIDITYINNATIVETOKEN', 'USECUSTOMBASEPAIR', 'HASFEES']:
+        # Keys that must be set
+        for required_key in required_user_settings:
+            if required_key not in token:
+                printt_err (required_key, "not found in configuration file in configuration for to token", token['SYMBOL'])
+                exit (-1)
+
+        for default_false in default_false_settings:
             if default_false not in token:
                 printt_v (default_false, "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a default value of false")
                 token[default_false] = "false"
             else:
                 token[default_false] = token[default_false].lower()
 
-
-        # Keys that must be set
-        for required_key in ['ADDRESS', 'BUYAMOUNTINBASE', 'BUYPRICEINBASE', 'SELLPRICEINBASE' ]:
-            if required_key not in token:
-                printt_err (required_key, "not found in configuration file in configuration for to token", token['SYMBOL'])
-                exit (-1)
-
-        token_defaults = {
-            'SLIPPAGE' : 49,
-            'MAXTOKENS' : 0,
-            'MOONBAG' : 0,
-            'SELLAMOUNTINTOKENS' : 'all',
-            'GAS' : 20,
-            'BOOSTPERCENT' : 50,
-            'GASLIMIT' : 1000000
-
-        }
-
-        for default_key in token_defaults:
+        for default_key in default_value_settings:
             if default_key not in token:
-                printt_v (default_key , "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a value of", token_defaults['default_key'])
-                token[default_key] = token_defaults[default_key]
+                printt_v (default_key , "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a value of", default_value_settings['default_key'])
+                token[default_key] = default_value_settings[default_key]
             elif default_key == 'SELLAMOUNTINTOKENS':
-                token_defaults[default_key] = token_defaults[default_key].lower()
+                default_value_settings[default_key] = default_value_settings[default_key].lower()
 
     return tokens
+
+def build_token_list(tokens, all_pairs=False):
+    # Function: build_token_pair_list
+    # ----------------------------
+    # takes our tokens object formated as an array of dicts and returns an array of trading pairs
+    #
+    # tokens: array of dicts representing the tokens to trade in the format absorbed by load_tokens_file
+    # all_pairs: If False (default) returns all enabled pairs - if True returns both enabled and disabled pairs
+    #
+    # returns: an array of all SYMBOLS we are trading
+
+    token_list = ""
+
+    for token in tokens:
+        if all_pairs == True or token["ENABLED"] == True:
+            if token_list != "":
+                token_list = token_list + " "
+            token_list = token_list + token['SYMBOL']
+    
+    return token_list
+
 
 
 """""""""""""""""""""""""""
@@ -957,8 +1015,15 @@ def get_tokens_purchased(tx_hash):
     #
     # returns: number of tokens purchased
 
-    transactionContract = client.eth.contract(address=tx)
+    # Get transaction object
+    tx = client.eth.get_transaction(tx_hash)
+    contract = client.eth.contract(address=tx["to"], abi=lpAbi)
+
+    # decode input data using contract object's decode_function_input() method
+    func_obj, func_params = contract.decode_function_input(tx["input"])
+    print (func_params)
     exit(0)
+ 
 
 def check_price(inToken, outToken, symbol, base, custom, routing, buypriceinbase):
     # CHECK GET RATE OF THE TOKEn
@@ -1611,27 +1676,21 @@ def run():
         if eth_balance > 0.05:
             pass
         else:
-            print(style.RED + "\nYou have less than 0.05 ETH/BNB/FTM/MATIC/Etc. token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet" + style.RESET)
-            logging.info("You have less than 0.05 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
+            printt_err("You have less than 0.05 ETH/BNB/FTM/MATIC/Etc. token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet")
             sleep(10)
             sys.exit()
 
-        if settings['PREAPPROVE'].lower() == 'true':
+        
+        printt("Quantity of tokens attempting to trade:", len(tokens), "(" , build_token_list(tokens) , ")")
+
+        if settings['PREAPPROVE'] == 'true':
             preapprove(tokens)
         else:
             pass
 
-
         for token in tokens:
             
-            if 'RUGDOC_CHECK' not in token:
-                token['RUGDOC_CHECK'] = 'false'
-            if 'BUYAFTER_XXX_SECONDS' not in token:
-                token['BUYAFTER_XXX_SECONDS'] = 0
-            if 'MAX_FAILED_TRANSACTIONS_IN_A_ROW' not in token:
-                token['MAX_FAILED_TRANSACTIONS_IN_A_ROW'] = 2
-
-            if token['RUGDOC_CHECK'].lower() == 'true':
+            if token['RUGDOC_CHECK'] == 'true':
 
                 honeypot = honeypot_check(address=token['ADDRESS'])
                 d = json.loads(honeypot.content)
@@ -1868,9 +1927,6 @@ def run():
 
 
 try:
-#######################################################
-    get_tokens_purchased("0x720978effc69b2e40d7d6921a6d8ac1f4c1911526441008bff62f4c38dfb40ac")
-#######################################################
 
     check_logs()
 
