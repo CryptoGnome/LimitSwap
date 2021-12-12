@@ -3,6 +3,7 @@ from time import sleep, time
 import json
 from decimal import Decimal
 import os
+import web3
 from web3.exceptions import ABIFunctionNotFound, TransactionNotFound, BadFunctionCallOutput
 import logging
 from datetime import datetime
@@ -11,6 +12,7 @@ import requests
 import cryptocode, re, pwinput
 import argparse
 import signal
+import yaml
 
 # DEVELOPER CONSIDERATIONS
 #
@@ -30,6 +32,8 @@ import signal
 #    Do not assume a user has changed their tokens.json file to work with the new version, your additions
 #    should be backwards compatible and have safe default values if possible
 
+# global used to track total number of failed transactions
+failedtransactionsamount = 0
 
 # color styles
 class style():  # Class of different text colours - default is white
@@ -729,9 +733,7 @@ def parse_wallet_settings(settings, pwd):
 
     if settings_changed == True:
         save_settings(settings, pwd)
-
-
-    
+  
 
 def decimals(address):
     try:
@@ -1602,7 +1604,7 @@ def run():
         else:
             pass
 
-        
+
         for token in tokens:
             
             if 'RUGDOC_CHECK' not in token:
