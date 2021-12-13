@@ -43,11 +43,11 @@ Please install the default package and all those options :
 
 - [X] Copy the Directory 
 
-(example : `C:\Users\Administrator\Desktop\LimitSwap-master`)
+(on my computer it's : `C:\Users\Administrator\Desktop\LimitSwap-master` but adapt it to your own result obtained above !!)
 
 - [X] Paste the Directory after the "cd" command to navigate through the bot folder 
 
-(example : `cd C:\Users\Administrator\Desktop\LimitSwap-master`)
+(on my computer it's : `cd C:\Users\Administrator\Desktop\LimitSwap-master`but adapt it to your own result obtained above !!)
 
 <img src="https://user-images.githubusercontent.com/70858574/145731606-9a990d30-737a-444e-98e9-cd93f169315d.png" width="700">
 
