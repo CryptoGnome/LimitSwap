@@ -76,6 +76,19 @@ Please install the default package and all those options :
 That we provide on the Release page : it's a .exe file that you can run on your computer.
 https://github.com/CryptoGnome/LimitSwap/releases
 
+
+- [x] Download last Zip file, for instance :
+
+<img src="https://user-images.githubusercontent.com/70858574/145737351-c659185f-e1f5-4ede-b81e-3b03d0f900f9.png" width="200">
+
+- [x] Unzip it
+- [x] Open "tokens.json - Shortcut" and configure it for your needs
+- [x] Open "Start LimitSwap.cmd" --> it will configure your settings.json
+
+✅ ✅ ✅ And it's done! ✅ ✅ ✅
+
+&nbsp; 
+
 #### Pros and cons
 🟢 : very easy to setup
 
