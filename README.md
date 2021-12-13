@@ -24,7 +24,7 @@ Here is a tutorial step-by-step:
 
 **PLEASE ADD IT TO PATH BY CHECKING THIS OPTION:**
 
-<img src="https://user-images.githubusercontent.com/70858574/145692350-b2cb248a-8888-4471-8a63-2b6654e9b671.png" width="500">
+<img src="https://user-images.githubusercontent.com/70858574/145738124-e724c843-82d5-410d-b0b4-d7a9dda92258.png" width="500">
 
 - [x] Install Visual Studio : https://visualstudio.microsoft.com/fr/thank-you-downloading-visual-studio/?sku=Community&rel=17
 
