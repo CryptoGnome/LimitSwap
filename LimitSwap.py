@@ -1117,7 +1117,7 @@ def preapprove(tokens):
 
 
 def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom, symbol, base, routing, waitseconds,
-        failedtransactionsnumber):
+        failedtransactionsnumber, gaspriority):
     seconds = int(waitseconds)
     if int(failedtransactionsamount) == int(failedtransactionsnumber):
         printt_err("\n                           ---------------------------------------------------------------\n"
@@ -1220,14 +1220,16 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
                         # Special condition on Uniswap, to implement EIP-1559
                         if settings["EXCHANGE"].lower() == 'uniswap':
                             transaction = routerContract.functions.swapExactETHForTokens(
+                                amount,
                                 min_tokens,
                                 [weth, outToken],
                                 Web3.toChecksumAddress(settings['WALLETADDRESS']),
                                 deadline
                             ).buildTransaction({
                                 'maxFeePerGas': Web3.toWei(gas, 'gwei'),
-                                'maxPriorityFeePerGas': Web3.toWei('1.5', 'gwei'),
+                                'maxPriorityFeePerGas': Web3.toWei(gaspriority, 'gwei'),
                                 'gas': gaslimit,
+                                'value': amount,
                                 'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
                                 'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS']),
                                 'type': "0x02"
@@ -1271,8 +1273,9 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
                             deadline
                         ).buildTransaction({
                             'maxFeePerGas': Web3.toWei(gas, 'gwei'),
-                            'maxPriorityFeePerGas': Web3.toWei('1.5', 'gwei'),
+                            'maxPriorityFeePerGas': Web3.toWei(gaspriority, 'gwei'),
                             'gas': gaslimit,
+                            'value': amount,
                             'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
                             'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS']),
                             'type': "0x02"
@@ -1319,8 +1322,9 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
                                 deadline
                             ).buildTransaction({
                                 'maxFeePerGas': Web3.toWei(gas, 'gwei'),
-                                'maxPriorityFeePerGas': Web3.toWei('1.5', 'gwei'),
+                                'maxPriorityFeePerGas': Web3.toWei(gaspriority, 'gwei'),
                                 'gas': gaslimit,
+                                'value': amount,
                                 'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
                                 'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS']),
                                 'type': "0x02"
@@ -1371,8 +1375,9 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
                                 deadline
                             ).buildTransaction({
                                 'maxFeePerGas': Web3.toWei(gas, 'gwei'),
-                                'maxPriorityFeePerGas': Web3.toWei('1.5', 'gwei'),
+                                'maxPriorityFeePerGas': Web3.toWei(gaspriority, 'gwei'),
                                 'gas': gaslimit,
+                                'value': amount,
                                 'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
                                 'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS']),
                                 'type': "0x02"
@@ -1423,7 +1428,7 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
             return False
 
 
-def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom, symbol, routing):
+def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom, symbol, routing, gaspriority):
     print(timestamp(), "Placing Sell Order " + symbol)
     balance = Web3.fromWei(check_balance(inToken, symbol), 'ether')
     check_approval(inToken, balance * 1000000000)
@@ -1581,8 +1586,9 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                             deadline
                         ).buildTransaction({
                             'maxFeePerGas': Web3.toWei(gas, 'gwei'),
-                            'maxPriorityFeePerGas': Web3.toWei('1.5', 'gwei'),
+                            'maxPriorityFeePerGas': Web3.toWei(gaspriority, 'gwei'),
                             'gas': gaslimit,
+                            'value': amount,
                             'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
                             'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS']),
                             'type': "0x02"
@@ -1711,8 +1717,9 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                                 deadline
                             ).buildTransaction({
                                 'maxFeePerGas': Web3.toWei(gas, 'gwei'),
-                                'maxPriorityFeePerGas': Web3.toWei('1.5', 'gwei'),
+                                'maxPriorityFeePerGas': Web3.toWei(gaspriority, 'gwei'),
                                 'gas': gaslimit,
+                                'value': amount,
                                 'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
                                 'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS']),
                                 'type': "0x02"
@@ -1747,8 +1754,9 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                                 deadline
                             ).buildTransaction({
                                 'maxFeePerGas': Web3.toWei(gas, 'gwei'),
-                                'maxPriorityFeePerGas': Web3.toWei('1.5', 'gwei'),
+                                'maxPriorityFeePerGas': Web3.toWei(gaspriority, 'gwei'),
                                 'gas': gaslimit,
+                                'value': amount,
                                 'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
                                 'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS']),
                                 'type': "0x02"
@@ -1793,8 +1801,9 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                                 deadline
                             ).buildTransaction({
                                 'maxFeePerGas': Web3.toWei(gas, 'gwei'),
-                                'maxPriorityFeePerGas': Web3.toWei('1.5', 'gwei'),
+                                'maxPriorityFeePerGas': Web3.toWei(gaspriority, 'gwei'),
                                 'gas': gaslimit,
+                                'value': amount,
                                 'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
                                 'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS']),
                                 'type': "0x02"
@@ -1826,8 +1835,9 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                                 deadline
                             ).buildTransaction({
                                 'maxFeePerGas': Web3.toWei(gas, 'gwei'),
-                                'maxPriorityFeePerGas': Web3.toWei('1.5', 'gwei'),
+                                'maxPriorityFeePerGas': Web3.toWei(gaspriority, 'gwei'),
                                 'gas': gaslimit,
+                                'value': amount,
                                 'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
                                 'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS']),
                                 'type': "0x02"
@@ -1980,7 +1990,7 @@ def run():
                                              token['SLIPPAGE'], token['GASLIMIT'], token['BOOSTPERCENT'],
                                              token["HASFEES"], token['USECUSTOMBASEPAIR'], token['SYMBOL'],
                                              token['BASESYMBOL'], token['LIQUIDITYINNATIVETOKEN'],
-                                             token['BUYAFTER_XXX_SECONDS'], token['MAX_FAILED_TRANSACTIONS_IN_A_ROW'])
+                                             token['BUYAFTER_XXX_SECONDS'], token['MAX_FAILED_TRANSACTIONS_IN_A_ROW'], token['GASPRIORITY_FOR_ETH_ONLY'])
 
                                     if tx != False:
                                         tx = wait_for_tx(tx, token['ADDRESS'], True)
@@ -2031,7 +2041,7 @@ def run():
                                          token['GASLIMIT'], token['BOOSTPERCENT'], token["HASFEES"],
                                          token['USECUSTOMBASEPAIR'], token['SYMBOL'], token['BASESYMBOL'],
                                          token['LIQUIDITYINNATIVETOKEN'], token['BUYAFTER_XXX_SECONDS'],
-                                         token['MAX_FAILED_TRANSACTIONS_IN_A_ROW'])
+                                         token['MAX_FAILED_TRANSACTIONS_IN_A_ROW'], token['GASPRIORITY_FOR_ETH_ONLY'])
 
                                 if tx != False:
                                     tx = wait_for_tx(tx, token['ADDRESS'], True)
@@ -2087,7 +2097,7 @@ def run():
                                     tx = sell(token['SELLAMOUNTINTOKENS'], token['MOONBAG'], inToken, outToken,
                                               token['GAS'], token['SLIPPAGE'], token['GASLIMIT'], token['BOOSTPERCENT'],
                                               token["HASFEES"], token['USECUSTOMBASEPAIR'], token['SYMBOL'],
-                                              token['LIQUIDITYINNATIVETOKEN'])
+                                              token['LIQUIDITYINNATIVETOKEN'], token['GASPRIORITY_FOR_ETH_ONLY'])
                                     wait_for_tx(tx, token['ADDRESS'], False)
                                     print(
                                         style.RESET + "\n                           --------------------------------------\n"
@@ -2113,7 +2123,7 @@ def run():
                             logging.info("Sell Signal Found @" + str(log_price))
                             tx = sell(token['SELLAMOUNTINTOKENS'], token['MOONBAG'], inToken, outToken, token['GAS'],
                                       token['SLIPPAGE'], token['GASLIMIT'], token['BOOSTPERCENT'], token["HASFEES"],
-                                      token['USECUSTOMBASEPAIR'], token['SYMBOL'], token['LIQUIDITYINNATIVETOKEN'])
+                                      token['USECUSTOMBASEPAIR'], token['SYMBOL'], token['LIQUIDITYINNATIVETOKEN'], token['GASPRIORITY_FOR_ETH_ONLY'])
                             wait_for_tx(tx, token['ADDRESS'], False)
                             print(
                                 style.RESET + "\n                           --------------------------------------\n"
@@ -2136,7 +2146,7 @@ def run():
                                              token['SLIPPAGE'], token['GASLIMIT'], token['BOOSTPERCENT'],
                                              token["HASFEES"], token['USECUSTOMBASEPAIR'], token['SYMBOL'],
                                              token['LIQUIDITYINNATIVETOKEN'], token['BUYAFTER_XXX_SECONDS'],
-                                             token['MAX_FAILED_TRANSACTIONS_IN_A_ROW'])
+                                             token['MAX_FAILED_TRANSACTIONS_IN_A_ROW'], token['GASPRIORITY_FOR_ETH_ONLY'])
                                     wait_for_tx(tx, token['ADDRESS'], False)
                                 else:
                                     print(timestamp(), "Bot has reached MAXTOKENS Position Size for ", token['SYMBOL'])
