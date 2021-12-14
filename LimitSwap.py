@@ -948,6 +948,7 @@ def check_approval(address, balance):
             printt_ok("\n                           ---------------------------------------------------------\n"
                         "                             Token is now approved : LimitSwap can sell this token\n"
                         "                           ---------------------------------------------------------\n")
+            logging.info("Token is now approved : LimitSwap can sell this token")
 
         return
 
@@ -1169,6 +1170,7 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
                     # USECUSTOMBASEPAIR = false
                     printt_err("You have selected LIQUIDITYINNATIVETOKEN = false , so you must choose USECUSTOMBASEPAIR = true \n"
                                "Please read Wiki carefully, it's very important you can lose money!!")
+                    logging.info("You have selected LIQUIDITYINNATIVETOKEN = false , so you must choose USECUSTOMBASEPAIR = true. Please read Wiki carefully, it's very important you can lose money!!")
                     sleep(10)
                     sys.exit()
                 else:
@@ -1783,6 +1785,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                     # but user chose to put WETH or WBNB contract as CUSTOMBASEPAIR address
                     printt_err(
                         "ERROR IN YOUR TOKENS.JSON : YOU NEED TO CHOOSE THE PROPER BASE PAIR AS SYMBOL IF YOU ARE TRADING OUTSIDE OF NATIVE LIQUIDITY POOL")
+                    logging.info("ERROR IN YOUR TOKENS.JSON : YOU NEED TO CHOOSE THE PROPER BASE PAIR AS SYMBOL IF YOU ARE TRADING OUTSIDE OF NATIVE LIQUIDITY POOL")
 
                 else:
                     amount_out = routerContract.functions.getAmountsOut(amount, [inToken, weth, outToken]).call()[-1]
@@ -1950,8 +1953,10 @@ def run():
                 # End of initialization of values
 
                 if token['ENABLED'].lower() == 'true':
+                    # inToken is the token you want to BUY (example : CAKE)
                     inToken = Web3.toChecksumAddress(token['ADDRESS'])
 
+                    # outToken is the token you want to TRADE WITH (example : ETH or USDT)
                     if token['USECUSTOMBASEPAIR'].lower() == 'true':
                         outToken = Web3.toChecksumAddress(token['BASEADDRESS'])
                     else:
@@ -1961,15 +1966,13 @@ def run():
                         quote = check_price(inToken, outToken, token['SYMBOL'], token['BASESYMBOL'],
                                             token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'],
                                             token['BUYPRICEINBASE'], token['SELLPRICEINBASE'], token['STOPLOSSPRICEINBASE'])
-                        pool = check_pool(inToken, outToken, token['BASESYMBOL'])
-                    # print("Debug Liquidity Reserves ligne 1267:", float(pool))
-                    # print("Debug inToken : ", inToken, "outToken :", outToken)
 
                     except Exception:
                         print(timestamp(), token['SYMBOL'],
                               " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
                         quote = 0
 
+                    # if token price < BUY price --> bot buys
                     if quote < Decimal(token['BUYPRICEINBASE']) and quote != 0:
                         balance = check_balance(inToken, token['SYMBOL'])
                         DECIMALS = decimals(inToken)
@@ -2008,12 +2011,13 @@ def run():
                                             # transaction is a FAILURE
                                             print(
                                                 style.RED + "\n                           -------------------------------------------------\n"
-                                                            "                             FAILURE ! Plese check your wallet. \n"
+                                                            "                             FAILURE ! Please check your wallet. \n"
                                                             "                            Cause of failure can be : \n"
                                                             "                            - GASLIMIT too low\n"
                                                             "                            - SLIPPAGE too low\n"
                                                             "                           -------------------------------------------------\n\n")
                                             print(style.RESET + "")
+                                            logging.info("Tx FAILURE ! Please check your wallet ")
                                             failedtransactionsamount += 1
                                             preapprove(tokens)
                                         else:
@@ -2023,6 +2027,7 @@ def run():
                                                               "                           SUCCESS : your Tx is confirmed :)\n"
                                                               "                           ----------------------------------\n")
                                             print(style.RESET + "")
+                                            logging.info("SUCCESS : your Tx is confirmed")
                                             pass
 
                                     else:
@@ -2065,6 +2070,7 @@ def run():
                                                         "                            - SLIPPAGE too low\n"
                                                         "                           -------------------------------------------------\n\n")
                                         print(style.RESET + "")
+                                        logging.info("Tx FAILURE ! Please check your wallet ")
                                         failedtransactionsamount += 1
                                         preapprove(tokens)
                                     else:
@@ -2074,6 +2080,7 @@ def run():
                                                           "                           SUCCESS : your Tx is confirmed :)\n"
                                                           "                           ----------------------------------\n")
                                         print(style.RESET + "")
+                                        logging.info("SUCCESS : your Tx is confirmed")
                                         pass
                                 else:
                                     # print("debug 1497")
@@ -2103,6 +2110,7 @@ def run():
                                         style.RESET + "\n                           --------------------------------------\n"
                                                       "                            √  Tx done. Check your wallet \n"
                                                       "                           --------------------------------------")
+                                    logging.info("Tx done. Check your wallet")
                                     sleep(3)
                                     check_balance(token['ADDRESS'], token['SYMBOL'])
                                     print(style.RESET + "\n")
@@ -2110,7 +2118,7 @@ def run():
                                 else:
                                     pass
 
-
+                    # if token price > SELL price or < STOPLOSS price --> bot sells
                     elif ((quote > Decimal(token['SELLPRICEINBASE']) or quote < Decimal(token['STOPLOSSPRICEINBASE'])) and quote != 0):
                         DECIMALS = decimals(inToken)
                         balance = check_balance(inToken, token['SYMBOL'])
@@ -2129,6 +2137,7 @@ def run():
                                 style.RESET + "\n                           --------------------------------------\n"
                                               "                            √  Tx done. Check your wallet \n"
                                               "                           --------------------------------------")
+                            logging.info("Tx done. Check your wallet")
                             sleep(3)
                             check_balance(token['ADDRESS'], token['SYMBOL'])
                             print(style.RESET + "\n")
