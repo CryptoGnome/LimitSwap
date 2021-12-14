@@ -2029,7 +2029,7 @@ def run():
                                         # print("debug 1450")
                                         pass
                                 else:
-                                    printt_err("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
+                                    printt_err("LIQUIDITYAMOUNT parameter =", token['LIQUIDITYAMOUNT'],
                                           " : not enough liquidity, bot will not buy")
                                     sleep(5)
 
