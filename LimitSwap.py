@@ -22,12 +22,12 @@ import signal
 #    interaction.
 #
 # HANDLING NEW ENTRIES IN settings.json - When adding a new configuration item in settings.json be sure to
-#    review comment "COMMAND LINE ARGUMENTS" and the functions load_settings_file and save_settings_file.
+#    review comment "COMMAND LINE ARGUMENTS" and the functions load_settings_file and save_settings.
 #    Do not assume a user has changed their settings.json file to work with the new version, your additions
 #    should be backwards compatible and have safe default values if possible
 #
 # HANDLING NEW ENTRIES IN tokens.json - When adding a new configuration item in tokens.json be sure to
-#    review comment "COMMAND LINE ARGUMENTS" and the functions load_settings_file and save_settings_file
+#    review comment "COMMAND LINE ARGUMENTS" and the functions load_tokens_file and save_tokens_file
 #    Do not assume a user has changed their tokens.json file to work with the new version, your additions
 #    should be backwards compatible and have safe default values if possible
 
@@ -201,10 +201,10 @@ def load_tokens_file(tokens_path, load_message=True):
                 token[default_false] = token[default_false].lower()
 
         # Keys that must be set
-        for required_key in ['ADDRESS', 'BUYAMOUNTINBASE', 'BUYPRICEINBASE', 'SELLPRICEINBASE']:
+        for required_key in ['ADDRESS', 'BUYAMOUNTINBASE', 'BUYPRICEINBASE', 'SELLPRICEINBASE', 'GASPRIORITY_FOR_ETH_ONLY', 'STOPLOSSPRICEINBASE']:
             if required_key not in token:
-                printt_err(required_key, "not found in configuration file in configuration for to token",
-                           token['SYMBOL'])
+                printt_err(required_key, "not found in configuration file in configuration for token",
+                           token['SYMBOL'], ". \n                           Be careful, sometimes new parameters are added : please check default tokens.json file")
                 exit(-1)
 
         token_defaults = {
@@ -215,7 +215,8 @@ def load_tokens_file(tokens_path, load_message=True):
             'GAS': 8,
             'BOOSTPERCENT': 50,
             'GASLIMIT': 1000000,
-            'STOPLOSSPRICEINBASE': 0
+            'STOPLOSSPRICEINBASE': 0,
+            'GASPRIORITY_FOR_ETH_ONLY': 1.5
 
         }
 
