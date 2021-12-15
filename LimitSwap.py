@@ -1177,6 +1177,8 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
                     sleep(10)
                     sys.exit()
                 else:
+                    # LIQUIDITYINNATIVETOKEN = true
+                    # USECUSTOMBASEPAIR = false
                     amount_out = routerContract.functions.getAmountsOut(amount, [weth, outToken]).call()[-1]
                     if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
                         min_tokens = 100
@@ -1304,6 +1306,17 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
                     # LIQUIDITYINNATIVETOKEN = true
                     # USECUSTOMBASEPAIR = true
                     # Base Pair different from weth
+
+                    # We display a warning message if user tries to swap with too much money
+                    if (str(inToken).lower() == '0xe9e7cea3dedca5984780bafc599bd69add087d56' or str(
+                        inToken).lower() == '0x55d398326f99059ff775485246999027b3197955' or str(
+                        inToken).lower() == '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d' or str(
+                        inToken).lower() == '0xdac17f958d2ee523a2206206994597c13d831ec7' or str(
+                        inToken).lower() == '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48') and int(amount) > 2999:
+                        printt_info("YOU ARE TRADING WITH VERY BIG AMOUNT, BE VERY CAREFUL YOU COULD LOSE MONEY!!! TEAM RECOMMEND NOT TO DO THAT")
+                    else:
+                        pass
+
                     if routing.lower() == 'true':
                         amount_out = routerContract.functions.getAmountsOut(amount, [inToken, weth, outToken]).call()[
                             -1]
@@ -1988,7 +2001,7 @@ def run():
                                       outToken)
 
                                 if float(token['LIQUIDITYAMOUNT']) <= float(pool):
-                                    printt_ok("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
+                                    printt_ok("LIQUIDITYAMOUNT parameter =", token['LIQUIDITYAMOUNT'],
                                           " --> Enough liquidity detected : Buy Signal Found!")
                                     log_price = "{:.18f}".format(quote)
                                     logging.info("BuySignal Found @" + str(log_price))
