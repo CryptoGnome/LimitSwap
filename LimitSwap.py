@@ -32,8 +32,6 @@ import signal
 #    Do not assume a user has changed their tokens.json file to work with the new version, your additions
 #    should be backwards compatible and have safe default values if possible
 
-# global used to track total number of failed transactions
-failedtransactionsamount = 0
 
 # initialization of number of failed transactions
 failedtransactionsamount = 0
@@ -151,7 +149,7 @@ def printt_info(*print_args):
     #
     # returns: nothing
 
-    print(timestamp(), " ", style.YELLOW, ' '.join(map(str, print_args)), style.RESET, sep="")
+    print(timestamp(), " ", style.BLUE, ' '.join(map(str, print_args)), style.RESET, sep="")
 
 
 def load_settings_file(settings_path, load_message=True):
@@ -1134,6 +1132,9 @@ def check_price(inToken, outToken, symbol, base, custom, routing, buypriceinbase
 
 
 def wait_for_tx(tx_hash, address, check):
+
+    global failedtransactionsamount
+
     print(timestamp(), "............Waiting 1 minute for TX to Confirm............")
     timeout = time() + 60
     while True:
@@ -1193,6 +1194,7 @@ def preapprove(tokens):
 
 def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom, symbol, base, routing, waitseconds,
         failedtransactionsnumber):
+        
     seconds = int(waitseconds)
     if int(failedtransactionsamount) == int(failedtransactionsnumber):
         printt_err("\n                           ---------------------------------------------------------------\n"
