@@ -928,13 +928,15 @@ def approve(address, amount):
         sys.exit()
 
 
-def check_approval(address, balance):
+def check_approval(address, allowancetocomparewith):
     print(timestamp(), "Checking Approval Status", address)
     contract = client.eth.contract(address=Web3.toChecksumAddress(address), abi=standardAbi)
-    allowance = contract.functions.allowance(Web3.toChecksumAddress(settings['WALLETADDRESS']), routerAddress).call()
+    actualallowance = contract.functions.allowance(Web3.toChecksumAddress(settings['WALLETADDRESS']), routerAddress).call()
 
-    if int(allowance) < int(balance):
+    allowancetocomparewithint = int(allowancetocomparewith)
+    actualallowanceint = int(actualallowance)
 
+    if actualallowanceint < allowancetocomparewithint:
         if settings["EXCHANGE"].lower() == 'quickswap':
             print("Revert to Zero To change approval")
             tx = approve(address, 0)
