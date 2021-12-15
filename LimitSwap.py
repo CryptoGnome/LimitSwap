@@ -999,6 +999,8 @@ def check_pool(inToken, outToken, symbol):
     # The token contract address can be interpreted as a number
     # And the smallest one will be token0 internally
 
+    # print("----------------------------------------------------------------------")
+
     ctnb1 = int(inToken, 16)
     ctnb2 = int(outToken, 16)
 
@@ -1227,7 +1229,6 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
                         # Special condition on Uniswap, to implement EIP-1559
                         if settings["EXCHANGE"].lower() == 'uniswap':
                             transaction = routerContract.functions.swapExactETHForTokens(
-                                amount,
                                 min_tokens,
                                 [weth, outToken],
                                 Web3.toChecksumAddress(settings['WALLETADDRESS']),
@@ -1273,7 +1274,6 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
                     if settings["EXCHANGE"].lower() == 'uniswap':
                         # Special condition on Uniswap, to implement EIP-1559
                         transaction = routerContract.functions.swapExactTokensForTokens(
-                            amount,
                             min_tokens,
                             [weth, outToken],
                             Web3.toChecksumAddress(settings['WALLETADDRESS']),
@@ -1486,7 +1486,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                 print(timestamp(), "Selling Remaining ", symbol)
                 amount = int(Decimal(balance - moonbag))
             else:
-                amount = int(Decimal(balance - moonbag))
+                amount = int(Decimal(amount - moonbag))
                 if amount > 0:
                     print(timestamp(), "Selling", amount / DECIMALS, symbol)
                 else:
@@ -2047,7 +2047,6 @@ def run():
                                             pass
 
                                     else:
-                                        # print("debug 1450")
                                         pass
                                 else:
                                     printt_err("LIQUIDITYAMOUNT parameter =", token['LIQUIDITYAMOUNT'],
@@ -2099,7 +2098,6 @@ def run():
                                         logging.info("SUCCESS : your Tx is confirmed")
                                         pass
                                 else:
-                                    # print("debug 1497")
                                     pass
 
 
