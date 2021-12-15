@@ -205,8 +205,9 @@ def load_tokens_file(tokens_path, load_message=True):
             if required_key not in token:
                 printt_err(required_key, "not found in configuration file in configuration for token",
                            token['SYMBOL'], ". \n                           Be careful, sometimes new parameters are added : please check default tokens.json file")
-            sleep(20)
-            exit(-1)
+                logging.info("A parameter is missing in your tokens.json : " + str(required_key))
+                sleep(20)
+                exit(-1)
 
         token_defaults = {
             'SLIPPAGE': 49,
