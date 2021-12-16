@@ -239,7 +239,8 @@ def load_tokens_file(tokens_path, load_message=True):
         'BOOSTPERCENT' : 50,
         'GASLIMIT' : 1000000,
         'BUYAFTER_XXX_SECONDS' : 0,
-        'MAX_FAILED_TRANSACTIONS_IN_A_ROW' : 0
+        'MAX_FAILED_TRANSACTIONS_IN_A_ROW' : 0,
+        'STOPLOSSPRICEINBASE' : 0
     }
 
     for token in tokens:
@@ -260,7 +261,7 @@ def load_tokens_file(tokens_path, load_message=True):
 
         for default_key in default_value_settings:
             if default_key not in token:
-                printt_v (default_key , "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a value of", default_value_settings['default_key'])
+                printt_v (default_key , "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a value of", default_value_settings[default_key])
                 token[default_key] = default_value_settings[default_key]
             elif default_key == 'SELLAMOUNTINTOKENS':
                 default_value_settings[default_key] = default_value_settings[default_key].lower()
@@ -281,11 +282,11 @@ def build_token_list(tokens, all_pairs=False):
     token_list = ""
 
     for token in tokens:
-        if all_pairs == True or token["ENABLED"] == True:
+        if all_pairs == True or token["ENABLED"] == 'true':
             if token_list != "":
                 token_list = token_list + " "
             token_list = token_list + token['SYMBOL']
-    
+
     return token_list
   
   
@@ -918,6 +919,9 @@ def auth():
 
 
 def approve(address, amount):
+    print(timestamp(), "Approval is broken. Skipping", address)
+    return 0
+
     print(timestamp(), "Approving", address)
 
     eth_balance = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
@@ -994,16 +998,16 @@ def check_approval(address, balance):
         if settings["EXCHANGE"].lower() == 'quickswap':
             print("Revert to Zero To change approval")
             tx = approve(address, 0)
-            wait_for_tx(tx, address, False)
+            wait_for_tx(tx, address)
             tx = approve(address, 115792089237316195423570985008687907853269984665640564039457584007913129639935)
-            wait_for_tx(tx, address, False)
+            wait_for_tx(tx, address)
         else:
             printt_info("\n                           ---------------------------------------------------------------------------\n"
                         "                           You need to APPROVE this token before selling it : LimitSwap will do it now\n"
                         "                           ---------------------------------------------------------------------------\n")
 
             tx = approve(address, 115792089237316195423570985008687907853269984665640564039457584007913129639935)
-            wait_for_tx(tx, address, False)
+            wait_for_tx(tx, address)
             printt_ok("\n                           ---------------------------------------------------------\n"
                         "                             Token is now approved : LimitSwap can sell this token\n"
                         "                           ---------------------------------------------------------\n")
@@ -1020,11 +1024,33 @@ def check_bnb_balance():
     return balance
 
 
-def check_balance(address, symbol):
-    address = Web3.toChecksumAddress(address)
-    DECIMALS = decimals(address)
-    balanceContract = client.eth.contract(address=address, abi=standardAbi)
-    balance = balanceContract.functions.balanceOf(settings['WALLETADDRESS']).call()
+def check_balance(address, symbol='UNKNOWN_TOKEN', max_wait_time=30, more_tokens_than=0):
+    # Function: check_balance
+    # --------------------
+    # check user's wallet for the balance of tokens belonging to address
+    #
+    # address - the contract address of the token we're looking for
+    # symbol  - the symbol of the token we're looking for
+    # max_wait_time - the maximum amount of time in seconds to wait for a balance to show
+    # more_tokens_than - if the wallet has more tokens than this, than it's considered to have accepted tokens
+    #
+    # returns: 0 - txn_receipt['status'] on unknown
+    #          1 - txn_receipt['status'] on success (sometimes reverted)
+    #          2 - failed with an empty log (rejected by contract)
+    #         -1 -  transaction failed due to unknown reason
+
+    balance = 0
+
+    if max_wait_time > 0:
+        exit_timestamp = time() + max_wait_time
+
+    while exit_timestamp > time() and balance <= more_tokens_than:
+        address = Web3.toChecksumAddress(address)
+        DECIMALS = decimals(address)
+        balanceContract = client.eth.contract(address=address, abi=standardAbi)
+        balance = balanceContract.functions.balanceOf(settings['WALLETADDRESS']).call()
+        sleep(50/1000)
+
     print(timestamp(), "Current Wallet Balance is: " + str(balance / DECIMALS) + " " + symbol)
 
     return balance
@@ -1136,7 +1162,7 @@ def check_price(inToken, outToken, symbol, base, custom, routing, buypriceinbase
     return tokenPrice
 
 
-def wait_for_tx(tx_hash, address, max_wait_time=0):
+def wait_for_tx(tx_hash, address, max_wait_time=60):
     # Function: wait_for_tx
     # --------------------
     # waits for a transaction to complete.
@@ -1153,11 +1179,7 @@ def wait_for_tx(tx_hash, address, max_wait_time=0):
     #         -1 -  transaction failed due to unknown reason
 
     global failedtransactionsamount
-
-    # TODO: Pull this delay maybe? This seems like a really good way to slow things down
-    # print(timestamp(), "............Waiting 1 minute for TX to Confirm............")
-    # timeout = time() + 60
-    
+   
     if max_wait_time > 0:
         exit_timestamp = time() + max_wait_time
 
@@ -2078,7 +2100,8 @@ def run():
                                              token['BUYAFTER_XXX_SECONDS'], token['MAX_FAILED_TRANSACTIONS_IN_A_ROW'])
 
                                     if tx != False:
-                                        tx = wait_for_tx(tx, token['ADDRESS'], True)
+                                        tx = wait_for_tx(tx, token['ADDRESS'])
+                                        balance = check_balance(token['ADDRESS'], token['BALANCE'])
                                         print(
                                             style.RESET + "\n                           --------------------------------------\n"
                                                           "                            √  Tx done. Check your wallet \n"
@@ -2129,7 +2152,9 @@ def run():
                                          token['MAX_FAILED_TRANSACTIONS_IN_A_ROW'])
 
                                 if tx != False:
-                                    tx = wait_for_tx(tx, token['ADDRESS'], True)
+                                    tx = wait_for_tx(tx, token['ADDRESS'])
+                                    check_balance(token['ADDRESS'], token['SYMBOL'])
+
                                     print(
                                         style.RESET + "\n                           --------------------------------------\n"
                                                       "                            √  Tx done. Check your wallet \n"
@@ -2183,7 +2208,7 @@ def run():
                                               token['GAS'], token['SLIPPAGE'], token['GASLIMIT'], token['BOOSTPERCENT'],
                                               token["HASFEES"], token['USECUSTOMBASEPAIR'], token['SYMBOL'],
                                               token['LIQUIDITYINNATIVETOKEN'])
-                                    wait_for_tx(tx, token['ADDRESS'], False)
+                                    wait_for_tx(tx, token['ADDRESS'])
                                     print(
                                         style.RESET + "\n                           --------------------------------------\n"
                                                       "                            √  Tx done. Check your wallet \n"
@@ -2209,7 +2234,7 @@ def run():
                             tx = sell(token['SELLAMOUNTINTOKENS'], token['MOONBAG'], inToken, outToken, token['GAS'],
                                       token['SLIPPAGE'], token['GASLIMIT'], token['BOOSTPERCENT'], token["HASFEES"],
                                       token['USECUSTOMBASEPAIR'], token['SYMBOL'], token['LIQUIDITYINNATIVETOKEN'])
-                            wait_for_tx(tx, token['ADDRESS'], False)
+                            wait_for_tx(tx, token['ADDRESS'])
                             print(
                                 style.RESET + "\n                           --------------------------------------\n"
                                               "                            √  Tx done. Check your wallet \n"
@@ -2232,7 +2257,7 @@ def run():
                                              token["HASFEES"], token['USECUSTOMBASEPAIR'], token['SYMBOL'],
                                              token['LIQUIDITYINNATIVETOKEN'], token['BUYAFTER_XXX_SECONDS'],
                                              token['MAX_FAILED_TRANSACTIONS_IN_A_ROW'])
-                                    wait_for_tx(tx, token['ADDRESS'], False)
+                                    wait_for_tx(tx, token['ADDRESS'])
                                 else:
                                     print(timestamp(), "Bot has reached MAXTOKENS Position Size for ", token['SYMBOL'])
                                     pass
@@ -2260,11 +2285,7 @@ def run():
 
 
 try:
-
-    print ("Transaction Result:", wait_for_tx("0xd0230b7272e05ca1fb0e1430cb01d36140d6656ac25dd797cab97c71745e8a30", "0x6c735f3Ed88Bb04EEa86Df6Daf9789b64438d3E1", 5))
-    exit(0)
-    check_logs()
-
+    
     # Get the user password on first run
     userpassword = get_password()
 
