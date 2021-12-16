@@ -13,6 +13,7 @@ import requests
 import cryptocode, re, pwinput
 import argparse
 import signal
+from pprint import pprint
 
 # DEVELOPER CONSIDERATIONS
 #
@@ -49,6 +50,7 @@ class style():  # Class of different text colours - default is white
     WHITE = '\033[37m'
     UNDERLINE = '\033[4m'
     RESET = '\033[0m'
+    INFO = '\033[36m'
 
 
 # Function to cleanly exit on SIGINT
@@ -120,6 +122,7 @@ def printt_err(*print_args, write_to_log=True):
     if write_to_log == True:
         logging.info(' '.join(map(str,print_args)))
 
+
 def printt_warn(*print_args):
     # Function: printt_warn
     # --------------------
@@ -149,7 +152,7 @@ def printt_info(*print_args):
     #
     # returns: nothing
 
-    print(timestamp(), " ", style.BLUE, ' '.join(map(str, print_args)), style.RESET, sep="")
+    print(timestamp(), " ", style.BLUE, ' '.join(map(str, print_args)), style.RESET, sep="", end='')
 
 
 def load_settings_file(settings_path, load_message=True):
@@ -263,6 +266,7 @@ def load_tokens_file(tokens_path, load_message=True):
                 default_value_settings[default_key] = default_value_settings[default_key].lower()
 
     return tokens
+
 
 def build_token_list(tokens, all_pairs=False):
     # Function: build_token_pair_list
@@ -1068,6 +1072,7 @@ def check_pool(inToken, outToken, symbol):
     # print("----------------------------------------------------------------------")
     return pooled
 
+
 def get_tokens_purchased(tx_hash):
     # Function: get_tokens_purchased
     # ----------------------------
@@ -1131,55 +1136,76 @@ def check_price(inToken, outToken, symbol, base, custom, routing, buypriceinbase
     return tokenPrice
 
 
-def wait_for_tx(tx_hash, address, check):
+def wait_for_tx(tx_hash, address, max_wait_time=0):
+    # Function: wait_for_tx
+    # --------------------
+    # waits for a transaction to complete.
+    #
+    # tx_hash - the transaction hash
+    # address - the wallet address sending the transaction
+    # max_wait_time - the maximum amoun of time in seconds to wait for a transaction to complete
+    #
+    # global failedtransactionsamount - the number of times a transaction has failed
+    #
+    # returns: 0 - txn_receipt['status'] on unknown
+    #          1 - txn_receipt['status'] on success (sometimes reverted)
+    #          2 - failed with an empty log (rejected by contract)
+    #         -1 -  transaction failed due to unknown reason
 
     global failedtransactionsamount
 
-    print(timestamp(), "............Waiting 1 minute for TX to Confirm............")
-    timeout = time() + 60
-    while True:
-        print(timestamp(), "............Waiting 1 minute for TX to Confirm............")
-        sleep(1)
-        try:
-            txn_receipt = client.eth.getTransactionReceipt(tx_hash)
-            return txn_receipt['status']
+    # TODO: Pull this delay maybe? This seems like a really good way to slow things down
+    # print(timestamp(), "............Waiting 1 minute for TX to Confirm............")
+    # timeout = time() + 60
+    
+    if max_wait_time > 0:
+        exit_timestamp = time() + max_wait_time
 
+    loop_iterations = 0
+    got_receipt = False
+
+    while got_receipt == False and exit_timestamp > time():
+        
+        if loop_iterations == 0:
+            print (timestamp(), style.INFO, " Checking for transaction confirmation", style.RESET, sep='',  end='', flush=True)
+        elif loop_iterations == 1:
+            print (style.INFO, " (waiting ", max_wait_time, " seconds)", style.RESET, sep='', end="", flush=True)
+        else:
+            print (style.INFO, ".", style.RESET, sep='', end="", flush=True)
+            sleep(1)
+        loop_iterations = loop_iterations + 1
+        
+        try:
+            txn_receipt = client.eth.wait_for_transaction_receipt(tx_hash,1)
+            got_receipt = True
         except Exception as e:
             txn_receipt = None
 
-        if txn_receipt is not None and txn_receipt['blockHash'] is not None:
-            return txn_receipt['status']
+    print('')
+    if got_receipt == True and len(txn_receipt['logs']) != 0:
+        return_value = txn_receipt['status']
+        printt_ok("Transaction was successful with a status code of", return_value)
+    
+    elif got_receipt == True and len(txn_receipt['logs']) == 0:
+        failedtransactionsamount += 1
+        return_value = 2
+        printt_err("Transaction was rejected by contract with a status code of", txn_receipt['status'])
+    
+    elif txn_receipt is not None and txn_receipt['blockHash'] is not None:
+        return_value = txn_receipt['status']
+        printt_warn("Transaction receipt returned with an unknown status and a status code of", return_value)
+    
+    else:
+        # We definitely get this far if the node is down
+        print("\n")
+        printt_err("Transaction was not confirmed after", max_wait_time, "seconds: something wrong happened.\n"
+                    "                           Please check if :\n"
+                    "                           - your node is running correctly\n"
+                    "                           - you have enough Gaslimit (check 'Gas Used by Transaction') if you have a failed Tx\n")
+        failedtransactionsamount += 1
+        return_value = -1
 
-        elif time() > timeout:
-            print(style.RED + "\n")
-            printt_err("Transaction was not confirmed after 1 minute : something wrong happened.\n"
-                               "Please check if :\n"
-                               "- your node is running correctly\n"
-                               "- you have enough Gaslimit (check 'Gas Used by Transaction') if you have a failed Tx\n")
-            failedtransactionsamount += 1
-            logging.info("Transaction was not confirmed after 1 minute, breaking Check Cycle....")
-            sleep(5)
-            break
-
-    # loop to check for balance after purchase
-    if check == True:
-        timeout = time() + 30
-        print(style.RESET + "\n")
-
-        while True:
-            print(timestamp(), ".........Waiting 30s to check tokens balance in your wallet after purchase............")
-            sleep(1)
-
-            balance = check_balance(address, address)
-
-            if balance > 0:
-                break
-            elif time() > timeout:
-                printt_err("NO BUY FOUND, WE WILL CHECK A FEW TIMES TO SEE IF THERE IS BLOCKCHAIN DELAY, IF NOT WE WILL ASSUME THE TX HAS FAILED")
-                logging.info(
-                    "NO BUY FOUND, WE WILL CHECK A FEW TIMES TO SEE IF THERE IS BLOCKCHAIN DELAY, IF NOT WE WILL ASSUME THE TX HAS FAILED")
-                break
-
+    return return_value
 
 def preapprove(tokens):
     for token in tokens:
@@ -2235,6 +2261,8 @@ def run():
 
 try:
 
+    print ("Transaction Result:", wait_for_tx("0xd0230b7272e05ca1fb0e1430cb01d36140d6656ac25dd797cab97c71745e8a30", "0x6c735f3Ed88Bb04EEa86Df6Daf9789b64438d3E1", 5))
+    exit(0)
     check_logs()
 
     # Get the user password on first run
