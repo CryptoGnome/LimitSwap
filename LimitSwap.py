@@ -13,7 +13,6 @@ import requests
 import cryptocode, re, pwinput
 import argparse
 import signal
-from pprint import pprint
 
 # DEVELOPER CONSIDERATIONS
 #
@@ -37,7 +36,6 @@ from pprint import pprint
 # initialization of number of failed transactions
 failedtransactionsamount = 0
 
-
 # color styles
 class style():  # Class of different text colours - default is white
     BLACK = '\033[30m'
@@ -45,13 +43,12 @@ class style():  # Class of different text colours - default is white
     GREEN = '\033[32m'
     YELLOW = '\033[33m'
     BLUE = '\033[34m'
-    MAGENTA = '\033[35m'
     CYAN = '\033[36m'
     WHITE = '\033[37m'
     UNDERLINE = '\033[4m'
     RESET = '\033[0m'
     INFO = '\033[36m'
-
+    DEBUG = '\033[35m'
 
 # Function to cleanly exit on SIGINT
 def signal_handler(sig, frame):
@@ -68,10 +65,11 @@ def timestamp():
 
 
 #
-# COMMAND LINE ARGUMENTS
+# START - COMMAND LINE ARGUMENTS
 #
-
 parser = argparse.ArgumentParser()
+
+# USER COMMAND LINE ARGUMENTS
 parser.add_argument("-p", "--password", type=str,
                     help="Password to decrypt private keys (WARNING: your password could be saved in your command prompt history)")
 parser.add_argument("-s", "--settings", type=str, help="Specify the file to user for settings (default: settings.json)",
@@ -79,7 +77,20 @@ parser.add_argument("-s", "--settings", type=str, help="Specify the file to user
 parser.add_argument("-t", "--tokens", type=str,
                     help="Specify the file to use for tokens to trade (default: tokens.json)", default="./tokens.json")
 parser.add_argument("-v", "--verbose", action='store_true', help="Print detailed messages to stdout")
+
+# DEVELOPER COMMAND LINE ARGUMENTS
+# --dev - general argument for developer options
+# --sim_buy tx - simulates the buying process, you must provide a transaction of a purchase of the token
+# --sim_sell tx - simulates the buying process, you must provide a transaction of a purchase of the token
+parser.add_argument("--dev", action='store_true', help=argparse.SUPPRESS)
+parser.add_argument("--sim_buy", type=str, help=argparse.SUPPRESS)
+parser.add_argument("--sim_sell", type=str, help=argparse.SUPPRESS)
+parser.add_argument("--debug", action='store_true', help=argparse.SUPPRESS)
+
 command_line_args = parser.parse_args()
+#
+# END - COMMAND LINE ARGUMENTS
+#
 
 
 def printt(*print_args):
@@ -152,7 +163,19 @@ def printt_info(*print_args):
     #
     # returns: nothing
 
-    print(timestamp(), " ", style.BLUE, ' '.join(map(str, print_args)), style.RESET, sep="", end='')
+    print(timestamp(), " ", style.BLUE, ' '.join(map(str, print_args)), style.RESET, sep="")
+
+def printt_debug(*print_args):
+    # Function: printt_warn
+    # --------------------
+    # provides normal print() functionality but also prints our timestamp and the text highlighted to display a warning
+    #
+    # print_args - normal arguments that would be passed to the print() function
+    #
+    # returns: nothing
+
+    if command_line_args.debug == True:
+        print(timestamp(), " ", style.DEBUG, ' '.join(map(str,print_args)), style.RESET, sep="")
 
 
 def load_settings_file(settings_path, load_message=True):
@@ -264,7 +287,8 @@ def load_tokens_file(tokens_path, load_message=True):
         '_LIQUIDITY_READY' : False,
         '_LIQUIDITY_CHECKED' : False,
         '_INFORMED_SELL' : False,
-        '_REACHED_MAX_TOKENS' : True
+        '_REACHED_MAX_TOKENS' : True,
+        '_ACTUAL_BUY_PRICE' : 0
     }
 
     for token in tokens:
@@ -1069,15 +1093,18 @@ def check_balance(address, symbol='UNKNOWN_TOKEN', max_wait_time=30, more_tokens
 
     balance = 0
 
-    if max_wait_time > 0:
+    address = Web3.toChecksumAddress(address)
+    DECIMALS = decimals(address)
+    balanceContract = client.eth.contract(address=address, abi=standardAbi)
+    
+    if max_wait_time == 0:
+        balance = balanceContract.functions.balanceOf(settings['WALLETADDRESS']).call()
+    elif max_wait_time > 0:
         exit_timestamp = time() + max_wait_time
 
-    while exit_timestamp > time() and balance <= more_tokens_than:
-        address = Web3.toChecksumAddress(address)
-        DECIMALS = decimals(address)
-        balanceContract = client.eth.contract(address=address, abi=standardAbi)
-        balance = balanceContract.functions.balanceOf(settings['WALLETADDRESS']).call()
-        sleep(50/1000)
+        while exit_timestamp > time() and balance <= more_tokens_than:
+            balance = balanceContract.functions.balanceOf(settings['WALLETADDRESS']).call()
+            sleep(50/1000)
 
     print(timestamp(), "Current Wallet Balance is: " + str(balance / DECIMALS) + " " + symbol)
 
@@ -1112,18 +1139,20 @@ def check_pool(inToken, outToken, symbol):
     ctnb2 = int(outToken, 16)
 
     if (ctnb1 > ctnb2):
-        # print("reserves[0] is for outToken:")
+        printt_debug ("reserves[0] is for outToken:")
         pooled = reserves[0] / DECIMALS
     else:
-        # print("reserves[0] is for inToken:")
+        printt_debug ("reserves[0] is for inToken:")
         pooled = reserves[1] / DECIMALS
 
-    # print("----------------------------------------------------------------------")
-    # print("Debug reserves[0] line 982:     ", reserves[0] / DECIMALS)
-    # print("Debug reserves[1] line 982:     ", reserves[1] / DECIMALS)
-    # print("----------------------------------------------------------------------")
-    # print("Debug LIQUIDITYAMOUNT line 981 :", pooled, "in token:", outToken)
-    # print("----------------------------------------------------------------------")
+
+    printt_debug ("----------------------------------------------------------------------")
+    printt_debug ("Debug reserves[0] line 982:     ", reserves[0] / DECIMALS)
+    printt_debug ("Debug reserves[1] line 982:     ", reserves[1] / DECIMALS)
+    printt_debug ("----------------------------------------------------------------------")
+    printt_debug ("Debug LIQUIDITYAMOUNT line 981 :", pooled, "in token:", outToken)
+    printt_debug ("----------------------------------------------------------------------")
+
     return pooled
 
 
@@ -2081,6 +2110,8 @@ def run():
             if load_token_file_increment > 5:
                 tokens = load_tokens_file(command_line_args.tokens, False)
                 load_token_file_increment = 0
+            else:
+                load_token_file_increment = load_token_file_increment + 1
 
             for token in tokens:
                 
@@ -2105,28 +2136,36 @@ def run():
                                             token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'],
                                             token['BUYPRICEINBASE'], token['SELLPRICEINBASE'], token['STOPLOSSPRICEINBASE'])
                         pool = check_pool(inToken, outToken, token['BASESYMBOL'])
-                    # print("Debug Liquidity Reserves ligne 1267:", float(pool))
-                    # print("Debug inToken : ", inToken, "outToken :", outToken)
+                        
+                        printt_debug ("Liquidity Reserves:", float(pool))
+                        printt_debug ("inToken :", inToken, " outToken :", outToken)
 
                     except Exception:
                         printt(token['SYMBOL'],"Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
                         quote = 0
-
+                    
+                    printt_debug ("Liquidity check complete")
+                    printt_debug ("Quote :", quote)
+                    printt_debug ("BuyPrice", Decimal(token['BUYPRICEINBASE']))
+                    printt_debug ("Reached MAX TOKENS", token['_REACHED_MAX_TOKENS'])
 
                     # If quote is not equal to zero, I'm going to be needing my balance for buy and sell decisions
                     #   and I'm going to need to know if I've reached my MAXTOKENS
                     if quote !=0:
-                        balance = check_balance(inToken, token['SYMBOL'])
+                        balance = check_balance(inToken, token['SYMBOL'], 0)
                         DECIMALS = decimals(inToken)
                         if Decimal(balance / DECIMALS) < Decimal(token['MAXTOKENS']):
                             token['_REACHED_MAX_TOKENS'] = True
-
+                            printt_info ("You have reached the maximum number of tokens for this position.")
                     #
                     # BUY CHECK
                     #   If the liquidity check has returned a quote that is less than our BUYPRICEINBASE and we haven't informrmed
                     #   the user that we've reached the maximum number of tokens, check for other criteria to buy.
                     #
                     if quote != 0 and quote < Decimal(token['BUYPRICEINBASE']) and token['_REACHED_MAX_TOKENS'] == False:
+
+                        printt_debug("Checking sell conditions")
+                        
                         #
                         #  CHECK FOR LIQUIDITY AMOUNT
                         #    If we've found liquidity and want to check for liquidity amount, do that here
@@ -2155,11 +2194,15 @@ def run():
                         log_price = "{:.18f}".format(quote)
                         logging.info("Buy Signal Found @" + str(log_price))
                         printt("Buy Signal Found!")
-                        tx = buy(token['BUYAMOUNTINBASE'], outToken, inToken, token['GAS'],
-                                    token['SLIPPAGE'], token['GASLIMIT'], token['BOOSTPERCENT'],
-                                    token["HASFEES"], token['USECUSTOMBASEPAIR'], token['SYMBOL'],
-                                    token['BASESYMBOL'], token['LIQUIDITYINNATIVETOKEN'],
-                                    token['BUYAFTER_XXX_SECONDS'], token['MAX_FAILED_TRANSACTIONS_IN_A_ROW'])
+
+                        if command_line_args.sim_buy:
+                            tx = command_line_args.sim_buy
+                        else:
+                            tx = buy(token['BUYAMOUNTINBASE'], outToken, inToken, token['GAS'],
+                                        token['SLIPPAGE'], token['GASLIMIT'], token['BOOSTPERCENT'],
+                                        token["HASFEES"], token['USECUSTOMBASEPAIR'], token['SYMBOL'],
+                                        token['BASESYMBOL'], token['LIQUIDITYINNATIVETOKEN'],
+                                        token['BUYAFTER_XXX_SECONDS'], token['MAX_FAILED_TRANSACTIONS_IN_A_ROW'])
 
                         if tx != False:
                             tx = wait_for_tx(tx, token['ADDRESS'])
@@ -2194,7 +2237,7 @@ def run():
                                                     "                           ----------------------------------\n")
                                 print(style.RESET + "")
                                 pass
-                        
+
                     #
                     # SELL CHECK
                     #   If there are already more than MAX_TOKENS in the user's wallet, check to see if we should sell them.
