@@ -1700,6 +1700,8 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
 
                         if int(gaslimit) < 950000:
                             gaslimit = 950000
+                            printt_info(
+                                "Your GASLIMIT parameter is too low : LimitSwap has forced it to 950000 otherwise your transaction would fail for sure, since this token has fees.\n We advise you to raise it to 1000000 in the settings.")
 
                         # THIS SECTION IS FOR MODIFIED CONTRACTS AND EACH EXCHANGE IS SPECIFIED
                         if modified == True:
