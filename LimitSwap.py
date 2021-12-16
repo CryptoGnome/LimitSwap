@@ -962,7 +962,7 @@ def approve(address, amount):
               "You have less than 0.05 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
         logging.info(
             "You have less than 0.05 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
-        sleep(5)
+        sleep(10)
         sys.exit()
 
 
@@ -1150,14 +1150,20 @@ def wait_for_tx(tx_hash, address, check):
 
 
 def preapprove(tokens):
-    for token in tokens:
-        check_approval(token['ADDRESS'], 115792089237316195423570985008687907853269984665640564039457584007913129639935)
+    # We ask the bot to check if your allowance is > to your balance. Use a 10000000000000000 multiplier for decimals.
 
+    # First in all the tokens of the tokens.json
+    for token in tokens:
+        balance = Web3.fromWei(check_balance(token['ADDRESS'], token['SYMBOL']), 'ether')
+        check_approval(token['ADDRESS'], balance * 10000000000000000)
+
+        # then of the base pair
         if token['USECUSTOMBASEPAIR'].lower() == 'false':
-            check_approval(weth, 115792089237316195423570985008687907853269984665640564039457584007913129639935)
+            balanceweth = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
+            check_approval(weth, balanceweth * 10000000000000000)
         else:
-            check_approval(token['BASEADDRESS'],
-                           115792089237316195423570985008687907853269984665640564039457584007913129639935)
+            balancebase = Web3.fromWei(check_balance(token['BASEADDRESS'], token['SYMBOL']), 'ether')
+            check_approval(token['BASEADDRESS'], balancebase * 10000000000000000)
 
 
 def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom, symbol, base, routing, waitseconds,
