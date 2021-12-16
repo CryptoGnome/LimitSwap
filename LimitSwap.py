@@ -166,20 +166,34 @@ def load_settings_file(settings_path, load_message=True):
     # returns: a dictionary with the settings from the file loaded
 
     if load_message == True:
-        print(timestamp(), "Loading settings from", command_line_args.settings)
+        print(timestamp(), "Loading settings from", settings_path)
 
-    f = open(command_line_args.settings, )
+    f = open(settings_path, )
     settings = json.load(f)[0]
     f.close()
 
-    for default_false in ['UNLIMITEDSLIPPAGE', 'USECUSTOMNODE']:
+    default_false_settings =[
+        'UNLIMITEDSLIPPAGE',
+        'USECUSTOMNODE'
+    ]
+
+    default_true_settings = [
+        'PREAPPROVE'
+    ]
+
+    # These settings must be defined by the user and we will lower() them
+    required_user_settings = [
+        'EXCHANGE'
+    ]
+
+    for default_false in default_false_settings:
         if default_false not in settings:
             printt_v(default_false, "not found in settings configuration file, settings a default value of false.")
             settings[default_false] = "false"
         else:
             settings[default_false] = settings[default_false].lower()
 
-    for default_true in ['PREAPPROVE']:
+    for default_true in default_true_settings:
         if default_true not in settings:
             printt_v(default_true, "not found in settings configuration file, settings a default value of true.")
             settings[default_true] = "true"
@@ -187,12 +201,12 @@ def load_settings_file(settings_path, load_message=True):
             settings[default_true] = settings[default_true].lower()
 
     # Keys that must be set
-    for required_key in ['EXCHANGE']:
-        if required_key not in settings:
-            printt_err(required_key, "not found in settings configuration file.")
+    for required_setting in required_user_settings:
+        if required_setting not in settings:
+            printt_err(required_setting, "not found in settings configuration file.")
             exit(-1)
         else:
-            settings[required_key] = settings[required_key].lower()
+            settings[required_setting] = settings[required_setting].lower()
 
     return settings
 
@@ -208,9 +222,9 @@ def load_tokens_file(tokens_path, load_message=True):
     # returns: a dictionary with the settings from the file loaded
 
     if load_message == True:
-        print(timestamp(), "Loading tokens from", command_line_args.tokens)
+        print(timestamp(), "Loading tokens from", tokens_path)
 
-    s = open(command_line_args.tokens, )
+    s = open(tokens_path, )
     tokens = json.load(s)
     s.close()
 
