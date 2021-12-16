@@ -257,6 +257,16 @@ def load_tokens_file(tokens_path, load_message=True):
         'STOPLOSSPRICEINBASE' : 0
     }
 
+    # There are values that we will set internally. They must all begin with _
+    # _LIQUIDITY_CHECKED - false if we have yet to check liquidity for this token
+    # _INFORMED_SELL - set to true when we've already informed the user that we're selling this position
+    program_defined_values = {
+        '_LIQUIDITY_READY' : False,
+        '_LIQUIDITY_CHECKED' : False,
+        '_INFORMED_SELL' : False,
+        '_REACHED_MAX_TOKENS' : True
+    }
+
     for token in tokens:
 
         # Keys that must be set
@@ -279,6 +289,10 @@ def load_tokens_file(tokens_path, load_message=True):
                 token[default_key] = default_value_settings[default_key]
             elif default_key == 'SELLAMOUNTINTOKENS':
                 default_value_settings[default_key] = default_value_settings[default_key].lower()
+
+        if next(iter(program_defined_values)) not in token:
+            for value in program_defined_values:
+                token[value] = program_defined_values[value]
 
     return tokens
 
@@ -2016,12 +2030,10 @@ def run():
 
         eth_balance = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
 
-        if eth_balance > 0.05:
-            pass
-        else:
+        if eth_balance < 0.05:
             printt_err("You have less than 0.05 ETH/BNB/FTM/MATIC/Etc. token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet")
             sleep(10)
-            sys.exit()
+            exit(1)
 
         # Display the number of token pairs we're attempting to trade
         # TODO: I have plans to prune failed tokens and duplicate pairs, so displaying this information is going to become important
@@ -2061,6 +2073,7 @@ def run():
                     sys.exit()
         
         load_token_file_increment = 0
+
         while True:
 
             # Load the tokens file, approximately every 5 seconds, which even on the worst nodes is about
@@ -2073,9 +2086,8 @@ def run():
                 
                 if token['ENABLED'] == 'true':
 
-                    #
-                    # CHECK FOR LIQUIDITY
-                    #
+                    # Set the checksum addressed for the addresses we're working with
+                    # TODO: We should do this once and store the values
                     inToken = Web3.toChecksumAddress(token['ADDRESS'])
 
                     if token['USECUSTOMBASEPAIR'] == 'true':
@@ -2083,6 +2095,11 @@ def run():
                     else:
                         outToken = weth
 
+
+                    #
+                    #  CHECK FOR LIQUIDITY OR PRICE CHECK
+                    #    Check the latest price, which will also tell us if we have liquidity
+                    #                    
                     try:
                         quote = check_price(inToken, outToken, token['SYMBOL'], token['BASESYMBOL'],
                                             token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'],
@@ -2095,155 +2112,100 @@ def run():
                         printt(token['SYMBOL'],"Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
                         quote = 0
 
-                    #
-                    # CHECK TO SEE IF WE SHOULD BUY TOKEN
-                    #
-                    if quote < Decimal(token['BUYPRICEINBASE']) and quote != 0:
+
+                    # If quote is not equal to zero, I'm going to be needing my balance for buy and sell decisions
+                    #   and I'm going to need to know if I've reached my MAXTOKENS
+                    if quote !=0:
                         balance = check_balance(inToken, token['SYMBOL'])
                         DECIMALS = decimals(inToken)
                         if Decimal(balance / DECIMALS) < Decimal(token['MAXTOKENS']):
+                            token['_REACHED_MAX_TOKENS'] = True
 
-                            if token["LIQUIDITYCHECK"] == 'true':
-                                pool = check_pool(inToken, outToken, token['BASESYMBOL'])
-                                printt("You have set LIQUIDITYCHECK = true.")
-                                printt("Current", token['SYMBOL'], "Liquidity =", int(pool), "in token:",outToken)
+                    #
+                    # BUY CHECK
+                    #   If the liquidity check has returned a quote that is less than our BUYPRICEINBASE and we haven't informrmed
+                    #   the user that we've reached the maximum number of tokens, check for other criteria to buy.
+                    #
+                    if quote != 0 and quote < Decimal(token['BUYPRICEINBASE']) and token['_REACHED_MAX_TOKENS'] == False:
+                        #
+                        #  CHECK FOR LIQUIDITY AMOUNT
+                        #    If we've found liquidity and want to check for liquidity amount, do that here
+                        #
+                        if token["LIQUIDITYCHECK"] == 'true' and token['_LIQUIDITY_CHECKED'] == False:
+                            pool = check_pool(inToken, outToken, token['BASESYMBOL'])
+                            printt("You have set LIQUIDITYCHECK = true.")
+                            printt("Current", token['SYMBOL'], "Liquidity =", int(pool), "in token:",outToken)
 
-                                if float(token['LIQUIDITYAMOUNT']) <= float(pool):
-                                    printt_ok("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
-                                          " --> Enough liquidity detected : Buy Signal Found!")
-                                    log_price = "{:.18f}".format(quote)
-                                    logging.info("BuySignal Found @" + str(log_price))
-                                    tx = buy(token['BUYAMOUNTINBASE'], outToken, inToken, token['GAS'],
-                                             token['SLIPPAGE'], token['GASLIMIT'], token['BOOSTPERCENT'],
-                                             token["HASFEES"], token['USECUSTOMBASEPAIR'], token['SYMBOL'],
-                                             token['BASESYMBOL'], token['LIQUIDITYINNATIVETOKEN'],
-                                             token['BUYAFTER_XXX_SECONDS'], token['MAX_FAILED_TRANSACTIONS_IN_A_ROW'])
-
-                                    if tx != False:
-                                        tx = wait_for_tx(tx, token['ADDRESS'])
-                                        balance = check_balance(token['ADDRESS'], token['BALANCE'])
-                                        print(
-                                            style.RESET + "\n                           --------------------------------------\n"
-                                                          "                            √  Tx done. Check your wallet \n"
-                                                          "                           --------------------------------------")
-                                        print(style.RESET + "")
-                                        sleep(3)
-                                        check_balance(token['ADDRESS'], token['SYMBOL'])
-                                        print(style.RESET + "\n")
-                                        sleep(3)
-
-                                        if tx != 1:
-                                            # transaction is a FAILURE
-                                            print(
-                                                style.RED + "\n                           -------------------------------------------------\n"
-                                                            "                             FAILURE ! Plese check your wallet. \n"
-                                                            "                            Cause of failure can be : \n"
-                                                            "                            - GASLIMIT too low\n"
-                                                            "                            - SLIPPAGE too low\n"
-                                                            "                           -------------------------------------------------\n\n")
-                                            print(style.RESET + "")
-                                            failedtransactionsamount += 1
-                                            preapprove(tokens)
-                                        else:
-                                            # transaction is a SUCCESS
-                                            print(
-                                                style.GREEN + "                           ----------------------------------\n"
-                                                              "                           SUCCESS : your Tx is confirmed :)\n"
-                                                              "                           ----------------------------------\n")
-                                            print(style.RESET + "")
-                                            pass
-
-                                    else:
-                                        # print("debug 1450")
-                                        pass
-                                else:
-                                    printt_err("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
-                                          " : not enough liquidity, bot will not buy")
-                                    sleep(5)
-
+                            if float(token['LIQUIDITYAMOUNT']) <= float(pool):
+                                printt_ok("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
+                                            " --> Enough liquidity detected : Buy Signal Found!")
+                            
+                            # This position isn't looking good. Inform the user, disable the token and break out of this loop
                             else:
-                                print(timestamp(), "Buy Signal Found!")
-                                log_price = "{:.18f}".format(quote)
-                                logging.info("BuySignal Found @" + str(log_price))
-                                tx = buy(token['BUYAMOUNTINBASE'], outToken, inToken, token['GAS'], token['SLIPPAGE'],
-                                         token['GASLIMIT'], token['BOOSTPERCENT'], token["HASFEES"],
-                                         token['USECUSTOMBASEPAIR'], token['SYMBOL'], token['BASESYMBOL'],
-                                         token['LIQUIDITYINNATIVETOKEN'], token['BUYAFTER_XXX_SECONDS'],
-                                         token['MAX_FAILED_TRANSACTIONS_IN_A_ROW'])
+                                printt_warn("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
+                                        " : not enough liquidity, bot will not buy. Disableing the trade of this token.")
+                                token['ENABLED'] = 'false'
+                                quote = 0
+                                break
 
-                                if tx != False:
-                                    tx = wait_for_tx(tx, token['ADDRESS'])
-                                    check_balance(token['ADDRESS'], token['SYMBOL'])
+                        #
+                        # PURCHASE POSITION
+                        #   If we've passed all checks, attempt to purchase the token
 
-                                    print(
-                                        style.RESET + "\n                           --------------------------------------\n"
-                                                      "                            √  Tx done. Check your wallet \n"
-                                                      "                           --------------------------------------")
-                                    print(style.RESET + "")
-                                    sleep(3)
-                                    check_balance(token['ADDRESS'], token['SYMBOL'])
-                                    print(style.RESET + "\n")
-                                    sleep(3)
+                        log_price = "{:.18f}".format(quote)
+                        logging.info("Buy Signal Found @" + str(log_price))
+                        printt("Buy Signal Found!")
+                        tx = buy(token['BUYAMOUNTINBASE'], outToken, inToken, token['GAS'],
+                                    token['SLIPPAGE'], token['GASLIMIT'], token['BOOSTPERCENT'],
+                                    token["HASFEES"], token['USECUSTOMBASEPAIR'], token['SYMBOL'],
+                                    token['BASESYMBOL'], token['LIQUIDITYINNATIVETOKEN'],
+                                    token['BUYAFTER_XXX_SECONDS'], token['MAX_FAILED_TRANSACTIONS_IN_A_ROW'])
 
-                                    if tx != 1:
-                                        # transaction is a FAILURE
-                                        print(
-                                            style.RED + "\n                           -------------------------------------------------\n"
-                                                        "                            FAILURE ! Please check your wallet. \n"
-                                                        "                            Cause of failure can be : \n"
-                                                        "                            - GASLIMIT too low\n"
-                                                        "                            - SLIPPAGE too low\n"
-                                                        "                           -------------------------------------------------\n\n")
-                                        print(style.RESET + "")
-                                        failedtransactionsamount += 1
-                                        preapprove(tokens)
-                                    else:
-                                        # transaction is a SUCCESS
-                                        print(
-                                            style.GREEN + "                           ----------------------------------\n"
-                                                          "                           SUCCESS : your Tx is confirmed :)\n"
-                                                          "                           ----------------------------------\n")
-                                        print(style.RESET + "")
-                                        pass
-                                else:
-                                    # print("debug 1497")
-                                    pass
+                        if tx != False:
+                            tx = wait_for_tx(tx, token['ADDRESS'])
+                            balance = check_balance(token['ADDRESS'], token['BALANCE'])
+                            print(
+                                style.RESET + "\n                           --------------------------------------\n"
+                                                "                            √  Tx done. Check your wallet \n"
+                                                "                           --------------------------------------")
+                            print(style.RESET + "")
+                            sleep(3)
+                            check_balance(token['ADDRESS'], token['SYMBOL'])
+                            print(style.RESET + "\n")
+                            sleep(3)
 
+                            if tx != 1:
+                                # transaction is a FAILURE
+                                print(
+                                    style.RED + "\n                           -------------------------------------------------\n"
+                                                "                             FAILURE ! Plese check your wallet. \n"
+                                                "                            Cause of failure can be : \n"
+                                                "                            - GASLIMIT too low\n"
+                                                "                            - SLIPPAGE too low\n"
+                                                "                           -------------------------------------------------\n\n")
+                                print(style.RESET + "")
+                                failedtransactionsamount += 1
+                                preapprove(tokens)
+                            else:
+                                # transaction is a SUCCESS
+                                print(
+                                    style.GREEN + "                           ----------------------------------\n"
+                                                    "                           SUCCESS : your Tx is confirmed :)\n"
+                                                    "                           ----------------------------------\n")
+                                print(style.RESET + "")
+                                pass
+                        
+                    #
+                    # SELL CHECK
+                    #   If there are already more than MAX_TOKENS in the user's wallet, check to see if we should sell them.
+                    #
+                    elif token['_REACHED_MAX_TOKENS'] == True and (quote > Decimal(token['SELLPRICEINBASE']) or quote < Decimal(token['STOPLOSSPRICEINBASE'])):
 
-                        else:
-                            print(timestamp(), "You own more tokens than your MAXTOKENS parameter for ",
-                                  token['SYMBOL'])
+                        if token['_INFORMED_SELL'] == False:
+                            printt_info("You own more tokens than your MAXTOKENS parameter for",token['SYMBOL'], " Selling this position")
+                            token['_INFORMED_SELL'] = True
 
-                            if (quote > Decimal(token['SELLPRICEINBASE'])) or (quote < Decimal(token['STOPLOSSPRICEINBASE'])):
-                                DECIMALS = decimals(inToken)
-                                balance = check_balance(inToken, token['SYMBOL'])
-                                moonbag = int(Decimal(token['MOONBAG']) * DECIMALS)
-                                balance = int(Decimal(balance - moonbag))
-
-                                if balance > 0:
-                                    print(timestamp(), "Sell Signal Found " + token['SYMBOL'])
-                                    log_price = "{:.18f}".format(quote)
-                                    logging.info("Sell Signal Found @" + str(log_price))
-                                    tx = sell(token['SELLAMOUNTINTOKENS'], token['MOONBAG'], inToken, outToken,
-                                              token['GAS'], token['SLIPPAGE'], token['GASLIMIT'], token['BOOSTPERCENT'],
-                                              token["HASFEES"], token['USECUSTOMBASEPAIR'], token['SYMBOL'],
-                                              token['LIQUIDITYINNATIVETOKEN'])
-                                    wait_for_tx(tx, token['ADDRESS'])
-                                    print(
-                                        style.RESET + "\n                           --------------------------------------\n"
-                                                      "                            √  Tx done. Check your wallet \n"
-                                                      "                           --------------------------------------")
-                                    sleep(3)
-                                    check_balance(token['ADDRESS'], token['SYMBOL'])
-                                    print(style.RESET + "\n")
-                                    sleep(3)
-                                else:
-                                    pass
-
-
-                    elif ((quote > Decimal(token['SELLPRICEINBASE']) or quote < Decimal(token['STOPLOSSPRICEINBASE'])) and quote != 0):
-                        DECIMALS = decimals(inToken)
-                        balance = check_balance(inToken, token['SYMBOL'])
+                        
                         moonbag = int(Decimal(token['MOONBAG']) * DECIMALS)
                         balance = int(Decimal(balance - moonbag))
 
@@ -2251,38 +2213,19 @@ def run():
                             print(timestamp(), "Sell Signal Found " + token['SYMBOL'])
                             log_price = "{:.18f}".format(quote)
                             logging.info("Sell Signal Found @" + str(log_price))
-                            tx = sell(token['SELLAMOUNTINTOKENS'], token['MOONBAG'], inToken, outToken, token['GAS'],
-                                      token['SLIPPAGE'], token['GASLIMIT'], token['BOOSTPERCENT'], token["HASFEES"],
-                                      token['USECUSTOMBASEPAIR'], token['SYMBOL'], token['LIQUIDITYINNATIVETOKEN'])
+                            tx = sell(token['SELLAMOUNTINTOKENS'], token['MOONBAG'], inToken, outToken,
+                                        token['GAS'], token['SLIPPAGE'], token['GASLIMIT'], token['BOOSTPERCENT'],
+                                        token["HASFEES"], token['USECUSTOMBASEPAIR'], token['SYMBOL'],
+                                        token['LIQUIDITYINNATIVETOKEN'])
                             wait_for_tx(tx, token['ADDRESS'])
                             print(
                                 style.RESET + "\n                           --------------------------------------\n"
-                                              "                            √  Tx done. Check your wallet \n"
-                                              "                           --------------------------------------")
+                                                "                            √  Tx done. Check your wallet \n"
+                                                "                           --------------------------------------")
                             sleep(3)
                             check_balance(token['ADDRESS'], token['SYMBOL'])
                             print(style.RESET + "\n")
                             sleep(3)
-
-                        else:
-                            # Double Check For Buy if Sell Signal Triggers
-                            if quote < Decimal(token['BUYPRICEINBASE']):
-                                balance = check_balance(inToken, token['SYMBOL'])
-                                if Web3.fromWei(balance, 'ether') < Decimal(token['MAXTOKENS']):
-                                    print(timestamp(), "Buy Signal Found!")
-                                    log_price = "{:.18f}".format(quote)
-                                    logging.info("Sell Signal Found @" + str(log_price))
-                                    tx = buy(token['BUYAMOUNTINBASE'], outToken, inToken, token['GAS'],
-                                             token['SLIPPAGE'], token['GASLIMIT'], token['BOOSTPERCENT'],
-                                             token["HASFEES"], token['USECUSTOMBASEPAIR'], token['SYMBOL'],
-                                             token['LIQUIDITYINNATIVETOKEN'], token['BUYAFTER_XXX_SECONDS'],
-                                             token['MAX_FAILED_TRANSACTIONS_IN_A_ROW'])
-                                    wait_for_tx(tx, token['ADDRESS'])
-                                else:
-                                    print(timestamp(), "Bot has reached MAXTOKENS Position Size for ", token['SYMBOL'])
-                                    pass
-                else:
-                    pass
 
             sleep(cooldown)
 
