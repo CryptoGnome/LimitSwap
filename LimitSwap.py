@@ -2070,8 +2070,12 @@ def run():
                 load_token_file_increment = 0
 
             for token in tokens:
-
+                
                 if token['ENABLED'] == 'true':
+
+                    #
+                    # CHECK FOR LIQUIDITY
+                    #
                     inToken = Web3.toChecksumAddress(token['ADDRESS'])
 
                     if token['USECUSTOMBASEPAIR'] == 'true':
@@ -2088,10 +2092,12 @@ def run():
                     # print("Debug inToken : ", inToken, "outToken :", outToken)
 
                     except Exception:
-                        print(timestamp(), token['SYMBOL'],
-                              " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
+                        printt(token['SYMBOL'],"Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
                         quote = 0
 
+                    #
+                    # CHECK TO SEE IF WE SHOULD BUY TOKEN
+                    #
                     if quote < Decimal(token['BUYPRICEINBASE']) and quote != 0:
                         balance = check_balance(inToken, token['SYMBOL'])
                         DECIMALS = decimals(inToken)
@@ -2099,9 +2105,8 @@ def run():
 
                             if token["LIQUIDITYCHECK"] == 'true':
                                 pool = check_pool(inToken, outToken, token['BASESYMBOL'])
-                                print(timestamp(), "You have set LIQUIDITYCHECK = true.")
-                                print(timestamp(), "Current", token['SYMBOL'], "Liquidity = ", int(pool), "in token:",
-                                      outToken)
+                                printt("You have set LIQUIDITYCHECK = true.")
+                                printt("Current", token['SYMBOL'], "Liquidity =", int(pool), "in token:",outToken)
 
                                 if float(token['LIQUIDITYAMOUNT']) <= float(pool):
                                     printt_ok("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
