@@ -1997,7 +1997,7 @@ def run():
     global failedtransactionsamount
 
     try:
-
+        
         tokens = load_tokens_file(command_line_args.tokens, True)
 
         eth_balance = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
@@ -2009,14 +2009,21 @@ def run():
             sleep(10)
             sys.exit()
 
-        
+        # Display the number of token pairs we're attempting to trade
+        # TODO: I have plans to prune failed tokens and duplicate pairs, so displaying this information is going to become important
         printt("Quantity of tokens attempting to trade:", len(tokens), "(" , build_token_list(tokens) , ")")
 
+
+        # Check to see if the user wants to pre-approve token transactions. If they do, work through that approval process
         if settings['PREAPPROVE'] == 'true':
             preapprove(tokens)
-        else:
-            pass
 
+        # For each token check to see if the user wants to run a rugdoc check against them.
+        #   then run the rugdoctor check and prompt the user if they want to continue trading
+        #   the token
+        #
+        # TODO PRUNE: Prune tokens if the user doesn't want to trade them. Exit only if we don't have any more tokens left
+        # TODO ARG: Implement an argument that auto accepts or prunes tokens that are rejected/accepted by the rugdoc check
         for token in tokens:
             
             if token['RUGDOC_CHECK'] == 'true':
@@ -2036,26 +2043,14 @@ def run():
 
                 if decision == "y":
                     print (style.RESET + "\nOK let's go!!\n")
-                    pass
                 else:
                     sys.exit()
-
-            else:
-                pass
-
+        
         while True:
             tokens = load_tokens_file(command_line_args.tokens, False)
 
             for token in tokens:
-                # Initialization of values, in case the user re-used some old tokens.json files
-                if 'RUGDOC_CHECK' not in token:
-                    token['RUGDOC_CHECK'] = 'false'
-                if 'BUYAFTER_XXX_SECONDS' not in token:
-                    token['BUYAFTER_XXX_SECONDS'] = 0
-                if 'MAX_FAILED_TRANSACTIONS_IN_A_ROW' not in token:
-                    token['MAX_FAILED_TRANSACTIONS_IN_A_ROW'] = 2
-                # End of initialization of values
-
+                
                 if token['ENABLED'].lower() == 'true':
                     inToken = Web3.toChecksumAddress(token['ADDRESS'])
 
