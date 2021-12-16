@@ -347,6 +347,44 @@ if settings['EXCHANGE'].lower() == 'pancakeswap':
     rugdocchain = '&chain=bsc'
     modified = False
 
+if settings['EXCHANGE'].lower() == 'pancakeswaptesnet':
+    if settings['USECUSTOMNODE'].lower() == 'true':
+        my_provider = settings['CUSTOMNODE']
+        print(timestamp(), 'Using custom node.')
+    else:
+        my_provider = "https://data-seed-prebsc-1-s2.binance.org:8545"
+
+    if not my_provider:
+        print(timestamp(), 'Custom node empty. Exiting')
+        exit(1)
+
+    if my_provider[0].lower() == 'h':
+        print(timestamp(), 'Using HTTPProvider')
+        client = Web3(Web3.HTTPProvider(my_provider))
+    elif my_provider[0].lower() == 'w':
+        print(timestamp(), 'Using WebsocketProvider')
+        client = Web3(Web3.WebsocketProvider(my_provider))
+    else:
+        print(timestamp(), 'Using IPCProvider')
+        client = Web3(Web3.IPCProvider(my_provider))
+
+    print(timestamp(), "Binance Smart Chain Connected =", client.isConnected())
+    print(timestamp(), "Loading Smart Contracts...")
+
+    if settings['EXCHANGEVERSION'] == "1":
+        routerAddress = Web3.toChecksumAddress("0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F")
+        factoryAddress = Web3.toChecksumAddress("0xbcfccbde45ce874adcb698cc183debcf17952812")
+    elif settings['EXCHANGEVERSION'] == "2":
+        routerAddress = Web3.toChecksumAddress("0xD99D1c33F9fC3444f8101754aBC46c52416550D1")
+        factoryAddress = Web3.toChecksumAddress("0x6725F303b657a9451d8BA641348b6761A6CC7a17")
+
+    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
+    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
+    weth = Web3.toChecksumAddress("0xae13d989dac2f0debff460ac112a837c89baa7cd")
+    base_symbol = "BNB"
+    rugdocchain = '&chain=bsc'
+    modified = False
+
 if settings['EXCHANGE'].lower() == 'traderjoe':
 
     if settings['USECUSTOMNODE'].lower() == 'true':
@@ -924,7 +962,7 @@ def approve(address, amount):
               "You have less than 0.05 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
         logging.info(
             "You have less than 0.05 ETH/BNB/FTM/MATIC or network gas token in your wallet, bot needs at least 0.05 to cover fees : please add some more in your wallet.")
-        sleep(10)
+        sleep(5)
         sys.exit()
 
 
@@ -933,10 +971,7 @@ def check_approval(address, allowancetocomparewith):
     contract = client.eth.contract(address=Web3.toChecksumAddress(address), abi=standardAbi)
     actualallowance = contract.functions.allowance(Web3.toChecksumAddress(settings['WALLETADDRESS']), routerAddress).call()
 
-    allowancetocomparewithint = int(allowancetocomparewith)
-    actualallowanceint = int(actualallowance)
-
-    if actualallowanceint < allowancetocomparewithint:
+    if actualallowance < allowancetocomparewith:
         if settings["EXCHANGE"].lower() == 'quickswap':
             print("Revert to Zero To change approval")
             tx = approve(address, 0)
@@ -958,6 +993,7 @@ def check_approval(address, allowancetocomparewith):
         return
 
     else:
+        printt_ok("Token is already approved --> LimitSwap can sell this token ")
         pass
 
 
@@ -1451,10 +1487,14 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
 def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom, symbol, routing, gaspriority):
     print(timestamp(), "Placing Sell Order " + symbol)
     balance = Web3.fromWei(check_balance(inToken, symbol), 'ether')
-    check_approval(inToken, balance * 1000000000)
+
+    # We ask the bot to check if your allowance is > to your balance. Use a 10000000000000000 multiplier for decimals.
+    check_approval(inToken, balance * 10000000000000000)
 
     if int(gaslimit) < 250000:
         gaslimit = 300000
+        printt_info(
+        "Your GASLIMIT parameter is too low : LimitSwap has forced it to 300000 otherwise your transaction would fail for sure. We advise you to raise it to 1000000.")
 
     if type(amount) == str:
         amount_check = balance
