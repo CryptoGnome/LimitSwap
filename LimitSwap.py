@@ -366,8 +366,8 @@ logging.info("******************************************************************
 //NETWORKS SELECT
 """""""""""""""""""""""""""
 
-if settings['EXCHANGE'].lower() == 'pancakeswap':
-    if settings['USECUSTOMNODE'].lower() == 'true':
+if settings['EXCHANGE'] == 'pancakeswap':
+    if settings['USECUSTOMNODE'] == 'true':
         my_provider = settings['CUSTOMNODE']
         print(timestamp(), 'Using custom node.')
     else:
@@ -404,9 +404,9 @@ if settings['EXCHANGE'].lower() == 'pancakeswap':
     rugdocchain = '&chain=bsc'
     modified = False
 
-if settings['EXCHANGE'].lower() == 'traderjoe':
+if settings['EXCHANGE'] == 'traderjoe':
 
-    if settings['USECUSTOMNODE'].lower() == 'true':
+    if settings['USECUSTOMNODE'] == 'true':
         my_provider = settings['CUSTOMNODE']
     else:
         my_provider = "https://api.avax.network/ext/bc/C/rpc"
@@ -425,8 +425,8 @@ if settings['EXCHANGE'].lower() == 'traderjoe':
     rugdocchain = '&chain=avax'
     modified = True
 
-elif settings['EXCHANGE'].lower() == 'pinkswap':
-    if settings['USECUSTOMNODE'].lower() == 'true':
+elif settings['EXCHANGE'] == 'pinkswap':
+    if settings['USECUSTOMNODE'] == 'true':
         my_provider = settings['CUSTOMNODE']
         print(timestamp(), 'Using custom node.')
     else:
@@ -460,8 +460,8 @@ elif settings['EXCHANGE'].lower() == 'pinkswap':
     rugdocchain = '&chain=bsc'
     modified = False
 
-elif settings['EXCHANGE'].lower() == 'biswap':
-    if settings['USECUSTOMNODE'].lower() == 'true':
+elif settings['EXCHANGE'] == 'biswap':
+    if settings['USECUSTOMNODE'] == 'true':
         my_provider = settings['CUSTOMNODE']
         print(timestamp(), 'Using custom node.')
     else:
@@ -495,8 +495,8 @@ elif settings['EXCHANGE'].lower() == 'biswap':
     rugdocchain = '&chain=bsc'
     modified = False
 
-elif settings['EXCHANGE'].lower() == 'apeswap':
-    if settings['USECUSTOMNODE'].lower() == 'true':
+elif settings['EXCHANGE'] == 'apeswap':
+    if settings['USECUSTOMNODE'] == 'true':
         my_provider = settings['CUSTOMNODE']
     else:
         my_provider = "https://bsc-dataseed4.defibit.io"
@@ -518,8 +518,8 @@ elif settings['EXCHANGE'].lower() == 'apeswap':
     rugdocchain = '&chain=bsc'
     modified = False
 
-elif settings["EXCHANGE"].lower() == 'uniswap':
-    if settings['USECUSTOMNODE'].lower() == 'true':
+elif settings["EXCHANGE"] == 'uniswap':
+    if settings['USECUSTOMNODE'] == 'true':
         my_provider = settings['CUSTOMNODE']
     else:
         my_provider = "https://pedantic-montalcini:lair-essay-ranger-rigid-hardy-petted@nd-857-678-344.p2pify.com"
@@ -536,8 +536,8 @@ elif settings["EXCHANGE"].lower() == 'uniswap':
     rugdocchain = '&chain=eth'
     modified = False
 
-elif settings["EXCHANGE"].lower() == 'kuswap':
-    if settings['USECUSTOMNODE'].lower() == 'true':
+elif settings["EXCHANGE"] == 'kuswap':
+    if settings['USECUSTOMNODE'] == 'true':
         my_provider = settings['CUSTOMNODE']
     else:
         my_provider = "https://rpc-mainnet.kcc.network"
@@ -554,8 +554,8 @@ elif settings["EXCHANGE"].lower() == 'kuswap':
     rugdocchain = '&chain=kcc'
     modified = False
 
-elif settings["EXCHANGE"].lower() == 'koffeeswap':
-    if settings['USECUSTOMNODE'].lower() == 'true':
+elif settings["EXCHANGE"] == 'koffeeswap':
+    if settings['USECUSTOMNODE'] == 'true':
         my_provider = settings['CUSTOMNODE']
     else:
         my_provider = "https://rpc-mainnet.kcc.network"
@@ -572,8 +572,8 @@ elif settings["EXCHANGE"].lower() == 'koffeeswap':
     rugdocchain = '&chain=kcc'
     modified = True
 
-elif settings["EXCHANGE"].lower() == 'spookyswap':
-    if settings['USECUSTOMNODE'].lower() == 'true':
+elif settings["EXCHANGE"] == 'spookyswap':
+    if settings['USECUSTOMNODE'] == 'true':
         my_provider = settings['CUSTOMNODE']
     else:
         my_provider = "https://rpcapi.fantom.network"
@@ -590,8 +590,8 @@ elif settings["EXCHANGE"].lower() == 'spookyswap':
     rugdocchain = '&chain=ftm'
     modified = False
 
-elif settings["EXCHANGE"].lower() == 'spiritswap':
-    if settings['USECUSTOMNODE'].lower() == 'true':
+elif settings["EXCHANGE"] == 'spiritswap':
+    if settings['USECUSTOMNODE'] == 'true':
         my_provider = settings['CUSTOMNODE']
     else:
         my_provider = "https://rpcapi.fantom.network"
@@ -608,8 +608,8 @@ elif settings["EXCHANGE"].lower() == 'spiritswap':
     rugdocchain = '&chain=ftm'
     modified = False
 
-elif settings["EXCHANGE"].lower() == 'quickswap':
-    if settings['USECUSTOMNODE'].lower() == 'true':
+elif settings["EXCHANGE"] == 'quickswap':
+    if settings['USECUSTOMNODE'] == 'true':
         my_provider = settings['CUSTOMNODE']
     else:
         my_provider = "https://polygon-rpc.com"
@@ -626,8 +626,8 @@ elif settings["EXCHANGE"].lower() == 'quickswap':
     rugdocchain = '&chain=poly'
     modified = False
 
-elif settings["EXCHANGE"].lower() == 'waultswap':
-    if settings['USECUSTOMNODE'].lower() == 'true':
+elif settings["EXCHANGE"] == 'waultswap':
+    if settings['USECUSTOMNODE'] == 'true':
         my_provider = settings['CUSTOMNODE']
     else:
         my_provider = "https://rpc-waultfinance-mainnet.maticvigil.com/v1/0bc1bb1691429f1eeee66b2a4b919c279d83d6b0"
@@ -644,8 +644,8 @@ elif settings["EXCHANGE"].lower() == 'waultswap':
     rugdocchain = '&chain=poly'
     modified = False
 
-elif settings["EXCHANGE"].lower() == 'pangolin':
-    if settings['USECUSTOMNODE'].lower() == 'true':
+elif settings["EXCHANGE"] == 'pangolin':
+    if settings['USECUSTOMNODE'] == 'true':
         my_provider = settings['CUSTOMNODE']
     else:
         my_provider = "https://api.avax.network/ext/bc/C/rpc"
@@ -928,26 +928,26 @@ def approve(address, amount):
 
     if eth_balance > 0.05:
         print("Estimating Gas Cost Using Web3")
-        if settings['EXCHANGE'].lower() == 'uniswap':
+        if settings['EXCHANGE'] == 'uniswap':
             gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
             print("Current Gas Price =", gas)
 
-        elif settings['EXCHANGE'].lower() == 'pancakeswap':
+        elif settings['EXCHANGE'] == 'pancakeswap':
             gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
             print("Current Gas Price = ", gas)
-        elif settings['EXCHANGE'].lower() == 'spiritswap':
+        elif settings['EXCHANGE'] == 'spiritswap':
             gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
             print("Current Gas Price = ", gas)
-        elif settings['EXCHANGE'].lower() == 'spookyswap':
+        elif settings['EXCHANGE'] == 'spookyswap':
             gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
             print("Current Gas Price = ", gas)
-        elif settings['EXCHANGE'].lower() == 'pangolin':
+        elif settings['EXCHANGE'] == 'pangolin':
             gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
             print("Current Gas Price = ", gas)
-        elif settings['EXCHANGE'].lower() == 'quickswap':
+        elif settings['EXCHANGE'] == 'quickswap':
             gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
             print("Current Gas Price = ", gas)
-        elif settings['EXCHANGE'].lower() == 'kuswap' or 'koffeeswap':
+        elif settings['EXCHANGE'] == 'kuswap' or 'koffeeswap':
             gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
             print("Current Gas Price = ", gas)
         else:
@@ -995,7 +995,7 @@ def check_approval(address, balance):
 
     if int(allowance) < int(balance):
 
-        if settings["EXCHANGE"].lower() == 'quickswap':
+        if settings["EXCHANGE"] == 'quickswap':
             print("Revert to Zero To change approval")
             tx = approve(address, 0)
             wait_for_tx(tx, address)
@@ -1124,7 +1124,7 @@ def check_price(inToken, outToken, symbol, base, custom, routing, buypriceinbase
     DECIMALS = decimals(inToken)
     stamp = timestamp()
 
-    if custom.lower() == 'false':
+    if custom == 'false':
         base = base_symbol
     else:
         pass
@@ -1233,7 +1233,7 @@ def preapprove(tokens):
     for token in tokens:
         check_approval(token['ADDRESS'], 115792089237316195423570985008687907853269984665640564039457584007913129639935)
 
-        if token['USECUSTOMBASEPAIR'].lower() == 'false':
+        if token['USECUSTOMBASEPAIR'] == 'false':
             check_approval(weth, 115792089237316195423570985008687907853269984665640564039457584007913129639935)
         else:
             check_approval(token['BASEADDRESS'],
@@ -1264,7 +1264,7 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
             printt_info("Your GASLIMIT parameter is too low : LimitSwap has forced it to 300000 otherwise your transaction would fail for sure. We advise you to raise it to 1000000.")
             gaslimit = 300000
 
-        if custom.lower() == 'false':
+        if custom == 'false':
             balance = Web3.fromWei(check_bnb_balance(), 'ether')
             base = base_symbol
         else:
@@ -1274,7 +1274,7 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
             balance = balance_check / DECIMALS
 
         if balance > Decimal(amount):
-            if gas.lower() == 'boost':
+            if gas == 'boost':
                 gas_check = client.eth.gasPrice
                 gas_price = gas_check / 1000000000
                 gas = (gas_price * ((int(boost)) / 100)) + gas_price
@@ -1286,10 +1286,10 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
             DECIMALS = decimals(inToken)
             amount = int(float(amount) * DECIMALS)
 
-            if custom.lower() == 'false':
+            if custom == 'false':
                 # if USECUSTOMBASEPAIR = false
 
-                if routing.lower() == 'false':
+                if routing == 'false':
                     # LIQUIDITYINNATIVETOKEN = false
                     # USECUSTOMBASEPAIR = false
                     printt_err("You have selected LIQUIDITYINNATIVETOKEN = false , so you must choose USECUSTOMBASEPAIR = true \n"
@@ -1298,7 +1298,7 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
                     sys.exit()
                 else:
                     amount_out = routerContract.functions.getAmountsOut(amount, [weth, outToken]).call()[-1]
-                    if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
+                    if settings['UNLIMITEDSLIPPAGE'] == 'true':
                         min_tokens = 100
                     else:
                         min_tokens = int(amount_out * (1 - (slippage / 100)))
@@ -1309,7 +1309,7 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
                     # USECUSTOMBASEPAIR = false
                     if modified == True:
 
-                        if settings["EXCHANGE"].lower() == 'koffeeswap':
+                        if settings["EXCHANGE"] == 'koffeeswap':
                             transaction = routerContract.functions.swapExactKCSForTokens(
                                 min_tokens,
                                 [weth, outToken],
@@ -1323,7 +1323,7 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
                                 'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
                             })
 
-                        elif settings["EXCHANGE"].lower() == 'pangolin' or settings["EXCHANGE"].lower() == 'traderjoe':
+                        elif settings["EXCHANGE"] == 'pangolin' or settings["EXCHANGE"] == 'traderjoe':
                             transaction = routerContract.functions.swapExactAVAXForTokens(
                                 min_tokens,
                                 [weth, outToken],
@@ -1343,7 +1343,7 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
                         # This section is for exchange with Modified = false --> uniswap / pancakeswap / apeswap, etc.
 
                         # Special condition on Uniswap, to implement EIP-1559
-                        if settings["EXCHANGE"].lower() == 'uniswap':
+                        if settings["EXCHANGE"] == 'uniswap':
                             transaction = routerContract.functions.swapExactETHForTokens(
                                 min_tokens,
                                 [weth, outToken],
@@ -1380,13 +1380,13 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
                     # USECUSTOMBASEPAIR = true
                     # but user chose to put WETH or WBNB contract as CUSTOMBASEPAIR address
                     amount_out = routerContract.functions.getAmountsOut(amount, [weth, outToken]).call()[-1]
-                    if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
+                    if settings['UNLIMITEDSLIPPAGE'] == 'true':
                         min_tokens = 100
                     else:
                         min_tokens = int(amount_out * (1 - (slippage / 100)))
                     deadline = int(time() + + 60)
 
-                    if settings["EXCHANGE"].lower() == 'uniswap':
+                    if settings["EXCHANGE"] == 'uniswap':
                         # Special condition on Uniswap, to implement EIP-1559
                         transaction = routerContract.functions.swapExactTokensForTokens(
                             amount,
@@ -1421,16 +1421,16 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
                     # LIQUIDITYINNATIVETOKEN = true
                     # USECUSTOMBASEPAIR = true
                     # Base Pair different from weth
-                    if routing.lower() == 'true':
+                    if routing == 'true':
                         amount_out = routerContract.functions.getAmountsOut(amount, [inToken, weth, outToken]).call()[
                             -1]
-                        if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
+                        if settings['UNLIMITEDSLIPPAGE'] == 'true':
                             min_tokens = 100
                         else:
                             min_tokens = int(amount_out * (1 - (slippage / 100)))
                         deadline = int(time() + + 60)
 
-                        if settings["EXCHANGE"].lower() == 'uniswap':
+                        if settings["EXCHANGE"] == 'uniswap':
                             # USECUSTOMBASEPAIR = true
                             # Base Pair different from weth
                             # LIQUIDITYINNATIVETOKEN = true
@@ -1476,13 +1476,13 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
                         # Base Pair different from weth
 
                         amount_out = routerContract.functions.getAmountsOut(amount, [inToken, outToken]).call()[-1]
-                        if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
+                        if settings['UNLIMITEDSLIPPAGE'] == 'true':
                             min_tokens = 100
                         else:
                             min_tokens = int(amount_out * (1 - (slippage / 100)))
                         deadline = int(time() + + 60)
 
-                        if settings["EXCHANGE"].lower() == 'uniswap':
+                        if settings["EXCHANGE"] == 'uniswap':
                             # LIQUIDITYINNATIVETOKEN = false
                             # USECUSTOMBASEPAIR = true
                             # Base Pair different from weth
@@ -1563,7 +1563,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
 
     if balance >= Decimal(amount_check) and balance > 0.0000000000000001:
 
-        if gas.lower() == 'boost':
+        if gas == 'boost':
             gas_check = client.eth.gasPrice
             gas_price = gas_check / 1000000000
             gas = (gas_price * ((int(boost) * 4) / 100)) + gas_price
@@ -1595,7 +1595,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                     print("Not enough left to sell, would bust moonbag")
                     amount = 0
 
-        if custom.lower() == 'false':
+        if custom == 'false':
             # USECUSTOMBASEPAIR = false
             sync(inToken, weth)
 
@@ -1603,14 +1603,14 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
             min_tokens = int(amount_out * (1 - (slippage / 100)))
             deadline = int(time() + + 60)
 
-            if fees.lower() == 'true':
+            if fees == 'true':
 
                 # THIS SECTION IS FOR MODIFIED CONTRACTS AND EACH EXCHANGE IS SPECIFIED
                 if modified == True:
                     # USECUSTOMBASEPAIR = false
                     # HASFEES = true
 
-                    if settings["EXCHANGE"].lower() == 'koffeeswap':
+                    if settings["EXCHANGE"] == 'koffeeswap':
                         transaction = routerContract.functions.swapExactTokensForKCSSupportingFeeOnTransferTokens(
                             amount,
                             min_tokens,
@@ -1624,7 +1624,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                             'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
                         })
 
-                    if settings["EXCHANGE"].lower() == 'pangolin' or settings["EXCHANGE"].lower() == 'traderjoe':
+                    if settings["EXCHANGE"] == 'pangolin' or settings["EXCHANGE"] == 'traderjoe':
                         transaction = routerContract.functions.swapExactTokensForAVAXSupportingFeeOnTransferTokens(
                             amount,
                             min_tokens,
@@ -1664,7 +1664,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                     # HASFEES = false
                     # Modified = true
 
-                    if settings["EXCHANGE"].lower() == 'koffeeswap':
+                    if settings["EXCHANGE"] == 'koffeeswap':
                         transaction = routerContract.functions.swapExactTokensForKCS(
                             amount,
                             min_tokens,
@@ -1677,7 +1677,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                             'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
                             'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
                         })
-                    elif settings["EXCHANGE"].lower() == 'pangolin' or settings["EXCHANGE"].lower() == 'traderjoe':
+                    elif settings["EXCHANGE"] == 'pangolin' or settings["EXCHANGE"] == 'traderjoe':
                         transaction = routerContract.functions.swapExactTokensForAVAX(
                             amount,
                             min_tokens,
@@ -1696,7 +1696,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                     # HASFEES = false
                     # Modified = false --> uniswap / pancakeswap / apeswap, etc.
 
-                    if settings["EXCHANGE"].lower() == 'uniswap':
+                    if settings["EXCHANGE"] == 'uniswap':
                         # Special condition on Uniswap, to implement EIP-1559
                         transaction = routerContract.functions.swapExactTokensForETH(
                             amount,
@@ -1737,7 +1737,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                 min_tokens = int(amount_out * (1 - (slippage / 100)))
                 deadline = int(time() + + 60)
 
-                if fees.lower() == 'true':
+                if fees == 'true':
                     # USECUSTOMBASEPAIR = true
                     # HASFEES = true
 
@@ -1750,7 +1750,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                         # HASFEES = true
                         # Modified = true
 
-                        if settings["EXCHANGE"].lower() == 'koffeeswap':
+                        if settings["EXCHANGE"] == 'koffeeswap':
                             transaction = routerContract.functions.swapExactTokensForKCSSupportingFeeOnTransferTokens(
                                 amount,
                                 min_tokens,
@@ -1764,7 +1764,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                                 'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
                             })
 
-                        elif settings["EXCHANGE"].lower() == 'pangolin' or settings["EXCHANGE"].lower() == 'traderjoe':
+                        elif settings["EXCHANGE"] == 'pangolin' or settings["EXCHANGE"] == 'traderjoe':
                             transaction = routerContract.functions.swapExactTokensForAVAXSupportingFeeOnTransferTokens(
                                 amount,
                                 min_tokens,
@@ -1815,18 +1815,18 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
             else:
                 sync(inToken, outToken)
 
-                if routing.lower() == 'false' and outToken != weth:
+                if routing == 'false' and outToken != weth:
                     # LIQUIDITYINNATIVETOKEN = false
                     # USECUSTOMBASEPAIR = true
                     amount_out = routerContract.functions.getAmountsOut(amount, [inToken, outToken]).call()[-1]
                     min_tokens = int(amount_out * (1 - (slippage / 100)))
                     deadline = int(time() + + 60)
 
-                    if fees.lower() == 'true':
+                    if fees == 'true':
                         # LIQUIDITYINNATIVETOKEN = false
                         # USECUSTOMBASEPAIR = true
                         # HASFEES = true
-                        if settings["EXCHANGE"].lower() == 'uniswap':
+                        if settings["EXCHANGE"] == 'uniswap':
                             # Special condition on Uniswap, to implement EIP-1559
                             transaction = routerContract.functions.swapExactTokensForTokensSupportingFeeOnTransferTokens(
                                 amount,
@@ -1862,7 +1862,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                         # LIQUIDITYINNATIVETOKEN = false
                         # USECUSTOMBASEPAIR = true
                         # HASFEES = false
-                        if settings["EXCHANGE"].lower() == 'uniswap':
+                        if settings["EXCHANGE"] == 'uniswap':
                             # Special condition on Uniswap, to implement EIP-1559
                             transaction = routerContract.functions.swapExactTokensForTokens(
                                 amount,
@@ -1894,7 +1894,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                                 'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
                             })
 
-                elif routing.lower() == 'false' and outToken == weth:
+                elif routing == 'false' and outToken == weth:
                     # LIQUIDITYINNATIVETOKEN = false
                     # USECUSTOMBASEPAIR = true
                     # but user chose to put WETH or WBNB contract as CUSTOMBASEPAIR address
@@ -1906,9 +1906,9 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                     min_tokens = int(amount_out * (1 - (slippage / 100)))
                     deadline = int(time() + + 60)
 
-                    if fees.lower() == 'true':
+                    if fees == 'true':
                         # HASFEES = true
-                        if settings["EXCHANGE"].lower() == 'uniswap':
+                        if settings["EXCHANGE"] == 'uniswap':
                             # Special condition on Uniswap, to implement EIP-1559
                             transaction = routerContract.functions.swapExactTokensForTokensSupportingFeeOnTransferTokens(
                                 amount,
@@ -1941,7 +1941,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
 
                     else:
                         # HASFEES = false
-                        if settings["EXCHANGE"].lower() == 'uniswap':
+                        if settings["EXCHANGE"] == 'uniswap':
                             # Special condition on Uniswap, to implement EIP-1559
                             transaction = routerContract.functions.swapExactTokensForTokens(
                                 amount,
@@ -2046,15 +2046,21 @@ def run():
                 else:
                     sys.exit()
         
+        load_token_file_increment = 0
         while True:
-            tokens = load_tokens_file(command_line_args.tokens, False)
+
+            # Load the tokens file, approximately every 5 seconds, which even on the worst nodes is about
+            #   once a second
+            if load_token_file_increment > 5:
+                tokens = load_tokens_file(command_line_args.tokens, False)
+                load_token_file_increment = 0
 
             for token in tokens:
 
-                if token['ENABLED'].lower() == 'true':
+                if token['ENABLED'] == 'true':
                     inToken = Web3.toChecksumAddress(token['ADDRESS'])
 
-                    if token['USECUSTOMBASEPAIR'].lower() == 'true':
+                    if token['USECUSTOMBASEPAIR'] == 'true':
                         outToken = Web3.toChecksumAddress(token['BASEADDRESS'])
                     else:
                         outToken = weth
@@ -2077,7 +2083,7 @@ def run():
                         DECIMALS = decimals(inToken)
                         if Decimal(balance / DECIMALS) < Decimal(token['MAXTOKENS']):
 
-                            if token["LIQUIDITYCHECK"].lower() == 'true':
+                            if token["LIQUIDITYCHECK"] == 'true':
                                 pool = check_pool(inToken, outToken, token['BASESYMBOL'])
                                 print(timestamp(), "You have set LIQUIDITYCHECK = true.")
                                 print(timestamp(), "Current", token['SYMBOL'], "Liquidity = ", int(pool), "in token:",
