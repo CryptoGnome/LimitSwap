@@ -2038,11 +2038,11 @@ def run():
 
                 decision = ""
                 while decision != "y" and decision != "n":
-                    print (style.RESET + "\nWhat is your decision?")
+                    print ("\nWhat is your decision?")
                     decision = input("Would you like to snipe this token? (y/n): ")
 
                 if decision == "y":
-                    print (style.RESET + "\nOK let's go!!\n")
+                    print ("\nOK let's go!!\n")
                 else:
                     sys.exit()
         
@@ -2050,7 +2050,7 @@ def run():
             tokens = load_tokens_file(command_line_args.tokens, False)
 
             for token in tokens:
-                
+
                 if token['ENABLED'].lower() == 'true':
                     inToken = Web3.toChecksumAddress(token['ADDRESS'])
 
