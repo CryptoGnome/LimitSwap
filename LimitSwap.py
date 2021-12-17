@@ -16,6 +16,18 @@ import signal
 
 # DEVELOPER CONSIDERATIONS
 #
+#  =-= START README =-= START README =-= START README =-= START README =-= START README =-=
+#    MAJOR TOKEN LOGIC CHANGE =-= MAJOR TOKEN LOGIC CHANGE =-= MAJOR TOKEN LOGIC CHANGE 
+#
+#  There has been a major change to the way token logic is handled. Please review load_tokens_file
+#  The program_defined_values allows us to move token specifica variables in and out of functions
+#  Allowing us to do interesting things like continue to check for liquidity on one token while
+#  Buying and Selling another.
+#
+#     MAJOR TOKEN LOGIC CHANGE =-= MAJOR TOKEN LOGIC CHANGE =-= MAJOR TOKEN LOGIC CHANGE 
+# =-= END README =-= END README =-= END README =-= END README =-= END README =-= END README  =-=
+#
+#
 # USER INTERACTION - Do not depend on user interaction. If you develop a setting that is going to require
 #    user interaction while the bot is running, warn the user before hand. Accept a value before the check
 #    for liquidity, and provide a command line flag. Basically, provide ways for the bot to continue it's
@@ -31,10 +43,6 @@ import signal
 #    review comment "COMMAND LINE ARGUMENTS" and the functions load_settings_file and save_settings_file
 #    Do not assume a user has changed their tokens.json file to work with the new version, your additions
 #    should be backwards compatible and have safe default values if possible
-
-
-# initialization of number of failed transactions
-failedtransactionsamount = 0
 
 # color styles
 class style():  # Class of different text colours - default is white
@@ -104,7 +112,6 @@ def printt(*print_args):
 
     print(timestamp(), ' '.join(map(str, print_args)))
 
-
 def printt_v(*print_args):
     # Function: printt
     # ----------------------------
@@ -116,7 +123,6 @@ def printt_v(*print_args):
 
     if command_line_args.verbose == True:
         print(timestamp(), ' '.join(map(str, print_args)))
-
 
 def printt_err(*print_args, write_to_log=True):
     # Function: printt_err
@@ -133,7 +139,6 @@ def printt_err(*print_args, write_to_log=True):
     if write_to_log == True:
         logging.info(' '.join(map(str,print_args)))
 
-
 def printt_warn(*print_args):
     # Function: printt_warn
     # --------------------
@@ -145,7 +150,6 @@ def printt_warn(*print_args):
 
     print(timestamp(), " ", style.YELLOW, ' '.join(map(str,print_args)), style.RESET, sep="")
 
-
 def printt_ok(*print_args):
     # Function: printt_ok
     # --------------------
@@ -154,7 +158,6 @@ def printt_ok(*print_args):
     # returns: nothing
 
     print(timestamp(), " ", style.GREEN, ' '.join(map(str, print_args)), style.RESET, sep="")
-
 
 def printt_info(*print_args):
     # Function: printt_info
@@ -177,6 +180,20 @@ def printt_debug(*print_args):
     if command_line_args.debug == True:
         print(timestamp(), " ", style.DEBUG, ' '.join(map(str,print_args)), style.RESET, sep="")
 
+# def printt_buyprice(token_dict, token_price):
+#     Function: printt_buyprice
+#     --------------------
+#     Formatted buying information
+    
+#     token_dict - one element of the tokens{} dictionary
+#     token_price - the current price of the token we want to buy
+    
+#     returns: nothing
+
+#     print(timestamp(), 
+#             style.BLUE, token_dict['SYMBOL'], " Price ", token_Price, token.[],
+#              "//// your buyprice =", buypriceinbase, base,
+#                   "//// your sellprice =", sellpriceinbase, base, "//// your stoplossprice =", stoplosspriceinbase, base)
 
 def load_settings_file(settings_path, load_message=True):
     # Function: load_settings_file
@@ -258,6 +275,10 @@ def load_tokens_file(tokens_path, load_message=True):
         'SELLPRICEINBASE'
     ]
 
+    default_true_settings = [
+        'LIQUIDITYINNATIVETOKEN',
+    ]
+
     default_false_settings = [
         'ENABLED',
         'LIQUIDITYCHECK',
@@ -276,7 +297,7 @@ def load_tokens_file(tokens_path, load_message=True):
         'BOOSTPERCENT' : 50,
         'GASLIMIT' : 1000000,
         'BUYAFTER_XXX_SECONDS' : 0,
-        'MAX_FAILED_TRANSACTIONS_IN_A_ROW' : 0,
+        'MAX_FAILED_TRANSACTIONS_IN_A_ROW' : 2,
         'STOPLOSSPRICEINBASE' : 0
     }
 
@@ -287,8 +308,11 @@ def load_tokens_file(tokens_path, load_message=True):
         '_LIQUIDITY_READY' : False,
         '_LIQUIDITY_CHECKED' : False,
         '_INFORMED_SELL' : False,
-        '_REACHED_MAX_TOKENS' : True,
-        '_ACTUAL_BUY_PRICE' : 0
+        '_REACHED_MAX_TOKENS' : False,
+        '_ACTUAL_BUY_PRICE' : 0,
+        '_GAS_TO_USE' : 0,
+        '_FAILED_TRANSACTIONS' : 0,
+        '_TOKEN_BALANCE' : 0
     }
 
     for token in tokens:
@@ -307,6 +331,14 @@ def load_tokens_file(tokens_path, load_message=True):
             else:
                 token[default_false] = token[default_false].lower()
 
+        for default_true in default_true_settings:
+            if default_true not in token:
+                printt_v(default_true, "not found in configuration file in configuration for to token",
+                         token['SYMBOL'], "setting a default value of false")
+                token[default_true] = "false"
+            else:
+                token[default_true] = token[default_true].lower()
+
         for default_key in default_value_settings:
             if default_key not in token:
                 printt_v (default_key , "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a value of", default_value_settings[default_key])
@@ -314,7 +346,8 @@ def load_tokens_file(tokens_path, load_message=True):
             elif default_key == 'SELLAMOUNTINTOKENS':
                 default_value_settings[default_key] = default_value_settings[default_key].lower()
 
-        if next(iter(program_defined_values)) not in token:
+        # Set program values only if they haven't been set already
+        if '_LIQUIDITY_READY' not in token:
             for value in program_defined_values:
                 token[value] = program_defined_values[value]
 
@@ -1040,7 +1073,7 @@ def approve(address, amount):
         sys.exit()
 
 
-def check_approval(address, balance):
+def check_approval(token, address, balance):
     print(timestamp(), "Checking Approval Status", address)
     contract = client.eth.contract(address=Web3.toChecksumAddress(address), abi=standardAbi)
     allowance = contract.functions.allowance(Web3.toChecksumAddress(settings['WALLETADDRESS']), routerAddress).call()
@@ -1050,16 +1083,16 @@ def check_approval(address, balance):
         if settings["EXCHANGE"] == 'quickswap':
             print("Revert to Zero To change approval")
             tx = approve(address, 0)
-            wait_for_tx(tx, address)
+            wait_for_tx(token, tx, address)
             tx = approve(address, 115792089237316195423570985008687907853269984665640564039457584007913129639935)
-            wait_for_tx(tx, address)
+            wait_for_tx(token, tx, address)
         else:
             printt_info("\n                           ---------------------------------------------------------------------------\n"
                         "                           You need to APPROVE this token before selling it : LimitSwap will do it now\n"
                         "                           ---------------------------------------------------------------------------\n")
 
             tx = approve(address, 115792089237316195423570985008687907853269984665640564039457584007913129639935)
-            wait_for_tx(tx, address)
+            wait_for_tx(token, tx, address)
             printt_ok("\n                           ---------------------------------------------------------\n"
                         "                             Token is now approved : LimitSwap can sell this token\n"
                         "                           ---------------------------------------------------------\n")
@@ -1145,13 +1178,9 @@ def check_pool(inToken, outToken, symbol):
         printt_debug ("reserves[0] is for inToken:")
         pooled = reserves[1] / DECIMALS
 
-
-    printt_debug ("----------------------------------------------------------------------")
-    printt_debug ("Debug reserves[0] line 982:     ", reserves[0] / DECIMALS)
-    printt_debug ("Debug reserves[1] line 982:     ", reserves[1] / DECIMALS)
-    printt_debug ("----------------------------------------------------------------------")
-    printt_debug ("Debug LIQUIDITYAMOUNT line 981 :", pooled, "in token:", outToken)
-    printt_debug ("----------------------------------------------------------------------")
+    printt_debug ("Debug reserves[0] :", reserves[0] / DECIMALS)
+    printt_debug ("Debug reserves[1] :", reserves[1] / DECIMALS)
+    printt_debug ("Debug LIQUIDITYAMOUNT :", pooled, "in token:", outToken)
 
     return pooled
 
@@ -1178,13 +1207,12 @@ def get_tokens_purchased(tx_hash):
 def check_price(inToken, outToken, symbol, base, custom, routing, buypriceinbase, sellpriceinbase, stoplosspriceinbase):
     # CHECK GET RATE OF THE TOKEn
 
+    printt_debug("ENTER: checkprice()")
     DECIMALS = decimals(inToken)
     stamp = timestamp()
 
     if custom == 'false':
         base = base_symbol
-    else:
-        pass
 
     if routing == 'true':
         if outToken != weth:
@@ -1216,27 +1244,51 @@ def check_price(inToken, outToken, symbol, base, custom, routing, buypriceinbase
             print(stamp, symbol, "Price =", price_output, base, "//// your buyprice =", buypriceinbase, base,
                   "//// your sellprice =", sellpriceinbase, base, "//// your stoplossprice =", stoplosspriceinbase, base)
 
+    printt_debug("EXIT: checkprice()")
     return tokenPrice
 
 
-def wait_for_tx(tx_hash, address, max_wait_time=60):
+
+def calculate_gas(token):
+    # Function: calculate_gas
+    # --------------------
+    # calculate gas to use based on user settings and blockchain
+    #
+    # token - one element of the tokens{} dictionary
+    #
+    # returns - 0
+    #         - sets token['_GAS_TO_USE'] to gas that should be used for transaction
+
+    if int(token['GASLIMIT']) < 250000:
+        printt_info("Your GASLIMIT parameter is too low : LimitSwap has forced it to 300000 otherwise your transaction would fail for sure. We advise you to raise it to 1000000.")
+        token['GASLIMIT'] = 300000
+
+    if token['GAS'] == 'boost':
+        gas_check = client.eth.gasPrice
+        gas_price = gas_check / 1000000000
+        token['_GAS_TO_USE'] = (gas_price * ((int(token['BOOSTPERCENT'])) / 100)) + gas_price
+    
+    else:
+        token['_GAS_TO_USE'] = int(token['GAS'])
+
+    return 0
+
+
+def wait_for_tx(token_dict, tx_hash, address, max_wait_time=60):
     # Function: wait_for_tx
     # --------------------
     # waits for a transaction to complete.
     #
+    # token_dict - one element of the tokens{} dictionary
     # tx_hash - the transaction hash
     # address - the wallet address sending the transaction
     # max_wait_time - the maximum amoun of time in seconds to wait for a transaction to complete
-    #
-    # global failedtransactionsamount - the number of times a transaction has failed
     #
     # returns: 0 - txn_receipt['status'] on unknown
     #          1 - txn_receipt['status'] on success (sometimes reverted)
     #          2 - failed with an empty log (rejected by contract)
     #         -1 -  transaction failed due to unknown reason
-
-    global failedtransactionsamount
-   
+ 
     if max_wait_time > 0:
         exit_timestamp = time() + max_wait_time
 
@@ -1266,7 +1318,7 @@ def wait_for_tx(tx_hash, address, max_wait_time=60):
         printt_ok("Transaction was successful with a status code of", return_value)
     
     elif got_receipt == True and len(txn_receipt['logs']) == 0:
-        failedtransactionsamount += 1
+        token_dict['_FAILED_TRANSACTIONS'] += 1
         return_value = 2
         printt_err("Transaction was rejected by contract with a status code of", txn_receipt['status'])
     
@@ -1281,162 +1333,195 @@ def wait_for_tx(tx_hash, address, max_wait_time=60):
                     "                           Please check if :\n"
                     "                           - your node is running correctly\n"
                     "                           - you have enough Gaslimit (check 'Gas Used by Transaction') if you have a failed Tx\n")
-        failedtransactionsamount += 1
+        token_dict['_FAILED_TRANSACTIONS'] += 1
         return_value = -1
 
     return return_value
 
+
 def preapprove(tokens):
     for token in tokens:
-        check_approval(token['ADDRESS'], 115792089237316195423570985008687907853269984665640564039457584007913129639935)
+        check_approval(token, token['ADDRESS'], 115792089237316195423570985008687907853269984665640564039457584007913129639935)
 
         if token['USECUSTOMBASEPAIR'] == 'false':
-            check_approval(weth, 115792089237316195423570985008687907853269984665640564039457584007913129639935)
+            check_approval(token, weth, 115792089237316195423570985008687907853269984665640564039457584007913129639935)
         else:
-            check_approval(token['BASEADDRESS'],
+            check_approval(token, token['BASEADDRESS'],
                            115792089237316195423570985008687907853269984665640564039457584007913129639935)
 
 
-def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom, symbol, base, routing, waitseconds,
-        failedtransactionsnumber):
-        
-    seconds = int(waitseconds)
-    if int(failedtransactionsamount) == int(failedtransactionsnumber):
-        printt_err("\n                           ---------------------------------------------------------------\n"
-                        "                             Bot has reached maximum FAILED TRANSACTIONS number: it stops\n"
-                        "                           ---------------------------------------------------------------\n\n")
+def buy(token_dict, inToken, outToken):
+    # Function: buy
+    # ----------------------------
+    # purchases the amount of tokens specified for the contract specified
+    #
+    # token_dict - one element of the tokens{} dictionary
+    # inToken - The contract address of the token we are looking to buy
+    # outToken - The contract address of the toekn we are looking to sell
+    #
+    # returns: transaction hash
+    
+    if token_dict['_FAILED_TRANSACTIONS'] >= token_dict['MAX_FAILED_TRANSACTIONS_IN_A_ROW']:
+        printt_err("---------------------------------------------------------------")
+        printt_err("DISABLING", token_dict['SYMBOL'])
+        printt_err("This token has reached maximum FAILED SIMULTANIOUS TRANSACTIONS")
+        printt_err("---------------------------------------------------------------")
+        token_dict['ENABLED'] = 'false'
+    elif token_dict['BUYAFTER_XXX_SECONDS'] != 0:
+        printt_info("Bot will wait", token_dict['BUYAFTER_XXX_SECONDS'], " seconds before buy, as you entered in BUYAFTER_XXX_SECONDS parameter")
+        sleep(token_dict['BUYAFTER_XXX_SECONDS'])
 
-        logging.info("Bot has reached maximum FAILED TRANSACTIONS number: it stops")
-        sleep(10)
-        sys.exit()
-    else:
+    printt_info("Placing New Buy Order for " + token_dict['SYMBOL'])
 
-        if waitseconds != '0':
-            printt_info("Bot will wait", waitseconds, " seconds before buy, as you entered in BUYAFTER_XXX_SECONDS parameter")
-            sleep(seconds)
+    # Format values that we need to pass to C functions
+    DECIMALS = decimals(inToken)
+    purchase_price = int(float(token_dict['BUYAMOUNTINBASE']) * DECIMALS)
+    gas_limit = int(token_dict['GASLIMIT'])
+    slippage = int(token_dict['SLIPPAGE'])
 
-        print(timestamp(), "Placing New Buy Order for " + symbol)
+    if token_dict['USECUSTOMBASEPAIR'] == 'false':
+        base = token_dict['USECUSTOMBASEPAIR']
 
-        if int(gaslimit) < 250000:
-            printt_info("Your GASLIMIT parameter is too low : LimitSwap has forced it to 300000 otherwise your transaction would fail for sure. We advise you to raise it to 1000000.")
-            gaslimit = 300000
+        if token_dict['USECUSTOMBASEPAIR'] == 'false':
+            # if USECUSTOMBASEPAIR = false
 
-        if custom == 'false':
-            balance = Web3.fromWei(check_bnb_balance(), 'ether')
-            base = base_symbol
-        else:
-            address = Web3.toChecksumAddress(inToken)
-            DECIMALS = decimals(address)
-            balance_check = check_balance(inToken, base)
-            balance = balance_check / DECIMALS
-
-        if balance > Decimal(amount):
-            if gas == 'boost':
-                gas_check = client.eth.gasPrice
-                gas_price = gas_check / 1000000000
-                gas = (gas_price * ((int(boost)) / 100)) + gas_price
+            if token_dict['LIQUIDITYINNATIVETOKEN'] == 'false':
+                # LIQUIDITYINNATIVETOKEN = false
+                # USECUSTOMBASEPAIR = false
+                printt_err("You have selected LIQUIDITYINNATIVETOKEN = false , so you must choose USECUSTOMBASEPAIR = true")
+                printt_err("Please read Wiki carefully, it's very important you can lose money!!")
+                sleep(10)
+                sys.exit()
             else:
-                gas = int(gas)
+                printt_debug("")
+                amount_out = routerContract.functions.getAmountsOut(purchase_price, [weth, outToken]).call()[-1]
 
-            gaslimit = int(gaslimit)
-            slippage = int(slippage)
-            DECIMALS = decimals(inToken)
-            amount = int(float(amount) * DECIMALS)
-
-            if custom == 'false':
-                # if USECUSTOMBASEPAIR = false
-
-                if routing == 'false':
-                    # LIQUIDITYINNATIVETOKEN = false
-                    # USECUSTOMBASEPAIR = false
-                    printt_err("You have selected LIQUIDITYINNATIVETOKEN = false , so you must choose USECUSTOMBASEPAIR = true \n"
-                               "Please read Wiki carefully, it's very important you can lose money!!")
-                    sleep(10)
-                    sys.exit()
+                if settings['UNLIMITEDSLIPPAGE'] == 'true':
+                    min_tokens = 100
                 else:
-                    amount_out = routerContract.functions.getAmountsOut(amount, [weth, outToken]).call()[-1]
-                    if settings['UNLIMITEDSLIPPAGE'] == 'true':
-                        min_tokens = 100
-                    else:
-                        min_tokens = int(amount_out * (1 - (slippage / 100)))
+                    min_tokens = int(amount_out * (1 - (slippage / 100)))
 
-                    deadline = int(time() + + 60)
+                deadline = int(time() + + 60)
 
-                    # THIS SECTION IS FOR MODIFIED CONTRACTS : EACH EXCHANGE NEEDS TO BE SPECIFIED
+                # THIS SECTION IS FOR MODIFIED CONTRACTS : EACH EXCHANGE NEEDS TO BE SPECIFIED
+                # USECUSTOMBASEPAIR = false
+                if modified == True:
+
+                    if settings["EXCHANGE"] == 'koffeeswap':
+                        transaction = routerContract.functions.swapExactKCSForTokens(
+                            min_tokens,
+                            [weth, outToken],
+                            Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                            deadline
+                        ).buildTransaction({
+                            'gasPrice': Web3.toWei(token_dict['GAS'], 'gwei'),
+                            'gas': gas_limit,
+                            'value': purchase_price,
+                            'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                            'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
+                        })
+
+                    elif settings["EXCHANGE"] == 'pangolin' or settings["EXCHANGE"] == 'traderjoe':
+                        transaction = routerContract.functions.swapExactAVAXForTokens(
+                            min_tokens,
+                            [weth, outToken],
+                            Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                            deadline
+                        ).buildTransaction({
+                            'gasPrice': Web3.toWei(token_dict['GAS'], 'gwei'),
+                            'gas': gas_limit,
+                            'value': purchase_price,
+                            'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                            'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
+                        })
+
+
+                else:
                     # USECUSTOMBASEPAIR = false
-                    if modified == True:
+                    # This section is for exchange with Modified = false --> uniswap / pancakeswap / apeswap, etc.
 
-                        if settings["EXCHANGE"] == 'koffeeswap':
-                            transaction = routerContract.functions.swapExactKCSForTokens(
-                                min_tokens,
-                                [weth, outToken],
-                                Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                                deadline
-                            ).buildTransaction({
-                                'gasPrice': Web3.toWei(gas, 'gwei'),
-                                'gas': gaslimit,
-                                'value': amount,
-                                'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                                'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
-                            })
-
-                        elif settings["EXCHANGE"] == 'pangolin' or settings["EXCHANGE"] == 'traderjoe':
-                            transaction = routerContract.functions.swapExactAVAXForTokens(
-                                min_tokens,
-                                [weth, outToken],
-                                Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                                deadline
-                            ).buildTransaction({
-                                'gasPrice': Web3.toWei(gas, 'gwei'),
-                                'gas': gaslimit,
-                                'value': amount,
-                                'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                                'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
-                            })
-
+                    # Special condition on Uniswap, to implement EIP-1559
+                    if settings["EXCHANGE"] == 'uniswap':
+                        transaction = routerContract.functions.swapExactETHForTokens(
+                            min_tokens,
+                            [weth, outToken],
+                            Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                            deadline
+                        ).buildTransaction({
+                            'maxFeePerGas': Web3.toWei(token_dict['GAS'], 'gwei'),
+                            'maxPriorityFeePerGas': Web3.toWei('1.5', 'gwei'),
+                            'gas': gas_limit,
+                            'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                            'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS']),
+                            'type': "0x02"
+                        })
 
                     else:
                         # USECUSTOMBASEPAIR = false
-                        # This section is for exchange with Modified = false --> uniswap / pancakeswap / apeswap, etc.
+                        # for all the rest of exchanges with Modified = false
+                        transaction = routerContract.functions.swapExactETHForTokens(
+                            min_tokens,
+                            [weth, outToken],
+                            Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                            deadline
+                        ).buildTransaction({
+                            'gasPrice': Web3.toWei(token_dict['GAS'], 'gwei'),
+                            'gas': gas_limit,
+                            'value': purchase_price,
+                            'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                            'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
+                        })
 
-                        # Special condition on Uniswap, to implement EIP-1559
-                        if settings["EXCHANGE"] == 'uniswap':
-                            transaction = routerContract.functions.swapExactETHForTokens(
-                                min_tokens,
-                                [weth, outToken],
-                                Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                                deadline
-                            ).buildTransaction({
-                                'maxFeePerGas': Web3.toWei(gas, 'gwei'),
-                                'maxPriorityFeePerGas': Web3.toWei('1.5', 'gwei'),
-                                'gas': gaslimit,
-                                'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                                'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS']),
-                                'type': "0x02"
-                            })
+        else:
+            # USECUSTOMBASEPAIR = true
+            if inToken == weth:
+                # USECUSTOMBASEPAIR = true
+                # but user chose to put WETH or WBNB contract as CUSTOMBASEPAIR address
+                amount_out = routerContract.functions.getAmountsOut(purchase_price, [weth, outToken]).call()[-1]
+                if settings['UNLIMITEDSLIPPAGE'] == 'true':
+                    min_tokens = 100
+                else:
+                    min_tokens = int(amount_out * (1 - (slippage / 100)))
+                deadline = int(time() + + 60)
 
-                        else:
-                            # USECUSTOMBASEPAIR = false
-                            # for all the rest of exchanges with Modified = false
-                            transaction = routerContract.functions.swapExactETHForTokens(
-                                min_tokens,
-                                [weth, outToken],
-                                Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                                deadline
-                            ).buildTransaction({
-                                'gasPrice': Web3.toWei(gas, 'gwei'),
-                                'gas': gaslimit,
-                                'value': amount,
-                                'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                                'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
-                            })
+                if settings["EXCHANGE"] == 'uniswap':
+                    # Special condition on Uniswap, to implement EIP-1559
+                    transaction = routerContract.functions.swapExactTokensForTokens(
+                        purchase_price,
+                        min_tokens,
+                        [weth, outToken],
+                        Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                        deadline
+                    ).buildTransaction({
+                        'maxFeePerGas': Web3.toWei(token_dict['GAS'], 'gwei'),
+                        'maxPriorityFeePerGas': Web3.toWei('1.5', 'gwei'),
+                        'gas': gas_limit,
+                        'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                        'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS']),
+                        'type': "0x02"
+                    })
+
+                else:
+                    transaction = routerContract.functions.swapExactTokensForTokens(
+                        purchase_price,
+                        min_tokens,
+                        [weth, outToken],
+                        Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                        deadline
+                    ).buildTransaction({
+                        'gasPrice': Web3.toWei(token_dict['GAS'], 'gwei'),
+                        'gas': gas_limit,
+                        'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                        'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
+                    })
 
             else:
+                # LIQUIDITYINNATIVETOKEN = true
                 # USECUSTOMBASEPAIR = true
-                if inToken == weth:
-                    # USECUSTOMBASEPAIR = true
-                    # but user chose to put WETH or WBNB contract as CUSTOMBASEPAIR address
-                    amount_out = routerContract.functions.getAmountsOut(amount, [weth, outToken]).call()[-1]
+                # Base Pair different from weth
+                if token_dict['LIQUIDITYINNATIVETOKEN'] == 'true':
+                    amount_out = routerContract.functions.getAmountsOut(purchase_price, [inToken, weth, outToken]).call()[
+                        -1]
                     if settings['UNLIMITEDSLIPPAGE'] == 'true':
                         min_tokens = 100
                     else:
@@ -1444,171 +1529,123 @@ def buy(amount, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom,
                     deadline = int(time() + + 60)
 
                     if settings["EXCHANGE"] == 'uniswap':
+                        # USECUSTOMBASEPAIR = true
+                        # Base Pair different from weth
+                        # LIQUIDITYINNATIVETOKEN = true
+
                         # Special condition on Uniswap, to implement EIP-1559
                         transaction = routerContract.functions.swapExactTokensForTokens(
-                            amount,
+                            purchase_price,
                             min_tokens,
-                            [weth, outToken],
+                            [inToken, weth, outToken],
                             Web3.toChecksumAddress(settings['WALLETADDRESS']),
                             deadline
                         ).buildTransaction({
-                            'maxFeePerGas': Web3.toWei(gas, 'gwei'),
+                            'maxFeePerGas': Web3.toWei(token_dict['GAS'], 'gwei'),
                             'maxPriorityFeePerGas': Web3.toWei('1.5', 'gwei'),
-                            'gas': gaslimit,
+                            'gas': gas_limit,
                             'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
                             'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS']),
                             'type': "0x02"
                         })
 
                     else:
+                        # USECUSTOMBASEPAIR = true
+                        # Base Pair different from weth
+                        # LIQUIDITYINNATIVETOKEN = true
+                        # Exchange different from Uniswap
+
                         transaction = routerContract.functions.swapExactTokensForTokens(
-                            amount,
+                            purchase_price,
                             min_tokens,
-                            [weth, outToken],
+                            [inToken, weth, outToken],
                             Web3.toChecksumAddress(settings['WALLETADDRESS']),
                             deadline
                         ).buildTransaction({
-                            'gasPrice': Web3.toWei(gas, 'gwei'),
-                            'gas': gaslimit,
+                            'gasPrice': Web3.toWei(token_dict['GAS'], 'gwei'),
+                            'gas': gas_limit,
                             'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
                             'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
                         })
 
                 else:
-                    # LIQUIDITYINNATIVETOKEN = true
+                    # LIQUIDITYINNATIVETOKEN = false
                     # USECUSTOMBASEPAIR = true
                     # Base Pair different from weth
-                    if routing == 'true':
-                        amount_out = routerContract.functions.getAmountsOut(amount, [inToken, weth, outToken]).call()[
-                            -1]
-                        if settings['UNLIMITEDSLIPPAGE'] == 'true':
-                            min_tokens = 100
-                        else:
-                            min_tokens = int(amount_out * (1 - (slippage / 100)))
-                        deadline = int(time() + + 60)
 
-                        if settings["EXCHANGE"] == 'uniswap':
-                            # USECUSTOMBASEPAIR = true
-                            # Base Pair different from weth
-                            # LIQUIDITYINNATIVETOKEN = true
+                    amount_out = routerContract.functions.getAmountsOut(purchase_price, [inToken, outToken]).call()[-1]
+                    if settings['UNLIMITEDSLIPPAGE'] == 'true':
+                        min_tokens = 100
+                    else:
+                        min_tokens = int(amount_out * (1 - (slippage / 100)))
+                    deadline = int(time() + + 60)
 
-                            # Special condition on Uniswap, to implement EIP-1559
-                            transaction = routerContract.functions.swapExactTokensForTokens(
-                                amount,
-                                min_tokens,
-                                [inToken, weth, outToken],
-                                Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                                deadline
-                            ).buildTransaction({
-                                'maxFeePerGas': Web3.toWei(gas, 'gwei'),
-                                'maxPriorityFeePerGas': Web3.toWei('1.5', 'gwei'),
-                                'gas': gaslimit,
-                                'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                                'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS']),
-                                'type': "0x02"
-                            })
+                    if settings["EXCHANGE"] == 'uniswap':
+                        # LIQUIDITYINNATIVETOKEN = false
+                        # USECUSTOMBASEPAIR = true
+                        # Base Pair different from weth
+                        # Special condition on Uniswap, to implement EIP-1559
 
-                        else:
-                            # USECUSTOMBASEPAIR = true
-                            # Base Pair different from weth
-                            # LIQUIDITYINNATIVETOKEN = true
-                            # Exchange different from Uniswap
-
-                            transaction = routerContract.functions.swapExactTokensForTokens(
-                                amount,
-                                min_tokens,
-                                [inToken, weth, outToken],
-                                Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                                deadline
-                            ).buildTransaction({
-                                'gasPrice': Web3.toWei(gas, 'gwei'),
-                                'gas': gaslimit,
-                                'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                                'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
-                            })
+                        transaction = routerContract.functions.swapExactTokensForTokens(
+                            purchase_price,
+                            min_tokens,
+                            [inToken, outToken],
+                            Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                            deadline
+                        ).buildTransaction({
+                            'maxFeePerGas': Web3.toWei(token_dict['GAS'], 'gwei'),
+                            'maxPriorityFeePerGas': Web3.toWei('1.5', 'gwei'),
+                            'gas': gas_limit,
+                            'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                            'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS']),
+                            'type': "0x02"
+                        })
 
                     else:
                         # LIQUIDITYINNATIVETOKEN = false
                         # USECUSTOMBASEPAIR = true
                         # Base Pair different from weth
+                        # Exchange different from Uniswap
 
-                        amount_out = routerContract.functions.getAmountsOut(amount, [inToken, outToken]).call()[-1]
-                        if settings['UNLIMITEDSLIPPAGE'] == 'true':
-                            min_tokens = 100
-                        else:
-                            min_tokens = int(amount_out * (1 - (slippage / 100)))
-                        deadline = int(time() + + 60)
+                        transaction = routerContract.functions.swapExactTokensForTokens(
+                            purchase_price,
+                            min_tokens,
+                            [inToken, outToken],
+                            Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                            deadline
+                        ).buildTransaction({
+                            'gasPrice': Web3.toWei(token_dict['GAS'], 'gwei'),
+                            'gas': gas_limit,
+                            'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                            'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
+                        })
 
-                        if settings["EXCHANGE"] == 'uniswap':
-                            # LIQUIDITYINNATIVETOKEN = false
-                            # USECUSTOMBASEPAIR = true
-                            # Base Pair different from weth
-                            # Special condition on Uniswap, to implement EIP-1559
+        sync(inToken, outToken)
+        signed_txn = client.eth.account.signTransaction(transaction, private_key=settings['PRIVATEKEY'])
 
-                            transaction = routerContract.functions.swapExactTokensForTokens(
-                                amount,
-                                min_tokens,
-                                [inToken, outToken],
-                                Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                                deadline
-                            ).buildTransaction({
-                                'maxFeePerGas': Web3.toWei(gas, 'gwei'),
-                                'maxPriorityFeePerGas': Web3.toWei('1.5', 'gwei'),
-                                'gas': gaslimit,
-                                'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                                'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS']),
-                                'type': "0x02"
-                            })
+        try:
+            return client.eth.sendRawTransaction(signed_txn.rawTransaction)
+        finally:
+            print(timestamp(), "Transaction Hash = ", Web3.toHex(client.keccak(signed_txn.rawTransaction)))
+            # LOG TX TO JSON
+            with open('./transactions.json', 'r') as fp:
+                data = json.load(fp)
+            tx_hash = client.toHex(client.keccak(signed_txn.rawTransaction))
+            tx_input = {"hash": tx_hash}
+            data.append(tx_input)
+            with open('./transactions.json', 'w') as fp:
+                json.dump(data, fp, indent=2)
+            fp.close()
 
-                        else:
-                            # LIQUIDITYINNATIVETOKEN = false
-                            # USECUSTOMBASEPAIR = true
-                            # Base Pair different from weth
-                            # Exchange different from Uniswap
-
-                            transaction = routerContract.functions.swapExactTokensForTokens(
-                                amount,
-                                min_tokens,
-                                [inToken, outToken],
-                                Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                                deadline
-                            ).buildTransaction({
-                                'gasPrice': Web3.toWei(gas, 'gwei'),
-                                'gas': gaslimit,
-                                'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                                'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
-                            })
-
-            sync(inToken, outToken)
-            signed_txn = client.eth.account.signTransaction(transaction, private_key=settings['PRIVATEKEY'])
-
-            try:
-                return client.eth.sendRawTransaction(signed_txn.rawTransaction)
-            finally:
-                print(timestamp(), "Transaction Hash = ", Web3.toHex(client.keccak(signed_txn.rawTransaction)))
-                # LOG TX TO JSON
-                with open('./transactions.json', 'r') as fp:
-                    data = json.load(fp)
-                tx_hash = client.toHex(client.keccak(signed_txn.rawTransaction))
-                tx_input = {"hash": tx_hash}
-                data.append(tx_input)
-                with open('./transactions.json', 'w') as fp:
-                    json.dump(data, fp, indent=2)
-                fp.close()
-
-                return tx_hash
-
-        else:
-            printt_err("Not Enough " + base + " Balance to make buys")
-            logging.info("Not Enough " + base + " Balance to make buys")
-            sleep(5)
-            return False
+            return tx_hash
 
 
 def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fees, custom, symbol, routing):
     print(timestamp(), "Placing Sell Order " + symbol)
     balance = Web3.fromWei(check_balance(inToken, symbol), 'ether')
-    check_approval(inToken, balance * 1000000000)
+    
+    # DISABLE SELL APPROVAL FOR NOW, NEED TO ADJUST SELL FOR NEW check_approval
+    # check_approval(inToken, balance * 1000000000)
 
     if int(gaslimit) < 250000:
         gaslimit = 300000
@@ -1620,7 +1657,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
 
     if balance >= Decimal(amount_check) and balance > 0.0000000000000001:
 
-        if gas == 'boost':
+        if gas.lower() == 'boost':
             gas_check = client.eth.gasPrice
             gas_price = gas_check / 1000000000
             gas = (gas_price * ((int(boost) * 4) / 100)) + gas_price
@@ -1652,7 +1689,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                     print("Not enough left to sell, would bust moonbag")
                     amount = 0
 
-        if custom == 'false':
+        if custom.lower() == 'false':
             # USECUSTOMBASEPAIR = false
             sync(inToken, weth)
 
@@ -1660,14 +1697,14 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
             min_tokens = int(amount_out * (1 - (slippage / 100)))
             deadline = int(time() + + 60)
 
-            if fees == 'true':
+            if fees.lower() == 'true':
 
                 # THIS SECTION IS FOR MODIFIED CONTRACTS AND EACH EXCHANGE IS SPECIFIED
                 if modified == True:
                     # USECUSTOMBASEPAIR = false
                     # HASFEES = true
 
-                    if settings["EXCHANGE"] == 'koffeeswap':
+                    if settings["EXCHANGE"].lower() == 'koffeeswap':
                         transaction = routerContract.functions.swapExactTokensForKCSSupportingFeeOnTransferTokens(
                             amount,
                             min_tokens,
@@ -1681,7 +1718,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                             'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
                         })
 
-                    if settings["EXCHANGE"] == 'pangolin' or settings["EXCHANGE"] == 'traderjoe':
+                    if settings["EXCHANGE"].lower() == 'pangolin' or settings["EXCHANGE"].lower() == 'traderjoe':
                         transaction = routerContract.functions.swapExactTokensForAVAXSupportingFeeOnTransferTokens(
                             amount,
                             min_tokens,
@@ -1721,7 +1758,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                     # HASFEES = false
                     # Modified = true
 
-                    if settings["EXCHANGE"] == 'koffeeswap':
+                    if settings["EXCHANGE"].lower() == 'koffeeswap':
                         transaction = routerContract.functions.swapExactTokensForKCS(
                             amount,
                             min_tokens,
@@ -1734,7 +1771,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                             'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
                             'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
                         })
-                    elif settings["EXCHANGE"] == 'pangolin' or settings["EXCHANGE"] == 'traderjoe':
+                    elif settings["EXCHANGE"].lower() == 'pangolin' or settings["EXCHANGE"].lower() == 'traderjoe':
                         transaction = routerContract.functions.swapExactTokensForAVAX(
                             amount,
                             min_tokens,
@@ -1753,7 +1790,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                     # HASFEES = false
                     # Modified = false --> uniswap / pancakeswap / apeswap, etc.
 
-                    if settings["EXCHANGE"] == 'uniswap':
+                    if settings["EXCHANGE"].lower() == 'uniswap':
                         # Special condition on Uniswap, to implement EIP-1559
                         transaction = routerContract.functions.swapExactTokensForETH(
                             amount,
@@ -1794,7 +1831,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                 min_tokens = int(amount_out * (1 - (slippage / 100)))
                 deadline = int(time() + + 60)
 
-                if fees == 'true':
+                if fees.lower() == 'true':
                     # USECUSTOMBASEPAIR = true
                     # HASFEES = true
 
@@ -1807,7 +1844,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                         # HASFEES = true
                         # Modified = true
 
-                        if settings["EXCHANGE"] == 'koffeeswap':
+                        if settings["EXCHANGE"].lower() == 'koffeeswap':
                             transaction = routerContract.functions.swapExactTokensForKCSSupportingFeeOnTransferTokens(
                                 amount,
                                 min_tokens,
@@ -1821,7 +1858,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                                 'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
                             })
 
-                        elif settings["EXCHANGE"] == 'pangolin' or settings["EXCHANGE"] == 'traderjoe':
+                        elif settings["EXCHANGE"].lower() == 'pangolin' or settings["EXCHANGE"].lower() == 'traderjoe':
                             transaction = routerContract.functions.swapExactTokensForAVAXSupportingFeeOnTransferTokens(
                                 amount,
                                 min_tokens,
@@ -1872,18 +1909,18 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
             else:
                 sync(inToken, outToken)
 
-                if routing == 'false' and outToken != weth:
+                if routing.lower() == 'false' and outToken != weth:
                     # LIQUIDITYINNATIVETOKEN = false
                     # USECUSTOMBASEPAIR = true
                     amount_out = routerContract.functions.getAmountsOut(amount, [inToken, outToken]).call()[-1]
                     min_tokens = int(amount_out * (1 - (slippage / 100)))
                     deadline = int(time() + + 60)
 
-                    if fees == 'true':
+                    if fees.lower() == 'true':
                         # LIQUIDITYINNATIVETOKEN = false
                         # USECUSTOMBASEPAIR = true
                         # HASFEES = true
-                        if settings["EXCHANGE"] == 'uniswap':
+                        if settings["EXCHANGE"].lower() == 'uniswap':
                             # Special condition on Uniswap, to implement EIP-1559
                             transaction = routerContract.functions.swapExactTokensForTokensSupportingFeeOnTransferTokens(
                                 amount,
@@ -1919,7 +1956,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                         # LIQUIDITYINNATIVETOKEN = false
                         # USECUSTOMBASEPAIR = true
                         # HASFEES = false
-                        if settings["EXCHANGE"] == 'uniswap':
+                        if settings["EXCHANGE"].lower() == 'uniswap':
                             # Special condition on Uniswap, to implement EIP-1559
                             transaction = routerContract.functions.swapExactTokensForTokens(
                                 amount,
@@ -1951,7 +1988,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                                 'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
                             })
 
-                elif routing == 'false' and outToken == weth:
+                elif routing.lower() == 'false' and outToken == weth:
                     # LIQUIDITYINNATIVETOKEN = false
                     # USECUSTOMBASEPAIR = true
                     # but user chose to put WETH or WBNB contract as CUSTOMBASEPAIR address
@@ -1963,9 +2000,9 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
                     min_tokens = int(amount_out * (1 - (slippage / 100)))
                     deadline = int(time() + + 60)
 
-                    if fees == 'true':
+                    if fees.lower() == 'true':
                         # HASFEES = true
-                        if settings["EXCHANGE"] == 'uniswap':
+                        if settings["EXCHANGE"].lower() == 'uniswap':
                             # Special condition on Uniswap, to implement EIP-1559
                             transaction = routerContract.functions.swapExactTokensForTokensSupportingFeeOnTransferTokens(
                                 amount,
@@ -1998,7 +2035,7 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
 
                     else:
                         # HASFEES = false
-                        if settings["EXCHANGE"] == 'uniswap':
+                        if settings["EXCHANGE"].lower() == 'uniswap':
                             # Special condition on Uniswap, to implement EIP-1559
                             transaction = routerContract.functions.swapExactTokensForTokens(
                                 amount,
@@ -2051,7 +2088,6 @@ def sell(amount, moonbag, inToken, outToken, gas, slippage, gaslimit, boost, fee
 
 
 def run():
-    global failedtransactionsamount
 
     try:
         
@@ -2081,6 +2117,9 @@ def run():
         # TODO ARG: Implement an argument that auto accepts or prunes tokens that are rejected/accepted by the rugdoc check
         for token in tokens:
             
+            # Calculate how much gas we should use for this token
+            calculate_gas(token)
+
             if token['RUGDOC_CHECK'] == 'true':
 
                 honeypot = honeypot_check(address=token['ADDRESS'])
@@ -2100,6 +2139,9 @@ def run():
                     print ("\nOK let's go!!\n")
                 else:
                     sys.exit()
+
+                # Calculate how much gas we should use for this token
+                
         
         load_token_file_increment = 0
 
@@ -2107,9 +2149,14 @@ def run():
 
             # Load the tokens file, approximately every 5 seconds, which even on the worst nodes is about
             #   once a second
-            if load_token_file_increment > 5:
+            # TODO: LOADING TOKEN FILES DOESN'T PUSH US BACK TO RUGDOC CHECKS OR PREAUTHORIZATIONS WE NEED TO BE
+            #       SMARTER ABOUT WHERE WE DO THIS SO THAT WE DON'T SLOW DOWN LIQUIDITY CHECKS TOO MUCH, BUT ALOS
+            #       TAKE INTO ACCOUNT FILE CHANGES
+            # if load_token_file_increment > 5:
+            if load_token_file_increment == 0:
                 tokens = load_tokens_file(command_line_args.tokens, False)
-                load_token_file_increment = 0
+                # Loading tokens.json every cycle is broken right now I need to be smarter about what I load
+                load_token_file_increment = 1
             else:
                 load_token_file_increment = load_token_file_increment + 1
 
@@ -2125,150 +2172,148 @@ def run():
                         outToken = Web3.toChecksumAddress(token['BASEADDRESS'])
                     else:
                         outToken = weth
-
-
-                    #
-                    #  CHECK FOR LIQUIDITY OR PRICE CHECK
-                    #    Check the latest price, which will also tell us if we have liquidity
-                    #                    
-                    try:
-                        quote = check_price(inToken, outToken, token['SYMBOL'], token['BASESYMBOL'],
-                                            token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'],
-                                            token['BUYPRICEINBASE'], token['SELLPRICEINBASE'], token['STOPLOSSPRICEINBASE'])
-                        pool = check_pool(inToken, outToken, token['BASESYMBOL'])
-                        
-                        printt_debug ("Liquidity Reserves:", float(pool))
-                        printt_debug ("inToken :", inToken, " outToken :", outToken)
-
-                    except Exception:
-                        printt(token['SYMBOL'],"Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
-                        quote = 0
                     
-                    printt_debug ("Liquidity check complete")
-                    printt_debug ("Quote :", quote)
-                    printt_debug ("BuyPrice", Decimal(token['BUYPRICEINBASE']))
-                    printt_debug ("Reached MAX TOKENS", token['_REACHED_MAX_TOKENS'])
+                    #
+                    # CHECK LIQUIDITY ... if we haven't already checked liquidity
+                    #   Break out of the loop for this token if we haven't found liquidity yet
+                    #
+                    if token['_LIQUIDITY_READY'] == False:
+                        try:
+                                pool = check_pool(inToken, outToken, token['BASESYMBOL'])
+                                token['_LIQUIDITY_READY'] = True
+                                printt_info ("Found liquidity for",token['SYMBOL'])
 
-                    # If quote is not equal to zero, I'm going to be needing my balance for buy and sell decisions
-                    #   and I'm going to need to know if I've reached my MAXTOKENS
-                    if quote !=0:
-                        balance = check_balance(inToken, token['SYMBOL'], 0)
-                        DECIMALS = decimals(inToken)
-                        if Decimal(balance / DECIMALS) < Decimal(token['MAXTOKENS']):
-                            token['_REACHED_MAX_TOKENS'] = True
-                            printt_info ("You have reached the maximum number of tokens for this position.")
+                                #
+                                #  CHECK FOR LIQUIDITY AMOUNT
+                                #    If we've found liquidity and want to check for liquidity amount, do that here.
+                                #    If this token doesn't have enough liquidity. Disable it and break out of this
+                                #    loop for this token
+                                #
+                                if token["LIQUIDITYCHECK"] == 'true' and token['_LIQUIDITY_CHECKED'] == False:
+                                    pool = check_pool(inToken, outToken, token['BASESYMBOL'])
+                                    printt("You have set LIQUIDITYCHECK = true.")
+                                    printt("Current", token['SYMBOL'], "Liquidity =", int(pool), "in token:",outToken)
+
+                                    if float(token['LIQUIDITYAMOUNT']) <= float(pool):
+                                        printt_ok("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
+                                                    " --> Enough liquidity detected : Buy Signal Found!")
+                                    
+                                    # This position isn't looking good. Inform the user, disable the token and break out of this loop
+                                    else:
+                                        printt_warn("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
+                                                " : not enough liquidity, bot will not buy. Disableing the trade of this token.")
+                                        token['ENABLED'] = 'false'
+                                        quote = 0
+                                        break
+
+                        except Exception:
+                            printt (token['SYMBOL'],"Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
+                            break
+
+
+                    
+                    #
+                    #  PRICE CHECK
+                    #    Check the latest price on this token
+                    #                    
+                    quote = check_price(inToken, outToken, token['SYMBOL'], token['BASESYMBOL'],
+                                       token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'],
+                                       token['BUYPRICEINBASE'], token['SELLPRICEINBASE'], token['STOPLOSSPRICEINBASE'])
+
                     #
                     # BUY CHECK
                     #   If the liquidity check has returned a quote that is less than our BUYPRICEINBASE and we haven't informrmed
                     #   the user that we've reached the maximum number of tokens, check for other criteria to buy.
                     #
                     if quote != 0 and quote < Decimal(token['BUYPRICEINBASE']) and token['_REACHED_MAX_TOKENS'] == False:
-
-                        printt_debug("Checking sell conditions")
-                        
-                        #
-                        #  CHECK FOR LIQUIDITY AMOUNT
-                        #    If we've found liquidity and want to check for liquidity amount, do that here
-                        #
-                        if token["LIQUIDITYCHECK"] == 'true' and token['_LIQUIDITY_CHECKED'] == False:
-                            pool = check_pool(inToken, outToken, token['BASESYMBOL'])
-                            printt("You have set LIQUIDITYCHECK = true.")
-                            printt("Current", token['SYMBOL'], "Liquidity =", int(pool), "in token:",outToken)
-
-                            if float(token['LIQUIDITYAMOUNT']) <= float(pool):
-                                printt_ok("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
-                                            " --> Enough liquidity detected : Buy Signal Found!")
-                            
-                            # This position isn't looking good. Inform the user, disable the token and break out of this loop
-                            else:
-                                printt_warn("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
-                                        " : not enough liquidity, bot will not buy. Disableing the trade of this token.")
-                                token['ENABLED'] = 'false'
-                                quote = 0
-                                break
-
                         #
                         # PURCHASE POSITION
                         #   If we've passed all checks, attempt to purchase the token
+                        #
+                        printt_debug ("===========================================")
+                        printt_debug ("Quote:", quote)
+                        printt_debug ("Buy Price:", Decimal(token['BUYPRICEINBASE']))
+                        printt_debug ("_REACHED_MAX_TOKENS:", token['_REACHED_MAX_TOKENS'])
+                        printt_debug ("===========================================")
 
                         log_price = "{:.18f}".format(quote)
                         logging.info("Buy Signal Found @" + str(log_price))
-                        printt("Buy Signal Found!")
-
+                        printt_ok("-----------------------------------------------------------")
+                        printt_ok("Buy Signal Found =-= Buy Signal Found =-= Buy Signal Found ")
+                        printt_ok("-----------------------------------------------------------")
                         if command_line_args.sim_buy:
                             tx = command_line_args.sim_buy
                         else:
-                            tx = buy(token['BUYAMOUNTINBASE'], outToken, inToken, token['GAS'],
-                                        token['SLIPPAGE'], token['GASLIMIT'], token['BOOSTPERCENT'],
-                                        token["HASFEES"], token['USECUSTOMBASEPAIR'], token['SYMBOL'],
-                                        token['BASESYMBOL'], token['LIQUIDITYINNATIVETOKEN'],
-                                        token['BUYAFTER_XXX_SECONDS'], token['MAX_FAILED_TRANSACTIONS_IN_A_ROW'])
+                            tx = buy(token, outToken, inToken)
 
                         if tx != False:
-                            tx = wait_for_tx(tx, token['ADDRESS'])
-                            balance = check_balance(token['ADDRESS'], token['BALANCE'])
-                            print(
-                                style.RESET + "\n                           --------------------------------------\n"
-                                                "                            √  Tx done. Check your wallet \n"
-                                                "                           --------------------------------------")
-                            print(style.RESET + "")
-                            sleep(3)
-                            check_balance(token['ADDRESS'], token['SYMBOL'])
-                            print(style.RESET + "\n")
-                            sleep(3)
+                            tx = wait_for_tx(token, tx, token['ADDRESS'])
+                            printt_info("Transaction complete")
 
                             if tx != 1:
                                 # transaction is a FAILURE
-                                print(
-                                    style.RED + "\n                           -------------------------------------------------\n"
-                                                "                             FAILURE ! Plese check your wallet. \n"
-                                                "                            Cause of failure can be : \n"
-                                                "                            - GASLIMIT too low\n"
-                                                "                            - SLIPPAGE too low\n"
-                                                "                           -------------------------------------------------\n\n")
-                                print(style.RESET + "")
-                                failedtransactionsamount += 1
+                                printt_err("--------------------------")
+                                printt_err("ERROR TRASACTION FAILURE !")
+                                printt_err("---------------------------")
+                                printt_err("Causes of failure can be :")
+                                printt_err("- GASLIMIT too low")
+                                printt_err("- SLIPPAGE too lo")
+                                printt_err("--------------------------")
+                                token['_FAILED_TRANSACTIONS'] += 1
                                 preapprove(tokens)
                             else:
                                 # transaction is a SUCCESS
-                                print(
-                                    style.GREEN + "                           ----------------------------------\n"
-                                                    "                           SUCCESS : your Tx is confirmed :)\n"
-                                                    "                           ----------------------------------\n")
-                                print(style.RESET + "")
-                                pass
+                                printt_ok("----------------------------------")
+                                printt_ok("SUCCESS : your Tx is confirmed    ")
+                                printt_ok("----------------------------------")
+
+                            # Check the balance of our wallet
+                            token['_TOKEN_BALANCE'] = check_balance(inToken, token['SYMBOL'], 60)
+                            DECIMALS = decimals(inToken)
+                            if Decimal(token['_TOKEN_BALANCE'] / DECIMALS) > Decimal(token['MAXTOKENS']):
+                                token['_REACHED_MAX_TOKENS'] = True
+                                printt_info ("You have reached the maximum number of tokens for this position.")
+
+
 
                     #
                     # SELL CHECK
                     #   If there are already more than MAX_TOKENS in the user's wallet, check to see if we should sell them.
                     #
-                    elif token['_REACHED_MAX_TOKENS'] == True and (quote > Decimal(token['SELLPRICEINBASE']) or quote < Decimal(token['STOPLOSSPRICEINBASE'])):
+                    elif token['_REACHED_MAX_TOKENS'] == True :
 
                         if token['_INFORMED_SELL'] == False:
-                            printt_info("You own more tokens than your MAXTOKENS parameter for",token['SYMBOL'], " Selling this position")
+                            printt_info("You own more tokens than your MAXTOKENS parameter for",token['SYMBOL'], " Looking to sell this position")
                             token['_INFORMED_SELL'] = True
 
-                        
-                        moonbag = int(Decimal(token['MOONBAG']) * DECIMALS)
-                        balance = int(Decimal(balance - moonbag))
+                        if quote > Decimal(token['SELLPRICEINBASE']) or quote < Decimal(token['STOPLOSSPRICEINBASE']):
 
-                        if balance > 0:
-                            print(timestamp(), "Sell Signal Found " + token['SYMBOL'])
                             log_price = "{:.18f}".format(quote)
                             logging.info("Sell Signal Found @" + str(log_price))
-                            tx = sell(token['SELLAMOUNTINTOKENS'], token['MOONBAG'], inToken, outToken,
-                                        token['GAS'], token['SLIPPAGE'], token['GASLIMIT'], token['BOOSTPERCENT'],
-                                        token["HASFEES"], token['USECUSTOMBASEPAIR'], token['SYMBOL'],
-                                        token['LIQUIDITYINNATIVETOKEN'])
-                            wait_for_tx(tx, token['ADDRESS'])
-                            print(
-                                style.RESET + "\n                           --------------------------------------\n"
-                                                "                            √  Tx done. Check your wallet \n"
-                                                "                           --------------------------------------")
-                            sleep(3)
-                            check_balance(token['ADDRESS'], token['SYMBOL'])
-                            print(style.RESET + "\n")
-                            sleep(3)
+                            printt_ok("--------------------------------------------------------------")
+                            printt_ok("Sell Signal Found =-= Sell Signal Found =-= Sell Signal Found ")
+                            printt_ok("--------------------------------------------------------------")
+
+                            moonbag = int(Decimal(token['MOONBAG']) * DECIMALS)
+                            amount_to_sell = int(Decimal(token['_TOKEN_BALANCE'] - moonbag))
+
+                            if amount_to_sell > 0:
+                                printt_info ("Selling some tokens")
+                                tx = sell(token['SELLAMOUNTINTOKENS'], token['MOONBAG'], inToken, outToken,
+                                            token['GAS'], token['SLIPPAGE'], token['GASLIMIT'], token['BOOSTPERCENT'],
+                                            token["HASFEES"], token['USECUSTOMBASEPAIR'], token['SYMBOL'],
+                                            token['LIQUIDITYINNATIVETOKEN'])
+                                wait_for_tx(token, tx, token['ADDRESS'])
+                                print(
+                                    style.RESET + "\n                           --------------------------------------\n"
+                                                    "                            √  Tx done. Check your wallet \n"
+                                                    "                           --------------------------------------")
+                                
+                                # Assumeing we've bought and sold this position, disabling token
+                                printt_info("We have bought and sold a position in", token['SYMBOL'], " DISABLING this token.")
+                                token['ENABLED'] = 'false'
+                                check_balance(token['ADDRESS'], token['SYMBOL'])
+
 
             sleep(cooldown)
 
