@@ -78,6 +78,8 @@ def timestamp():
 parser = argparse.ArgumentParser()
 
 # USER COMMAND LINE ARGUMENTS
+parser.add_argument("--pump", type=int,
+                    help="Holds the position as long as the price is going up. Sells when the price has gone down PUMP percent")
 parser.add_argument("-p", "--password", type=str,
                     help="Password to decrypt private keys (WARNING: your password could be saved in your command prompt history)")
 parser.add_argument("-s", "--settings", type=str, help="Specify the file to user for settings (default: settings.json)",
@@ -326,7 +328,8 @@ def load_tokens_file(tokens_path, load_message=True):
         '_ACTUAL_BUY_PRICE' : 0,
         '_GAS_TO_USE' : 0,
         '_FAILED_TRANSACTIONS' : 0,
-        '_TOKEN_BALANCE' : 0
+        '_TOKEN_BALANCE' : 0,
+        '_PREVIOUS_QUOTE' : 0
     }
     
     for token in tokens:
@@ -2226,6 +2229,9 @@ def sell(token_dict, inToken, outToken):
 
 def run():
     
+    # Price Quote
+    quote = 0
+
     try:
         tokens = load_tokens_file(command_line_args.tokens, True)
 
@@ -2351,6 +2357,7 @@ def run():
                     #  PRICE CHECK
                     #    Check the latest price on this token
                     #                    
+                    token['_PREVIOUS_QUOTE'] = quote
                     quote = check_price(inToken, outToken, token['SYMBOL'], token['BASESYMBOL'],
                                        token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'],
                                        token['BUYPRICEINBASE'], token['SELLPRICEINBASE'], token['STOPLOSSPRICEINBASE'])
@@ -2403,26 +2410,48 @@ def run():
                                 printt_ok("----------------------------------")
 
                             # Check the balance of our wallet
-                            token['_TOKEN_BALANCE'] = check_balance(inToken, token['SYMBOL'], 60)
                             DECIMALS = decimals(inToken)
-                            if Decimal(token['_TOKEN_BALANCE'] / DECIMALS) > Decimal(token['MAXTOKENS']):
+                            token['_TOKEN_BALANCE'] = check_balance(inToken, token['SYMBOL'], 60) / DECIMALS
+                            if token['_TOKEN_BALANCE'] > Decimal(token['MAXTOKENS']):
                                 token['_REACHED_MAX_TOKENS'] = True
                                 printt_info ("You have reached the maximum number of tokens for this position.")
 
-
+                            token['_COST_PER_TOKEN'] = float(token['BUYAMOUNTINBASE']) / float(token['_TOKEN_BALANCE'])
+                            printt_debug (token['SYMBOL'], " cost per token was: ", token['_COST_PER_TOKEN'])
 
                     #
                     # SELL CHECK
                     #   If there are already more than MAX_TOKENS in the user's wallet, check to see if we should sell them.
                     #
                     elif token['_REACHED_MAX_TOKENS'] == True :
-
+                        
+                        
+                        price_conditions_met = False
+                        
                         if token['_INFORMED_SELL'] == False:
                             printt_info("You own more tokens than your MAXTOKENS parameter for",token['SYMBOL'], " Looking to sell this position")
                             token['_INFORMED_SELL'] = True
 
-                        if quote > Decimal(token['SELLPRICEINBASE']) or quote < Decimal(token['STOPLOSSPRICEINBASE']):
+                        # Looking to dump this coint as soon as it drops PUMP percentage
+                        if  command_line_args.pump > 0 :
+                            percentage_up = quote / token['_PREVIOUS_QUOTE']
+                            percentage_drop = token['_PREVIOUS_QUOTE'] / quote
 
+                            if percentage_drop > command_line_args.pump:
+                                #MAKE SOMETHING READ THAT ISNT AN ERROR
+                                printt_err(token['SYMBOL'],"has dropped", percentage_drop,"% - SELLING POSITION")
+                                price_conditions_met = True
+                            elif percentage_drop > percentage_up:
+                                printt_warn(token['SYMBOL'],"has dropped", percentage_drop,"% - HOLDING POSITION")
+                            elif percentage_drop < percentage_up:
+                                printt_ok(token['SYMBOL'],"has gone up", percentage_drop,"% - HOLDING POSITION")
+                            else:
+                                printt_info(token['SYMBOL'],"has maintained it's price - HOLDING POSITION")
+
+                        elif quote > Decimal(token['SELLPRICEINBASE']) or quote < Decimal(token['STOPLOSSPRICEINBASE']):
+                            price_conditions_met = True
+
+                        if price_conditions_met == True :
                             log_price = "{:.18f}".format(quote)
                             logging.info("Sell Signal Found @" + str(log_price))
                             printt_ok("--------------------------------------------------------------")
