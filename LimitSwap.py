@@ -1266,7 +1266,6 @@ def get_tokens_purchased(tx_hash):
 def check_price(inToken, outToken, symbol, base, custom, routing, buypriceinbase, sellpriceinbase, stoplosspriceinbase):
     # CHECK GET RATE OF THE TOKEn
 
-    printt_debug("ENTER: checkprice()")
     DECIMALS = decimals(inToken)
     stamp = timestamp()
 
@@ -1303,7 +1302,6 @@ def check_price(inToken, outToken, symbol, base, custom, routing, buypriceinbase
             print(stamp, symbol, "Price =", price_output, base, "//// your buyprice =", buypriceinbase, base,
                   "//// your sellprice =", sellpriceinbase, base, "//// your stoplossprice =", stoplosspriceinbase, base)
 
-    printt_debug("EXIT: checkprice()")
     return tokenPrice
 
 
