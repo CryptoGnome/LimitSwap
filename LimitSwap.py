@@ -271,9 +271,7 @@ def load_tokens_file(tokens_path, load_message=True):
         'ADDRESS',
         'BUYAMOUNTINBASE',
         'BUYPRICEINBASE',
-        'SELLPRICEINBASE',
-        'GASPRIORITY_FOR_ETH_ONLY',
-        'STOPLOSSPRICEINBASE'
+        'SELLPRICEINBASE'
     ]
 
     default_true_settings = [
@@ -294,11 +292,12 @@ def load_tokens_file(tokens_path, load_message=True):
         'MAXTOKENS' : 0,
         'MOONBAG' : 0,
         'SELLAMOUNTINTOKENS' : 'all',
-        'GAS' : 20,
+        'GAS' : 8,
         'BOOSTPERCENT' : 50,
         'GASLIMIT' : 1000000,
         'BUYAFTER_XXX_SECONDS' : 0,
         'MAX_FAILED_TRANSACTIONS_IN_A_ROW' : 2,
+        'GASPRIORITY_FOR_ETH_ONLY' : 1.5,
         'STOPLOSSPRICEINBASE' : 0
     }
 
@@ -314,19 +313,6 @@ def load_tokens_file(tokens_path, load_message=True):
         '_GAS_TO_USE' : 0,
         '_FAILED_TRANSACTIONS' : 0,
         '_TOKEN_BALANCE' : 0
-    }
-
-    default_value_settings = {
-        'SLIPPAGE': 49,
-        'MAXTOKENS': 0,
-        'MOONBAG': 0,
-        'SELLAMOUNTINTOKENS': 'all',
-        'GAS': 8,
-        'BOOSTPERCENT': 50,
-        'GASLIMIT': 1000000,
-        'STOPLOSSPRICEINBASE': 0,
-        'GASPRIORITY_FOR_ETH_ONLY': 1.5
-
     }
     
     for token in tokens:
