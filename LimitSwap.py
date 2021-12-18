@@ -1147,36 +1147,37 @@ def approve(address, amount):
         sys.exit()
 
 
-def check_approval(token, address, allowancetocomparewith):
+def check_approval(token, address, allowance_to_compare_with):
 
     printt("Checking Approval Status", address)
     contract = client.eth.contract(address=Web3.toChecksumAddress(address), abi=standardAbi)
-    actualallowance = contract.functions.allowance(Web3.toChecksumAddress(settings['WALLETADDRESS']), routerAddress).call()
+    actual_allowance = contract.functions.allowance(Web3.toChecksumAddress(settings['WALLETADDRESS']), routerAddress).call()
 
-    if actualallowance < allowancetocomparewith:
+    allowance_request = 115792089237316195423570985008687907853269984665640564039457584007913129639935
+    if actual_allowance < allowance_to_compare_with:
         if settings["EXCHANGE"] == 'quickswap':
 
             print("Revert to Zero To change approval")
             tx = approve(address, 0)
             wait_for_tx(token, tx, address)
-            tx = approve(address, 115792089237316195423570985008687907853269984665640564039457584007913129639935)
+            tx = approve(address, allowance_request)
             wait_for_tx(token, tx, address)
         else:
             printt_info("---------------------------------------------------------------------------")
             printt_info("You need to APPROVE this token before selling it : LimitSwap will do it now")
             printt_info("---------------------------------------------------------------------------")
 
-            tx = approve(address, 115792089237316195423570985008687907853269984665640564039457584007913129639935)
+            tx = approve(address, allowance_request)
             wait_for_tx(token, tx, address)
             printt_ok("---------------------------------------------------------")
             printt_ok("  Token is now approved : LimitSwap can sell this token", True)
             printt_ok("---------------------------------------------------------")
 
-        return
+        return allowance_request
 
     else:
         printt_ok("Token is already approved --> LimitSwap can sell this token ")
-        pass
+        return actual_allowance
 
 
 def check_bnb_balance():
