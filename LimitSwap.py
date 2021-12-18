@@ -347,7 +347,11 @@ def load_tokens_file(tokens_path, load_message=True):
         '_GAS_TO_USE' : 0,
         '_FAILED_TRANSACTIONS' : 0,
         '_TOKEN_BALANCE' : 0,
-        '_PREVIOUS_QUOTE' : 0
+        '_PREVIOUS_QUOTE' : 0,
+        '_ALL_TIME_HIGH' : 0,
+        '_COST_PER_TOKEN' : 0,
+        '_ALL_TIME_LOW' : 0,
+        '_CONTRACT_DECIMALS' :0
     }
     
     for token in tokens:
@@ -1005,6 +1009,14 @@ def parse_wallet_settings(settings, pwd):
 
         
 def decimals(address):
+    # Function: decimals
+    # ----------------------------
+    # calculate how many decimals this token has
+    #
+    # address - token contract
+    #
+    # returns: returns the number of tokens for this contract
+
     try:
         balanceContract = client.eth.contract(address=Web3.toChecksumAddress(address), abi=standardAbi)
         decimals = balanceContract.functions.decimals().call()
@@ -1420,18 +1432,25 @@ def preapprove(tokens):
     # We ask the bot to check if your allowance is > to your balance. Use a 10000000000000000 multiplier for decimals.
 
     # First in all the tokens of the tokens.json
+    printt_debug("ENTER - preapprove()")
+
     for token in tokens:
 
         balance = Web3.fromWei(check_balance(token['ADDRESS'], token['SYMBOL']), 'ether')
+        printt_debug("Balance:", balance)
         check_approval(token, token['ADDRESS'], balance * 10000000000000000)
        
         # then of the base pair
         if token['USECUSTOMBASEPAIR'].lower() == 'false':
             balanceweth = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
+            printt_debug("Balanceweth:", balanceweth)
             check_approval(token, weth, balanceweth * 10000000000000000)
         else:
             balancebase = Web3.fromWei(check_balance(token['BASEADDRESS'], token['SYMBOL']), 'ether')
+            printt_debug("Balancebase:", balancebase)
             check_approval(token, token['BASEADDRESS'], balancebase * 10000000000000000)
+
+    printt_debug("EXIT - preapprove()")
 
 
 def buy(token_dict, inToken, outToken):
@@ -2282,6 +2301,14 @@ def run():
         # TODO ARG: Implement an argument that auto accepts or prunes tokens that are rejected/accepted by the rugdoc check
         for token in tokens:
             
+            # Calculate contract decimals
+            token['_CONTRACT_DECIMALS'] = int(decimals(token['ADDRESS']))
+            # Check to see if we have any tokens in our wallet already
+            token['_TOKEN_BALANCE'] = check_balance(token['ADDRESS'], token['SYMBOL']) / token['_CONTRACT_DECIMALS']
+            if token['_TOKEN_BALANCE'] > 0 :
+                printt_info(token['SYMBOL'], "started with", token['_TOKEN_BALANCE'], "tokens.")
+                if token['_TOKEN_BALANCE'] > float(token['MAXTOKENS']): token['_REACHED_MAX_TOKENS'] = True 
+
             # Calculate how much gas we should use for this token
             calculate_gas(token)
 
@@ -2378,12 +2405,23 @@ def run():
                     
                     #
                     #  PRICE CHECK
-                    #    Check the latest price on this token
+                    #    Check the latest price on this token and record information on the price that we may
+                    #    need to use later
                     #                    
                     token['_PREVIOUS_QUOTE'] = quote
                     quote = check_price(inToken, outToken, token['SYMBOL'], token['BASESYMBOL'],
                                        token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'],
                                        token['BUYPRICEINBASE'], token['SELLPRICEINBASE'], token['STOPLOSSPRICEINBASE'])
+                    
+                    if token['_ALL_TIME_HIGH'] == 0 and token['_ALL_TIME_LOW'] == 0:
+                        token['_ALL_TIME_HIGH'] = quote
+                        token['_ALL_TIME_LOW'] = quote
+
+                    elif quote > token['_ALL_TIME_HIGH']:
+                        token['_ALL_TIME_HIGH'] = quote
+                    
+                    elif quote < token['_ALL_TIME_LOW']:
+                        token['_ALL_TIME_LOW'] = quote
 
                     #
                     # BUY CHECK
@@ -2454,20 +2492,27 @@ def run():
                             printt_info("You own more tokens than your MAXTOKENS parameter for",token['SYMBOL'], " Looking to sell this position")
                             token['_INFORMED_SELL'] = True
 
-                        # Looking to dump this coint as soon as it drops PUMP percentage
-                        if  command_line_args.pump > 0 :
+                        # Looking to dump this token as soon as it drops <PUMP> percentage
+                        if  isinstance(command_line_args.pump, int) and command_line_args.pump > 0 :
+                            
+                            if token['_COST_PER_TOKEN'] == 0:
+                                printt_err("ERROR: Trying to price adjusted features on a token without a known buy price/")
+                                exit(-10)
 
-                            percentage_up = quote / token['_PREVIOUS_QUOTE']
-                            percentage_drop = token['_PREVIOUS_QUOTE'] / quote
+                            percentage_up = quote / token['_COST_PER_TOKEN']
+                            percentage_drop = token['_ALL_TIME_HIGH'] / quote
+
+                            print(token['SYMBOL'],"Price Data - Price:", quote, " PPrice:", token['_PREVIOUS_QUOTE'],
+                                    " ATL:", token['_ALL_TIME_LOW'], " ATH:", token['_ALL_TIME_HIGH'], sep='')
 
                             if percentage_drop > command_line_args.pump:
                                 #MAKE SOMETHING READ THAT ISNT AN ERROR
-                                printt_err(token['SYMBOL'],"has dropped", percentage_drop,"% - SELLING POSITION")
+                                printt_err(token['SYMBOL'],"has dropped", percentage_drop,"% from it's ATH - SELLING POSITION")
                                 price_conditions_met = True
                             elif percentage_drop > percentage_up:
-                                printt_warn(token['SYMBOL'],"has dropped", percentage_drop,"% - HOLDING POSITION")
+                                printt_warn(token['SYMBOL'],"has dropped", percentage_drop,"% from it's ATH - SELLING POSITION")
                             elif percentage_drop < percentage_up:
-                                printt_ok(token['SYMBOL'],"has gone up", percentage_drop,"% - HOLDING POSITION")
+                                printt_ok(token['SYMBOL'],"is up ", percentage_drop,"% from it's purchase price - HOLDING POSITION")
                             else:
                                 printt_info(token['SYMBOL'],"has maintained it's price - HOLDING POSITION")
 
