@@ -15,7 +15,6 @@ import cryptocode, re, pwinput
 import argparse
 import signal
 
-
 # DEVELOPER CONSIDERATIONS
 #
 #  =-= START README =-= START README =-= START README =-= START README =-= START README =-=
@@ -46,6 +45,11 @@ import signal
 #    Do not assume a user has changed their tokens.json file to work with the new version, your additions
 #    should be backwards compatible and have safe default values if possible
 
+#
+# GLOBALS
+#
+# Global used for printt_repeating to track how many repeated messages have been printed to console
+repeated_message_quantity = 0    
 
 # color styles
 class style():  # Class of different text colours - default is white
@@ -224,6 +228,29 @@ def printt_debug(*print_args, write_to_log=False):
 #              "//// your buyprice =", buypriceinbase, base,
 #                   "//// your sellprice =", sellpriceinbase, base, "//// your stoplossprice =", stoplosspriceinbase, base)
 
+def printt_repeating(token_dict, message, print_frequency=500):
+    #     Function: printt_r
+    #     --------------------
+    #     Function to manage a generic repeating message
+    #        
+    #     token_dict - one element of the tokens{} dictionary
+    #     message - the message to be printed
+    #   
+    #     returns: nothing
+
+    global repeated_message_quantity
+
+    if message == token_dict['_LAST_MESSAGE'] and bot_settings['VERBOSE_PRICING'] == 'false' and print_frequency >= repeated_message_quantity:
+        print (".", end='', flush=True)
+        bot_settings['_NEED_NEW_LINE'] = True
+        repeated_message_quantity += 1
+    else:
+        printt_err (message)
+        repeated_message_quantity = 0
+    
+    token_dict['_LAST_MESSAGE'] = message
+    
+
 def printt_sell_price(token_dict, token_price):
     #     Function: printt_buyprice
     #     --------------------
@@ -288,10 +315,20 @@ def load_settings_file(settings_path, load_message=True):
     # There are values that we will set internally. They must all begin with _
     # _NEED_NEW_LINE - set to true when the next printt statement will need to print a new line before data
     
+    default_false_settings =[
+        'VERBOSE_PRICING',
+    ]
+
     program_defined_values = {
         '_NEED_NEW_LINE' : False
     }
 
+    for default_false in default_false_settings:
+        if default_false not in settings:
+            print(timestamp(),default_false, "not found in settings configuration file, settings a default value of false.")
+            bot_settings[default_false] = "false"
+        else:
+            bot_settings[default_false] = bot_settings[default_false].lower()
     for value in program_defined_values:
         if value not in bot_settings: bot_settings[value] = program_defined_values[value]
 
@@ -431,8 +468,9 @@ def load_tokens_file(tokens_path, load_message=True):
     #                         instead of querying the contract for the same information repeatedly. 
     # _LAST_PRICE_MESSAGE   - a copy of the last pricing message printed to console, used to determine the price
     #                         should be printed again, or just a dot
+    # _LAST_MESSAGE         - a place to store a copy of the last message printed to conside, use to avoid
+    #                         repeated liquidity messages
 
-    # TODO: document all these variables
     program_defined_values = {
         '_LIQUIDITY_READY' : False,
         '_LIQUIDITY_CHECKED' : False,
@@ -446,7 +484,9 @@ def load_tokens_file(tokens_path, load_message=True):
         '_COST_PER_TOKEN' : 0,
         '_ALL_TIME_LOW' : 0,
         '_CONTRACT_DECIMALS' : 0,
-        '_LAST_PRICE_MESSAGE' : 0
+        '_LAST_PRICE_MESSAGE' : 0,
+        '_LAST_MESSAGE' : 0
+
     }
     
     for token in tokens:
@@ -2598,7 +2638,7 @@ def run():
                                         break
 
                         except Exception:
-                            printt (token['SYMBOL'],"Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
+                            printt_repeating (token, token['SYMBOL'] + " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
                             break
 
 
