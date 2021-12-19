@@ -538,6 +538,15 @@ def load_tokens_file(tokens_path, load_message=True):
             for value in program_defined_values:
                 token[value] = program_defined_values[value]
 
+        for key in token:
+            if(isinstance(token[key], str)):
+                if re.search(r'^\d*\.\d+$', str(token[key])): token[key] = float(token[key])
+                elif re.search(r'^\d+$', token[key]): token[key] = int(token[key])
+
+
+
+
+
     return tokens
 
 def reload_tokens_file(tokens_path, load_message=True):
