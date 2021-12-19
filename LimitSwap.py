@@ -1417,38 +1417,28 @@ def check_bnb_balance():
     print(timestamp(), "Current Wallet Balance is :", Web3.fromWei(balance, 'ether'), base_symbol)
     return balance
 
-def check_balance(address, symbol='UNKNOWN_TOKEN', max_wait_time=30, more_tokens_than=0):
+def check_balance(address, symbol='UNKNOWN_TOKEN', display_quantity=True):
     # Function: check_balance
     # --------------------
-    # check user's wallet for the balance of tokens belonging to address
+    # check and display the number of tokens in the user's wallet
     #
     # address - the contract address of the token we're looking for
     # symbol  - the symbol of the token we're looking for
-    # max_wait_time - the maximum amount of time in seconds to wait for a balance to show
-    # more_tokens_than - if the wallet has more tokens than this, than it's considered to have accepted tokens
+    # display_quantity - boolean to report on the number of tokens
     #
-    # returns: 0 - txn_receipt['status'] on unknown
-    #          1 - txn_receipt['status'] on success (sometimes reverted)
-    #          2 - failed with an empty log (rejected by contract)
-    #         -1 -  transaction failed due to unknown reason
+    # returns: the wallet's token balance
 
+    printt_debug("ENTER: check_balance()")
     balance = 0
-
+    
     address = Web3.toChecksumAddress(address)
     DECIMALS = decimals(address)
     balanceContract = client.eth.contract(address=address, abi=standardAbi)
     
-    if max_wait_time == 0:
-        balance = balanceContract.functions.balanceOf(settings['WALLETADDRESS']).call()
-    elif max_wait_time > 0:
-        exit_timestamp = time() + max_wait_time
-
-        while exit_timestamp > time() and balance <= more_tokens_than:
-            balance = balanceContract.functions.balanceOf(settings['WALLETADDRESS']).call()
-            sleep(50/1000)
+    balance = balanceContract.functions.balanceOf(settings['WALLETADDRESS']).call()
 
     print(timestamp(), "Current Wallet Balance is: " + str(balance / DECIMALS) + " " + symbol)
-
+    printt_debug("EXIT: check_balance()")
     return balance
 
 def fetch_pair(inToken, outToken):
@@ -1560,6 +1550,8 @@ def calculate_gas(token):
     # returns - 0
     #         - sets token['_GAS_TO_USE'] to gas that should be used for transaction
 
+    printt_debug("ENTER: calculate_gas()")
+
     if int(token['GASLIMIT']) < 250000:
         printt_info("Your GASLIMIT parameter is too low : LimitSwap has forced it to 300000 otherwise your transaction would fail for sure. We advise you to raise it to 1000000.")
         token['GASLIMIT'] = 300000
@@ -1572,6 +1564,7 @@ def calculate_gas(token):
     else:
         token['_GAS_TO_USE'] = int(token['GAS'])
 
+    printt_debug("EXIT: calculate_gas()")
     return 0
 
 def wait_for_tx(token_dict, tx_hash, address, max_wait_time=60):
