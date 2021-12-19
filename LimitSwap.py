@@ -1193,8 +1193,6 @@ def get_password():
     return pwd
 
 # RUGDOC CONTROL IMPLEMENTATION
-# Honeypot API details
-honeypot_url = 'https://honeypot.api.rugdoc.io/api/honeypotStatus.js?address='
 
 # Rugdoc's answers interpretations
 interpretations = {
@@ -1218,11 +1216,6 @@ interpretations = {
                                     '/!\ Sorry, rugdoc API does not work on this chain... (it does not work on ETH, mainly) \n')
 }
 
-# Function to check rugdoc API
-def honeypot_check(address):
-    url = (honeypot_url + address + rugdocchain)
-    # sending get request and saving the response as response object
-    return requests.get(url)
 
 def save_settings(settings, pwd):
     if len(pwd) > 0:
@@ -2855,9 +2848,9 @@ try:
         run()
     else:
         print(timestamp(),
-              "10 - 50 $LIMIT tokens needed to use this bot, please visit the LimitSwap.com for more info or buy more tokens on Uniswap to use!")
+              "10 - 50 LIMIT tokens needed to use this bot, please visit the LimitSwap.com for more info or buy more tokens on Uniswap to use!")
         logging.exception(
-            "10 - 50 $LIMIT tokens needed to use this bot, please visit the LimitSwap.com for more info or buy more tokens on Uniswap to use!")
+            "10 - 50 LIMIT tokens needed to use this bot, please visit the LimitSwap.com for more info or buy more tokens on Uniswap to use!")
 
 except Exception as e:
     print(timestamp(), "ERROR. Please go to /log folder and open your error logs : you will find more details.")
