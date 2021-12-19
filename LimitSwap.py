@@ -1740,7 +1740,7 @@ def buy(token_dict, inToken, outToken):
 
 
 
-    if token_dict['_FAILED_TRANSACTIONS'] >= token_dict['MAX_FAILED_TRANSACTIONS_IN_A_ROW']:
+    if token_dict['_FAILED_TRANSACTIONS'] >= int(token_dict['MAX_FAILED_TRANSACTIONS_IN_A_ROW']):
         printt_err("---------------------------------------------------------------")
         printt_err("DISABLING", token_dict['SYMBOL'])
         printt_err("This token has reached maximum FAILED SIMULTANIOUS TRANSACTIONS")
