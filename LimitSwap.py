@@ -265,7 +265,7 @@ def printt_sell_price(token_dict, token_price):
     price_message = price_message + " Sell:" + str(token_dict['SELLPRICEINBASE']) + " Stop:" + str(token_dict['STOPLOSSPRICEINBASE'])
     price_message = price_message + " ATH:" + str(token_dict['_ALL_TIME_HIGH']) + " ATL:" + str(token_dict['_ALL_TIME_LOW'])
 
-    if price_message == token_dict['_LAST_PRICE_MESSAGE'] and bot_settings['VERBOSE_PRICING'] == 'false':
+    if price_message == token_dict['_LAST_PRICE_MESSAGE'] and bot_settings['VERBOSE_PRICING'] == 'true':
         print (".", end='', flush=True)
         bot_settings['_NEED_NEW_LINE'] = True
     elif token_price > token_dict['_PREVIOUS_QUOTE']:
