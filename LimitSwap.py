@@ -240,7 +240,7 @@ def printt_repeating(token_dict, message, print_frequency=500):
 
     global repeated_message_quantity
 
-    if message == token_dict['_LAST_MESSAGE'] and bot_settings['VERBOSE_PRICING'] == 'true' and print_frequency >= repeated_message_quantity:
+    if message == token_dict['_LAST_MESSAGE'] and bot_settings['VERBOSE_PRICING'] == 'false' and print_frequency >= repeated_message_quantity:
         print (".", end='', flush=True)
         bot_settings['_NEED_NEW_LINE'] = True
         repeated_message_quantity += 1
@@ -265,7 +265,7 @@ def printt_sell_price(token_dict, token_price):
     price_message = price_message + " Sell:" + str(token_dict['SELLPRICEINBASE']) + " Stop:" + str(token_dict['STOPLOSSPRICEINBASE'])
     price_message = price_message + " ATH:" + str(token_dict['_ALL_TIME_HIGH']) + " ATL:" + str(token_dict['_ALL_TIME_LOW'])
 
-    if price_message == token_dict['_LAST_PRICE_MESSAGE'] and bot_settings['VERBOSE_PRICING'] == 'true':
+    if price_message == token_dict['_LAST_PRICE_MESSAGE'] and bot_settings['VERBOSE_PRICING'] == 'false':
         print (".", end='', flush=True)
         bot_settings['_NEED_NEW_LINE'] = True
     elif token_price > token_dict['_PREVIOUS_QUOTE']:
@@ -315,7 +315,7 @@ def load_settings_file(settings_path, load_message=True):
     # There are values that we will set internally. They must all begin with _
     # _NEED_NEW_LINE - set to true when the next printt statement will need to print a new line before data
     
-    default_false_settings =[
+    default_true_settings =[
         'VERBOSE_PRICING',
     ]
 
@@ -323,12 +323,12 @@ def load_settings_file(settings_path, load_message=True):
         '_NEED_NEW_LINE' : False
     }
 
-    for default_false in default_false_settings:
-        if default_false not in settings:
-            print(timestamp(),default_false, "not found in settings configuration file, settings a default value of false.")
-            bot_settings[default_false] = "false"
+    for default_true in default_true_settings:
+        if default_true not in settings:
+            print(timestamp(),default_true, "not found in settings configuration file, settings a default value of false.")
+            bot_settings[default_true] = "false"
         else:
-            bot_settings[default_false] = bot_settings[default_false].lower()
+            bot_settings[default_true] = bot_settings[default_true].lower()
     for value in program_defined_values:
         if value not in bot_settings: bot_settings[value] = program_defined_values[value]
 
