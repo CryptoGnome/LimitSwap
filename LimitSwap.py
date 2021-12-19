@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from toolz.functoolz import do
 from web3 import Web3
 from time import sleep, time
 import json
@@ -1446,7 +1447,7 @@ def preapprove(tokens):
             printt_debug("Balanceweth:", balanceweth)
             check_approval(token, weth, balanceweth * 10000000000000000)
         else:
-            balancebase = Web3.fromWei(check_balance(token['BASEADDRESS'], token['SYMBOL']), 'ether')
+            balancebase = Web3.fromWei(check_balance(token['BASEADDRESS'], token['BASESYMBOL']), 'ether')
             printt_debug("Balancebase:", balancebase)
             check_approval(token, token['BASEADDRESS'], balancebase * 10000000000000000)
 
@@ -2402,7 +2403,7 @@ def run():
                             break
 
 
-                    
+
                     #
                     #  PRICE CHECK
                     #    Check the latest price on this token and record information on the price that we may
@@ -2451,16 +2452,15 @@ def run():
 
                         if tx != False:
                             tx = wait_for_tx(token, tx, token['ADDRESS'])
-                            printt_info("Transaction complete")
 
                             if tx != 1:
                                 # transaction is a FAILURE
-                                printt_err("--------------------------")
-                                printt_err("ERROR TRASACTION FAILURE !")
+                                printt_err("---------------------------")
+                                printt_err("ERROR TRANSACTION FAILURE !")
                                 printt_err("---------------------------")
                                 printt_err("Causes of failure can be :")
                                 printt_err("- GASLIMIT too low")
-                                printt_err("- SLIPPAGE too lo")
+                                printt_err("- SLIPPAGE too low")
                                 printt_err("--------------------------")
                                 token['_FAILED_TRANSACTIONS'] += 1
                                 preapprove(tokens)
@@ -2496,21 +2496,20 @@ def run():
                         if  isinstance(command_line_args.pump, int) and command_line_args.pump > 0 :
                             
                             if token['_COST_PER_TOKEN'] == 0:
-                                printt_err("ERROR: Trying to price adjusted features on a token without a known buy price/")
-                                exit(-10)
+                                printt_warn("WARNING: You are running a pump on an already purchased position.")
 
                             percentage_up = quote / token['_COST_PER_TOKEN']
                             percentage_drop = token['_ALL_TIME_HIGH'] / quote
 
-                            print(token['SYMBOL'],"Price Data - Price:", quote, " PPrice:", token['_PREVIOUS_QUOTE'],
-                                    " ATL:", token['_ALL_TIME_LOW'], " ATH:", token['_ALL_TIME_HIGH'], sep='')
+                            print(timestamp(), token['SYMBOL']," Price Data - Price:", quote, " PreviousPrice:", token['_PREVIOUS_QUOTE'], sep='')
+                            print(timestamp(), token['SYMBOL']," ATL:", token['_ALL_TIME_LOW'], " ATH:", token['_ALL_TIME_HIGH'], sep='')
 
                             if percentage_drop > command_line_args.pump:
                                 #MAKE SOMETHING READ THAT ISNT AN ERROR
                                 printt_err(token['SYMBOL'],"has dropped", percentage_drop,"% from it's ATH - SELLING POSITION")
                                 price_conditions_met = True
                             elif percentage_drop > percentage_up:
-                                printt_warn(token['SYMBOL'],"has dropped", percentage_drop,"% from it's ATH - SELLING POSITION")
+                                printt_warn(token['SYMBOL'],"has dropped", percentage_drop,"% from it's ATH - HOLDING POSITION")
                             elif percentage_drop < percentage_up:
                                 printt_ok(token['SYMBOL'],"is up ", percentage_drop,"% from it's purchase price - HOLDING POSITION")
                             else:
@@ -2536,7 +2535,7 @@ def run():
                             printt_ok("----------------------------------")
                                 
                             # Assumeing we've bought and sold this position, disabling token
-                            printt_info("We have bought and sold a position in", token['SYMBOL'], " DISABLING this token.")
+                            printt_info("We have sold our position in", token['SYMBOL'], "DISABLING this token.")
                             token['ENABLED'] = 'false'
                             check_balance(token['ADDRESS'], token['SYMBOL'])
 
@@ -2559,7 +2558,7 @@ def run():
             sleep(1)
             if nonce > timeout:
                 run()
-
+                
 
 try:
     
