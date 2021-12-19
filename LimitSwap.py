@@ -357,6 +357,9 @@ def load_tokens_file(tokens_path, load_message=True):
     # loads the token definition file defined by command_line_args.settings, sets sane defaults if variables aren't found in settings file
     # exits with an error message if necessary variables are not found in the settings files
     #
+    # IMPORTANT NOTE - IMPORTANT NOTE - IMPORTANT NOTE - IMPORTANT NOTE - IMPORTANT NOTE - IMPORTANT NOTE
+    # Any additional options added to this function must also be considered for change in reload_tokens_file()
+    #
     # tokens_path: the path of the file to load tokens from
     # load_message: if true we print to stdout that we're loading settings from the file
     # last_modified: perform this function only if he file has been modified since this date
@@ -406,15 +409,173 @@ def load_tokens_file(tokens_path, load_message=True):
     }
 
     # There are values that we will set internally. They must all begin with _
-    # _LIQUIDITY_CHECKED - false if we have yet to check liquidity for this token
-    # _INFORMED_SELL - set to true when we've already informed the user that we're selling this position
+    # _LIQUIDITY_CHECKED    - false if we have yet to check liquidity for this token
+    # _INFORMED_SELL        - set to true when we've already informed the user that we're selling this position
+    # _LIQUIDITY_READY      - a flag to test if we've found liquidity for this pair
+    # _LIQUIDITY_CHECKED    - a flag to test if we've check for the amount of liquidity for this pair
+    # _INFORMED_SELL        - a flag to store that we've printed to console that we are going to be selling the position
+    # _REACHED_MAX_TOKENS   - flag to look at to determine if the user's wallet has reached the maximum number of flags
+    #                         this flag is used for conditionals throughout the run of this bot. Be sure to set this
+    #                         flag after enough tokens that brings the number of token up to the MAXTOKENS. In other words
+    #                         done depend on (if MAXTOKENS < _TOKEN_BALANCE) conditionals
+    # _GAS_TO_USE           - the amount of gas the bot has estimated it should use for the purchase of a token
+    #                         this number is calculated every bot start up
+    # _FAILED_TRANSACTIONS  - the number of times a transaction has failed for this token
+    # _TOKEN_BALANCE'       - the number of traded tokens the user has in her wallet
+    # _PREVIOUS_QUOTE'      - holds the ask price for a token the last time a price was queried, this is used
+    #                         to determine the direction the market is going
+    # _COST_PER_TOKEN'      - the calculated/estimated price the bot paid for the number of tokens it traded
+    # _ALL_TIME_HIGH'       - the highest price a token has had since the bot was started
+    # _ALL_TIME_LOW'        - the lowest price a token has had since the bot was started
+    # _CONTRACT_DECIMALS    - the number of decimals a contract uses. Used to speed up some of our processes
+    #                         instead of querying the contract for the same information repeatedly. 
+    # _LAST_PRICE_MESSAGE   - a copy of the last pricing message printed to console, used to determine the price
+    #                         should be printed again, or just a dot
+
     # TODO: document all these variables
     program_defined_values = {
         '_LIQUIDITY_READY' : False,
         '_LIQUIDITY_CHECKED' : False,
         '_INFORMED_SELL' : False,
         '_REACHED_MAX_TOKENS' : False,
-        '_ACTUAL_BUY_PRICE' : 0,
+        '_GAS_TO_USE' : 0,
+        '_FAILED_TRANSACTIONS' : 0,
+        '_TOKEN_BALANCE' : 0,
+        '_PREVIOUS_QUOTE' : 0,
+        '_ALL_TIME_HIGH' : 0,
+        '_COST_PER_TOKEN' : 0,
+        '_ALL_TIME_LOW' : 0,
+        '_CONTRACT_DECIMALS' : 0,
+        '_LAST_PRICE_MESSAGE' : 0
+    }
+    
+    for token in tokens:
+
+        # Keys that must be set
+        for required_key in required_user_settings:
+            if required_key not in token:
+                printt_err (required_key, "not found in configuration file in configuration for to token", token['SYMBOL'])
+                printt_err ("Be careful, sometimes new parameter are added : please check default tokens.json file")
+                sleep(20)
+                exit (-1)
+
+        for default_false in default_false_settings:
+            if default_false not in token:
+                printt_v(default_false, "not found in configuration file in configuration for to token",
+                         token['SYMBOL'], "setting a default value of false")
+                token[default_false] = "false"
+            else:
+                token[default_false] = token[default_false].lower()
+
+        for default_true in default_true_settings:
+            if default_true not in token:
+                printt_v(default_true, "not found in configuration file in configuration for to token",
+                         token['SYMBOL'], "setting a default value of false")
+                token[default_true] = "false"
+            else:
+                token[default_true] = token[default_true].lower()
+
+        for default_key in default_value_settings:
+            if default_key not in token:
+                printt_v (default_key , "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a value of", default_value_settings[default_key])
+                token[default_key] = default_value_settings[default_key]
+            elif default_key == 'SELLAMOUNTINTOKENS':
+                default_value_settings[default_key] = default_value_settings[default_key].lower()
+
+        # Set program values only if they haven't been set already
+        if '_LIQUIDITY_READY' not in token:
+            for value in program_defined_values:
+                token[value] = program_defined_values[value]
+
+    return tokens
+
+def reload_tokens_file(tokens_path, load_message=True):
+    # Function: reload_tokens_File
+    # ----------------------------
+    # loads the token definition file defined by command_line_args.settings, sets sane defaults if variables aren't found in settings file
+    # exits with an error message if necessary variables are not found in the settings files
+    #
+    # IMPORTANT NOTE - IMPORTANT NOTE - IMPORTANT NOTE - IMPORTANT NOTE - IMPORTANT NOTE - IMPORTANT NOTE
+    # Any additional options added to this function must also be considered for change in reload_tokens_file()
+    #
+    # tokens_path: the path of the file to load tokens from
+    # load_message: if true we print to stdout that we're loading settings from the file
+    # last_modified: perform this function only if he file has been modified since this date
+    #
+    # returns: 1. a dictionary of dictionaries in json format containing details of the tokens we're rading
+    #          2. the timestamp for the last modification of the file
+        
+    if load_message == True:
+        print(timestamp(), "Loading tokens from", tokens_path)
+
+    s = open(tokens_path, )
+    tokens = json.load(s)
+    s.close()
+
+    required_user_settings =[
+        'ADDRESS',
+        'BUYAMOUNTINBASE',
+        'BUYPRICEINBASE',
+        'SELLPRICEINBASE'
+    ]
+
+    default_true_settings = [
+        'LIQUIDITYINNATIVETOKEN',
+    ]
+
+    default_false_settings = [
+        'ENABLED',
+        'LIQUIDITYCHECK',
+        'LIQUIDITYINNATIVETOKEN',
+        'USECUSTOMBASEPAIR',
+        'HASFEES',
+        'RUGDOC_CHECK'
+    ]
+
+    default_value_settings = {
+        'SLIPPAGE' : 49,
+        'MAXTOKENS' : 0,
+        'MOONBAG' : 0,
+        'SELLAMOUNTINTOKENS' : 'all',
+        'GAS' : 8,
+        'BOOSTPERCENT' : 50,
+        'GASLIMIT' : 1000000,
+        'BUYAFTER_XXX_SECONDS' : 0,
+        'MAX_FAILED_TRANSACTIONS_IN_A_ROW' : 2,
+        'GASPRIORITY_FOR_ETH_ONLY' : 1.5,
+        'STOPLOSSPRICEINBASE' : 0
+    }
+
+    # There are values that we will set internally. They must all begin with _
+    # _LIQUIDITY_CHECKED    - false if we have yet to check liquidity for this token
+    # _INFORMED_SELL        - set to true when we've already informed the user that we're selling this position
+    # _LIQUIDITY_READY      - a flag to test if we've found liquidity for this pair
+    # _LIQUIDITY_CHECKED    - a flag to test if we've check for the amount of liquidity for this pair
+    # _INFORMED_SELL        - a flag to store that we've printed to console that we are going to be selling the position
+    # _REACHED_MAX_TOKENS   - flag to look at to determine if the user's wallet has reached the maximum number of flags
+    #                         this flag is used for conditionals throughout the run of this bot. Be sure to set this
+    #                         flag after enough tokens that brings the number of token up to the MAXTOKENS. In other words
+    #                         done depend on (if MAXTOKENS < _TOKEN_BALANCE) conditionals
+    # _GAS_TO_USE           - the amount of gas the bot has estimated it should use for the purchase of a token
+    #                         this number is calculated every bot start up
+    # _FAILED_TRANSACTIONS  - the number of times a transaction has failed for this token
+    # _TOKEN_BALANCE'       - the number of traded tokens the user has in her wallet
+    # _PREVIOUS_QUOTE'      - holds the ask price for a token the last time a price was queried, this is used
+    #                         to determine the direction the market is going
+    # _COST_PER_TOKEN'      - the calculated/estimated price the bot paid for the number of tokens it traded
+    # _ALL_TIME_HIGH'       - the highest price a token has had since the bot was started
+    # _ALL_TIME_LOW'        - the lowest price a token has had since the bot was started
+    # _CONTRACT_DECIMALS    - the number of decimals a contract uses. Used to speed up some of our processes
+    #                         instead of querying the contract for the same information repeatedly. 
+    # _LAST_PRICE_MESSAGE   - a copy of the last pricing message printed to console, used to determine the price
+    #                         should be printed again, or just a dot
+
+    # TODO: document all these variables
+    program_defined_values = {
+        '_LIQUIDITY_READY' : False,
+        '_LIQUIDITY_CHECKED' : False,
+        '_INFORMED_SELL' : False,
+        '_REACHED_MAX_TOKENS' : False,
         '_GAS_TO_USE' : 0,
         '_FAILED_TRANSACTIONS' : 0,
         '_TOKEN_BALANCE' : 0,
