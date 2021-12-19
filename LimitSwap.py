@@ -326,7 +326,7 @@ def load_settings_file(settings_path, load_message=True):
     for default_true in default_true_settings:
         if default_true not in settings:
             print(timestamp(),default_true, "not found in settings configuration file, settings a default value of false.")
-            bot_settings[default_true] = "false"
+            bot_settings[default_true] = "true"
         else:
             bot_settings[default_true] = bot_settings[default_true].lower()
     for value in program_defined_values:
