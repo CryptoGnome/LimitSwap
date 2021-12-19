@@ -2577,13 +2577,20 @@ def run():
 
             if token['RUGDOC_CHECK'] == 'true':
 
-                honeypot = honeypot_check(address=token['ADDRESS'])
-                d = json.loads(honeypot.content)
-                for key, value in interpretations.items():
-                    if d["status"] in key:
-                        honeypot_status = value
-                        honeypot_code = key
-                        print(honeypot_status)
+                rugresponse = requests.get('https://honeypot.api.rugdoc.io/api/honeypotStatus.js?address=' + token['ADDRESS'] + rugdocchain)
+                # sending get request and saving the response as response object
+
+                if rugresponse.status_code == 200:
+                    d = json.loads(rugresponse.content)
+                    print("debug 200")
+                    for key, value in interpretations.items():
+                        if d["status"] in key:
+                            honeypot_status = value
+                            honeypot_code = key
+                            print(honeypot_status)
+
+                else:
+                    printt_warn("Sorry, Rugdoc's API does not work on this token (Rugdoc does not work on ETH chain for instance)")
 
                 decision = ""
                 while decision != "y" and decision != "n":
