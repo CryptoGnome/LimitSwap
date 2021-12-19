@@ -240,7 +240,7 @@ def printt_repeating(token_dict, message, print_frequency=500):
 
     global repeated_message_quantity
 
-    if message == token_dict['_LAST_MESSAGE'] and bot_settings['VERBOSE_PRICING'] == 'false' and print_frequency >= repeated_message_quantity:
+    if message == token_dict['_LAST_MESSAGE'] and bot_settings['VERBOSE_PRICING'] == 'true' and print_frequency >= repeated_message_quantity:
         print (".", end='', flush=True)
         bot_settings['_NEED_NEW_LINE'] = True
         repeated_message_quantity += 1
