@@ -15,6 +15,7 @@ import cryptocode, re, pwinput
 import argparse
 import signal
 
+
 # DEVELOPER CONSIDERATIONS
 #
 #  =-= START README =-= START README =-= START README =-= START README =-= START README =-=
@@ -44,6 +45,7 @@ import signal
 #    review comment "COMMAND LINE ARGUMENTS" and the functions load_tokens_file and save_tokens_file
 #    Do not assume a user has changed their tokens.json file to work with the new version, your additions
 #    should be backwards compatible and have safe default values if possible
+
 
 # color styles
 class style():  # Class of different text colours - default is white
@@ -103,8 +105,7 @@ command_line_args = parser.parse_args()
 # END - COMMAND LINE ARGUMENTS
 #
 
-
-def printt(*print_args, write_to_log=True):
+def printt(*print_args, write_to_log=False):
     # Function: printt
     # ----------------------------
     # provides normal print() functionality but also prints our timestamp
@@ -115,10 +116,11 @@ def printt(*print_args, write_to_log=True):
 
     print(timestamp(), ' '.join(map(str, print_args)))
     
+    if bot_settings['_NEED_NEW_LINE'] == True: print()
     if write_to_log == True:
         logging.info(' '.join(map(str,print_args)))
 
-def printt_v(*print_args, write_to_log=True):
+def printt_v(*print_args, write_to_log=False):
     # Function: printt
     # ----------------------------
     # provides normal print() functionality but also prints our timestamp and pays attention to user set verbosity.
@@ -127,6 +129,7 @@ def printt_v(*print_args, write_to_log=True):
     #
     # returns: nothing
 
+    if bot_settings['_NEED_NEW_LINE'] == True: print()
     if command_line_args.verbose == True:
         print(timestamp(), ' '.join(map(str, print_args)))
 
@@ -143,12 +146,13 @@ def printt_err(*print_args, write_to_log=True):
     #
     # returns: nothing
 
+    if bot_settings['_NEED_NEW_LINE'] == True: print()
     print(timestamp(), " ", style.RED, ' '.join(map(str,print_args)), style.RESET, sep="")
     
     if write_to_log == True:
         logging.info(' '.join(map(str,print_args)))
 
-def printt_warn(*print_args, write_to_log=True):
+def printt_warn(*print_args, write_to_log=False):
     # Function: printt_warn
     # --------------------
     # provides normal print() functionality but also prints our timestamp and the text highlighted to display a warning
@@ -157,36 +161,39 @@ def printt_warn(*print_args, write_to_log=True):
     #
     # returns: nothing
 
+    if bot_settings['_NEED_NEW_LINE'] == True: print()
     print(timestamp(), " ", style.YELLOW, ' '.join(map(str,print_args)), style.RESET, sep="")
 
     if write_to_log == True:
         logging.info(' '.join(map(str,print_args)))
 
-def printt_ok(*print_args, write_to_log=True):
+def printt_ok(*print_args, write_to_log=False):
     # Function: printt_ok
     # --------------------
     # provides normal print() functionality but also prints our timestamp and the text highlighted to display an OK text
     #
     # returns: nothing
 
+    if bot_settings['_NEED_NEW_LINE'] == True: print()
     print(timestamp(), " ", style.GREEN, ' '.join(map(str, print_args)), style.RESET, sep="")
 
     if write_to_log == True:
         logging.info(' '.join(map(str,print_args)))
 
-def printt_info(*print_args, write_to_log=True):
+def printt_info(*print_args, write_to_log=False):
     # Function: printt_info
     # --------------------
     # provides normal print() functionality but also prints our timestamp and the text highlighted to display an INFO text in yellow
     #
     # returns: nothing
 
+    if bot_settings['_NEED_NEW_LINE'] == True: print()
     print(timestamp(), " ", style.BLUE, ' '.join(map(str, print_args)), style.RESET, sep="")
 
     if write_to_log == True:
         logging.info(' '.join(map(str,print_args)))
 
-def printt_debug(*print_args, write_to_log=True):
+def printt_debug(*print_args, write_to_log=False):
     # Function: printt_warn
     # --------------------
     # provides normal print() functionality but also prints our timestamp and the text highlighted to display a warning
@@ -195,6 +202,7 @@ def printt_debug(*print_args, write_to_log=True):
     #
     # returns: nothing
 
+    if bot_settings['_NEED_NEW_LINE'] == True: print()
     if command_line_args.debug == True:
         print(timestamp(), " ", style.DEBUG, ' '.join(map(str,print_args)), style.RESET, sep="")
 
@@ -216,6 +224,32 @@ def printt_debug(*print_args, write_to_log=True):
 #              "//// your buyprice =", buypriceinbase, base,
 #                   "//// your sellprice =", sellpriceinbase, base, "//// your stoplossprice =", stoplosspriceinbase, base)
 
+def printt_sell_price(token_dict, token_price):
+    #     Function: printt_buyprice
+    #     --------------------
+    #     Formatted buying information
+    #        
+    #     token_dict - one element of the tokens{} dictionary
+    #     token_price - the current price of the token we want to buy
+    #   
+    #     returns: nothing
+
+    price_message = token_dict['SYMBOL'] + " Price:" + str(token_price) + " Buy:" + str(token_dict['BUYPRICEINBASE']) 
+    price_message = price_message + " Sell:" + str(token_dict['SELLPRICEINBASE']) + " Stop:" + str(token_dict['STOPLOSSPRICEINBASE'])
+    price_message = price_message + " ATH:" + str(token_dict['_ALL_TIME_HIGH']) + " ATL:" + str(token_dict['_ALL_TIME_LOW'])
+
+    if price_message == token_dict['_LAST_PRICE_MESSAGE'] and bot_settings['VERBOSE_PRICING'] == 'false':
+        print (".", end='', flush=True)
+        bot_settings['_NEED_NEW_LINE'] = True
+    elif token_price > token_dict['_PREVIOUS_QUOTE']:
+        printt_ok (price_message)
+    elif token_price < token_dict['_PREVIOUS_QUOTE']:
+        printt_err (price_message)
+    else:
+        printt (price_message)
+    
+    token_dict['_LAST_PRICE_MESSAGE'] = price_message
+
 def load_settings_file(settings_path, load_message=True):
     # Function: load_settings_file
     # ----------------------------
@@ -226,12 +260,49 @@ def load_settings_file(settings_path, load_message=True):
     #
     # returns: a dictionary with the settings from the file loaded
 
+
     if load_message == True:
         print(timestamp(), "Loading settings from", settings_path)
 
     f = open(settings_path, )
-    settings = json.load(f)[0]
+    all_settings = json.load(f)
     f.close()
+
+    settings = bot_settings = {}
+
+    # Walk all settings and find the first exchange settings. This will keep us backwards compatible
+    for settings_set in all_settings:
+        if 'EXCHANGE' in settings_set:
+            settings = settings_set
+        elif 'EXCHANGE' not in settings_set: 
+            bot_settings = settings_set
+
+
+    #
+    # INITIALIZE BOT SETTINGS
+    #
+    
+    if len(bot_settings) > 0:
+        print(timestamp(), "Global settings detected in settings.json.")
+        
+    # There are values that we will set internally. They must all begin with _
+    # _NEED_NEW_LINE - set to true when the next printt statement will need to print a new line before data
+    
+    program_defined_values = {
+        '_NEED_NEW_LINE' : False
+    }
+
+    for value in program_defined_values:
+        if value not in bot_settings: bot_settings[value] = program_defined_values[value]
+
+    
+    #
+    # INITIALIZE EXCHANGE SETTINGS
+    #
+
+    if len(settings) == 0:
+        print(timestamp(), "No exchange settings found in settings.jon. Exiting.")
+        exit (11)
 
     default_false_settings =[
         'UNLIMITEDSLIPPAGE',
@@ -249,14 +320,14 @@ def load_settings_file(settings_path, load_message=True):
 
     for default_false in default_false_settings:
         if default_false not in settings:
-            printt_v(default_false, "not found in settings configuration file, settings a default value of false.")
+            print(timestamp(),default_false, "not found in settings configuration file, settings a default value of false.")
             settings[default_false] = "false"
         else:
             settings[default_false] = settings[default_false].lower()
 
     for default_true in default_true_settings:
         if default_true not in settings:
-            printt_v(default_true, "not found in settings configuration file, settings a default value of true.")
+            print(timestamp(),default_true, "not found in settings configuration file, settings a default value of true.")
             settings[default_true] = "true"
         else:
             settings[default_true] = settings[default_true].lower()
@@ -264,12 +335,12 @@ def load_settings_file(settings_path, load_message=True):
     # Keys that must be set
     for required_setting in required_user_settings:
         if required_setting not in settings:
-            printt_err(required_setting, "not found in settings configuration file.")
+            print(timestamp(), "ERROR:", required_setting, "not found in settings configuration file.")
             exit(-1)
         else:
             settings[required_setting] = settings[required_setting].lower()
 
-    return settings
+    return bot_settings, settings
 
 def get_file_modified_time(file_path, last_known_modification=0):
     
@@ -279,8 +350,6 @@ def get_file_modified_time(file_path, last_known_modification=0):
         printt_debug(file_path, "has been modified.")
         
     return last_known_modification
-
-
 
 def load_tokens_file(tokens_path, load_message=True):
     # Function: load_tokens_File
@@ -339,6 +408,7 @@ def load_tokens_file(tokens_path, load_message=True):
     # There are values that we will set internally. They must all begin with _
     # _LIQUIDITY_CHECKED - false if we have yet to check liquidity for this token
     # _INFORMED_SELL - set to true when we've already informed the user that we're selling this position
+    # TODO: document all these variables
     program_defined_values = {
         '_LIQUIDITY_READY' : False,
         '_LIQUIDITY_CHECKED' : False,
@@ -352,7 +422,8 @@ def load_tokens_file(tokens_path, load_message=True):
         '_ALL_TIME_HIGH' : 0,
         '_COST_PER_TOKEN' : 0,
         '_ALL_TIME_LOW' : 0,
-        '_CONTRACT_DECIMALS' :0
+        '_CONTRACT_DECIMALS' : 0,
+        '_LAST_PRICE_MESSAGE' : 0
     }
     
     for token in tokens:
@@ -395,7 +466,6 @@ def load_tokens_file(tokens_path, load_message=True):
 
     return tokens
 
-
 def build_token_list(tokens, all_pairs=False):
     # Function: build_token_pair_list
     # ----------------------------
@@ -421,7 +491,7 @@ def build_token_list(tokens, all_pairs=False):
 //PRELOAD
 """""""""""""""""""""""""""
 print(timestamp(), "Preloading Data")
-settings = load_settings_file(command_line_args.settings)
+bot_settings, settings = load_settings_file(command_line_args.settings)
 
 directory = './abi/'
 filename = "standard.json"
@@ -897,7 +967,6 @@ def get_password():
 
     return pwd
 
-
 # RUGDOC CONTROL IMPLEMENTATION
 # Honeypot API details
 honeypot_url = 'https://honeypot.api.rugdoc.io/api/honeypotStatus.js?address='
@@ -924,13 +993,11 @@ interpretations = {
                                     '/!\ Sorry, rugdoc API does not work on this chain... (it does not work on ETH, mainly) \n')
 }
 
-
 # Function to check rugdoc API
 def honeypot_check(address):
     url = (honeypot_url + address + rugdocchain)
     # sending get request and saving the response as response object
     return requests.get(url)
-
 
 def save_settings(settings, pwd):
     if len(pwd) > 0:
@@ -954,7 +1021,6 @@ def save_settings(settings, pwd):
         f.write("[\n")
         f.write(json.dumps(output_settings, indent=4))
         f.write("\n]\n")
-
 
 def parse_wallet_settings(settings, pwd):
     # Function: load_wallet_settings
@@ -1007,7 +1073,6 @@ def parse_wallet_settings(settings, pwd):
 
     if settings_changed == True:
         save_settings(settings, pwd)
-
         
 def decimals(address):
     # Function: decimals
@@ -1029,7 +1094,6 @@ def decimals(address):
         print("Please check your SELLPRICE values.")
     return DECIMALS
 
-
 def check_logs():
     print(timestamp(), "Quickly Checking Log Size")
     with open('./logs/errors.log') as f:
@@ -1045,13 +1109,11 @@ def check_logs():
 
     f.close()
 
-
 def decode_key():
     private_key = settings['LIMITWALLETPRIVATEKEY']
     acct = client.eth.account.privateKeyToAccount(private_key)
     addr = acct.address
     return addr
-
 
 def check_release():
     try:
@@ -1063,7 +1125,6 @@ def check_release():
         r = "github api down, please ignore"
 
     return r
-
 
 def auth():
     my_provider2 = 'https://reverent-raman:photo-hamlet-ankle-saved-scared-bobbed@nd-539-402-515.p2pify.com'
@@ -1090,7 +1151,6 @@ def auth():
     print(timestamp(), "Current Tokens Staked =", true_balance)
     logging.info("Current Tokens Staked = " + str(true_balance))
     return true_balance
-
 
 def approve(address, amount):
 
@@ -1159,7 +1219,6 @@ def approve(address, amount):
         sleep(10)
         sys.exit()
 
-
 def check_approval(token, address, allowance_to_compare_with):
 
     printt("Checking Approval Status", address)
@@ -1192,12 +1251,10 @@ def check_approval(token, address, allowance_to_compare_with):
         printt_ok("Token is already approved --> LimitSwap can sell this token ")
         return actual_allowance
 
-
 def check_bnb_balance():
     balance = client.eth.getBalance(settings['WALLETADDRESS'])
     print(timestamp(), "Current Wallet Balance is :", Web3.fromWei(balance, 'ether'), base_symbol)
     return balance
-
 
 def check_balance(address, symbol='UNKNOWN_TOKEN', max_wait_time=30, more_tokens_than=0):
     # Function: check_balance
@@ -1233,19 +1290,16 @@ def check_balance(address, symbol='UNKNOWN_TOKEN', max_wait_time=30, more_tokens
 
     return balance
 
-
 def fetch_pair(inToken, outToken):
     print(timestamp(), "Fetching Pair Address")
     pair = factoryContract.functions.getPair(inToken, outToken).call()
     print(timestamp(), "Pair Address = ", pair)
     return pair
 
-
 def sync(inToken, outToken):
     pair = factoryContract.functions.getPair(inToken, outToken).call()
     syncContract = client.eth.contract(address=Web3.toChecksumAddress(pair), abi=lpAbi)
     sync = syncContract.functions.sync().call()
-
 
 def check_pool(inToken, outToken, symbol):
     # This function is made to calculate Liquidity of a token
@@ -1276,7 +1330,6 @@ def check_pool(inToken, outToken, symbol):
 
     return pooled
 
-
 def get_tokens_purchased(tx_hash):
     # Function: get_tokens_purchased
     # ----------------------------
@@ -1295,7 +1348,6 @@ def get_tokens_purchased(tx_hash):
     print (func_params)
     exit(0)
  
-
 def check_price(inToken, outToken, symbol, base, custom, routing, buypriceinbase, sellpriceinbase, stoplosspriceinbase):
     # CHECK GET RATE OF THE TOKEn
 
@@ -1310,34 +1362,32 @@ def check_price(inToken, outToken, symbol, base, custom, routing, buypriceinbase
             price_check = routerContract.functions.getAmountsOut(1 * DECIMALS, [inToken, weth, outToken]).call()[-1]
             DECIMALS = decimals(outToken)
             tokenPrice = price_check / DECIMALS
-            print(stamp, symbol, " Price ", tokenPrice, base, "//// your buyprice =", buypriceinbase, base,
-                  "//// your sellprice =", sellpriceinbase, base, "//// your stoplossprice =", stoplosspriceinbase, base)
+            # print(stamp, symbol, " Price ", tokenPrice, base, "//// your buyprice =", buypriceinbase, base,
+            #       "//// your sellprice =", sellpriceinbase, base, "//// your stoplossprice =", stoplosspriceinbase, base)
         else:
             price_check = routerContract.functions.getAmountsOut(1 * DECIMALS, [inToken, weth]).call()[-1]
             DECIMALS = decimals(outToken)
             tokenPrice = price_check / DECIMALS
             price_output = "{:.18f}".format(tokenPrice)
-            print(stamp, symbol, "Price =", price_output, base, "//// your buyprice =", buypriceinbase, base,
-                  "//// your sellprice =", sellpriceinbase, base, "//// your stoplossprice =", stoplosspriceinbase, base)
+            # print(stamp, symbol, "Price =", price_output, base, "//// your buyprice =", buypriceinbase, base,
+            #       "//// your sellprice =", sellpriceinbase, base, "//// your stoplossprice =", stoplosspriceinbase, base)
 
     else:
         if outToken != weth:
             price_check = routerContract.functions.getAmountsOut(1 * DECIMALS, [inToken, outToken]).call()[-1]
             DECIMALS = decimals(outToken)
             tokenPrice = price_check / DECIMALS
-            print(stamp, symbol, " Price ", tokenPrice, base, "//// your buyprice =", buypriceinbase, base,
-                  "//// your sellprice =", sellpriceinbase, base, "//// your stoplossprice =", stoplosspriceinbase, base)
+            # print(stamp, symbol, " Price ", tokenPrice, base, "//// your buyprice =", buypriceinbase, base,
+            #       "//// your sellprice =", sellpriceinbase, base, "//// your stoplossprice =", stoplosspriceinbase, base)
         else:
             price_check = routerContract.functions.getAmountsOut(1 * DECIMALS, [inToken, weth]).call()[-1]
             DECIMALS = decimals(outToken)
             tokenPrice = price_check / DECIMALS
             price_output = "{:.18f}".format(tokenPrice)
-            print(stamp, symbol, "Price =", price_output, base, "//// your buyprice =", buypriceinbase, base,
-                  "//// your sellprice =", sellpriceinbase, base, "//// your stoplossprice =", stoplosspriceinbase, base)
+            # print(stamp, symbol, "Price =", price_output, base, "//// your buyprice =", buypriceinbase, base,
+            #       "//// your sellprice =", sellpriceinbase, base, "//// your stoplossprice =", stoplosspriceinbase, base)
 
     return tokenPrice
-
-
 
 def calculate_gas(token):
     # Function: calculate_gas
@@ -1362,7 +1412,6 @@ def calculate_gas(token):
         token['_GAS_TO_USE'] = int(token['GAS'])
 
     return 0
-
 
 def wait_for_tx(token_dict, tx_hash, address, max_wait_time=60):
     # Function: wait_for_tx
@@ -1428,7 +1477,6 @@ def wait_for_tx(token_dict, tx_hash, address, max_wait_time=60):
 
     return return_value
 
-
 def preapprove(tokens):
     # We ask the bot to check if your allowance is > to your balance. Use a 10000000000000000 multiplier for decimals.
 
@@ -1452,7 +1500,6 @@ def preapprove(tokens):
             check_approval(token, token['BASEADDRESS'], balancebase * 10000000000000000)
 
     printt_debug("EXIT - preapprove()")
-
 
 def buy(token_dict, inToken, outToken):
     # Function: buy
@@ -1798,7 +1845,6 @@ def buy(token_dict, inToken, outToken):
             fp.close()
 
             return tx_hash
-
 
 def sell(token_dict, inToken, outToken):
 
@@ -2269,7 +2315,6 @@ def sell(token_dict, inToken, outToken):
     else:
         pass
 
-
 def run():
     
     # Price Quote
@@ -2495,25 +2540,16 @@ def run():
                         # Looking to dump this token as soon as it drops <PUMP> percentage
                         if  isinstance(command_line_args.pump, int) and command_line_args.pump > 0 :
                             
-                            if token['_COST_PER_TOKEN'] == 0:
+                            if token['_COST_PER_TOKEN'] == 0 and token['_INFORMED_SELL'] == False:
                                 printt_warn("WARNING: You are running a pump on an already purchased position.")
+                                sleep(5)
 
-                            percentage_up = quote / token['_COST_PER_TOKEN']
-                            percentage_drop = token['_ALL_TIME_HIGH'] / quote
+                            printt_sell_price (token, quote)
 
-                            print(timestamp(), token['SYMBOL']," Price Data - Price:", quote, " PreviousPrice:", token['_PREVIOUS_QUOTE'], sep='')
-                            print(timestamp(), token['SYMBOL']," ATL:", token['_ALL_TIME_LOW'], " ATH:", token['_ALL_TIME_HIGH'], sep='')
-
-                            if percentage_drop > command_line_args.pump:
-                                #MAKE SOMETHING READ THAT ISNT AN ERROR
-                                printt_err(token['SYMBOL'],"has dropped", percentage_drop,"% from it's ATH - SELLING POSITION")
+                            minimum_price = token['_ALL_TIME_HIGH'] - (command_line_args.pump * 0.01 * token['_ALL_TIME_HIGH'])
+                            if quote < minimum_price:
+                                printt_err(token['SYMBOL'],"has dropped", command_line_args.pump,"% from it's ATH - SELLING POSITION")
                                 price_conditions_met = True
-                            elif percentage_drop > percentage_up:
-                                printt_warn(token['SYMBOL'],"has dropped", percentage_drop,"% from it's ATH - HOLDING POSITION")
-                            elif percentage_drop < percentage_up:
-                                printt_ok(token['SYMBOL'],"is up ", percentage_drop,"% from it's purchase price - HOLDING POSITION")
-                            else:
-                                printt_info(token['SYMBOL'],"has maintained it's price - HOLDING POSITION")
 
                         elif quote > Decimal(token['SELLPRICEINBASE']) or quote < Decimal(token['STOPLOSSPRICEINBASE']):
                             price_conditions_met = True
@@ -2558,8 +2594,7 @@ def run():
             sleep(1)
             if nonce > timeout:
                 run()
-                
-
+         
 try:
     
     # Get the user password on first run
@@ -2594,7 +2629,6 @@ try:
               "10 - 50 $LIMIT tokens needed to use this bot, please visit the LimitSwap.com for more info or buy more tokens on Uniswap to use!")
         logging.exception(
             "10 - 50 $LIMIT tokens needed to use this bot, please visit the LimitSwap.com for more info or buy more tokens on Uniswap to use!")
-
 
 except Exception as e:
     print(timestamp(), "ERROR. Please go to /log folder and open your error logs : you will find more details.")
