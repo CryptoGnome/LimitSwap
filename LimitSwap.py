@@ -538,6 +538,15 @@ def load_tokens_file(tokens_path, load_message=True):
             for value in program_defined_values:
                 token[value] = program_defined_values[value]
 
+        for key in token:
+            if(isinstance(token[key], str)):
+                if re.search(r'^\d*\.\d+$', str(token[key])): token[key] = float(token[key])
+                elif re.search(r'^\d+$', token[key]): token[key] = int(token[key])
+
+
+
+
+
     return tokens
 
 def reload_tokens_file(tokens_path, load_message=True):
@@ -1740,7 +1749,7 @@ def buy(token_dict, inToken, outToken):
 
 
 
-    if token_dict['_FAILED_TRANSACTIONS'] >= token_dict['MAX_FAILED_TRANSACTIONS_IN_A_ROW']:
+    if token_dict['_FAILED_TRANSACTIONS'] >= int(token_dict['MAX_FAILED_TRANSACTIONS_IN_A_ROW']):
         printt_err("---------------------------------------------------------------")
         printt_err("DISABLING", token_dict['SYMBOL'])
         printt_err("This token has reached maximum FAILED SIMULTANIOUS TRANSACTIONS")
