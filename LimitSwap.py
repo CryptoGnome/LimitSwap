@@ -2075,7 +2075,7 @@ def sell(token_dict, inToken, outToken):
     if int(gaslimit) < 250000:
         gaslimit = 300000
         printt_info(
-        "Your GASLIMIT parameter is too low : LimitSwap has forced it to 300000 otherwise your transaction would fail for sure. We advise you to raise it to 1000000.")
+        "Your GASLIMIT parameter is too low: LimitSwap has forced it to 300000 otherwise your transaction would fail for sure. We advise you to raise it to 1000000.")
 
     if type(amount) == str:
         amount_check = balance
