@@ -18,14 +18,14 @@ import signal
 # DEVELOPER CONSIDERATIONS
 #
 #  =-= START README =-= START README =-= START README =-= START README =-= START README =-=
-#    MAJOR TOKEN LOGIC CHANGE =-= MAJOR TOKEN LOGIC CHANGE =-= MAJOR TOKEN LOGIC CHANGE 
+#    MAJOR TOKEN LOGIC CHANGE =-= MAJOR TOKEN LOGIC CHANGE =-= MAJOR TOKEN LOGIC CHANGE
 #
 #  There has been a major change to the way token logic is handled. Please review load_tokens_file
 #  The program_defined_values allows us to move token specifica variables in and out of functions
 #  Allowing us to do interesting things like continue to check for liquidity on one token while
 #  Buying and Selling another.
 #
-#     MAJOR TOKEN LOGIC CHANGE =-= MAJOR TOKEN LOGIC CHANGE =-= MAJOR TOKEN LOGIC CHANGE 
+#     MAJOR TOKEN LOGIC CHANGE =-= MAJOR TOKEN LOGIC CHANGE =-= MAJOR TOKEN LOGIC CHANGE
 # =-= END README =-= END README =-= END README =-= END README =-= END README =-= END README  =-=
 #
 #
@@ -49,7 +49,7 @@ import signal
 # GLOBALS
 #
 # Global used for printt_repeating to track how many repeated messages have been printed to console
-repeated_message_quantity = 0    
+repeated_message_quantity = 0
 
 # color styles
 class style():  # Class of different text colours - default is white
@@ -144,7 +144,7 @@ def printt_err(*print_args, write_to_log=True):
     # Function: printt_err
     # --------------------
     # provides normal print() functionality but also prints our timestamp and the text highlighted to display an error
-    # 
+    #
     # print_args - normal arguments that would be passed to the print() function
     # write_to_log - wether or not to write the same text to the log file
     #
@@ -217,13 +217,13 @@ def printt_debug(*print_args, write_to_log=False):
 #     Function: printt_buyprice
 #     --------------------
 #     Formatted buying information
-    
+
 #     token_dict - one element of the tokens{} dictionary
 #     token_price - the current price of the token we want to buy
-    
+
 #     returns: nothing
 
-#     print(timestamp(), 
+#     print(timestamp(),
 #             style.BLUE, token_dict['SYMBOL'], " Price ", token_Price, token.[],
 #              "//// your buyprice =", buypriceinbase, base,
 #                   "//// your sellprice =", sellpriceinbase, base, "//// your stoplossprice =", stoplosspriceinbase, base)
@@ -232,10 +232,10 @@ def printt_repeating(token_dict, message, print_frequency=500):
     #     Function: printt_r
     #     --------------------
     #     Function to manage a generic repeating message
-    #        
+    #
     #     token_dict - one element of the tokens{} dictionary
     #     message - the message to be printed
-    #   
+    #
     #     returns: nothing
 
     global repeated_message_quantity
@@ -254,13 +254,13 @@ def printt_sell_price(token_dict, token_price):
     #     Function: printt_sell_price
     #     --------------------
     #     Formatted buying information
-    #        
+    #
     #     token_dict - one element of the tokens{} dictionary
     #     token_price - the current price of the token we want to buy
-    #   
+    #
     #     returns: nothing
 
-    price_message = token_dict['SYMBOL'] + " Price:" + str(token_price) + " Buy:" + str(token_dict['BUYPRICEINBASE']) 
+    price_message = token_dict['SYMBOL'] + " Price:" + str(token_price) + " Buy:" + str(token_dict['BUYPRICEINBASE'])
     price_message = price_message + " Sell:" + str(token_dict['SELLPRICEINBASE']) + " Stop:" + str(token_dict['STOPLOSSPRICEINBASE'])
     price_message = price_message + " ATH:" + str(token_dict['_ALL_TIME_HIGH']) + " ATL:" + str(token_dict['_ALL_TIME_LOW'])
 
@@ -280,10 +280,10 @@ def printt_buy_price(token_dict, token_price):
     #     Function: printt_buy_price
     #     --------------------
     #     Formatted buying information
-    #        
+    #
     #     token_dict - one element of the tokens{} dictionary
     #     token_price - the current price of the token we want to buy
-    #   
+    #
     #     returns: nothing
 
     printt_sell_price(token_dict, token_price)
@@ -312,7 +312,7 @@ def load_settings_file(settings_path, load_message=True):
     for settings_set in all_settings:
         if 'EXCHANGE' in settings_set:
             settings = settings_set
-        elif 'EXCHANGE' not in settings_set: 
+        elif 'EXCHANGE' not in settings_set:
             bot_settings = settings_set
 
 
@@ -414,7 +414,7 @@ def load_tokens_file(tokens_path, load_message=True):
     #
     # returns: 1. a dictionary of dictionaries in json format containing details of the tokens we're rading
     #          2. the timestamp for the last modification of the file
-        
+    
     if load_message == True:
         print(timestamp(), "Loading tokens from", tokens_path)
 
@@ -476,7 +476,7 @@ def load_tokens_file(tokens_path, load_message=True):
     # _ALL_TIME_HIGH'       - the highest price a token has had since the bot was started
     # _ALL_TIME_LOW'        - the lowest price a token has had since the bot was started
     # _CONTRACT_DECIMALS    - the number of decimals a contract uses. Used to speed up some of our processes
-    #                         instead of querying the contract for the same information repeatedly. 
+    #                         instead of querying the contract for the same information repeatedly.
     # _LAST_PRICE_MESSAGE   - a copy of the last pricing message printed to console, used to determine the price
     #                         should be printed again, or just a dot
     # _LAST_MESSAGE         - a place to store a copy of the last message printed to conside, use to avoid
@@ -564,7 +564,7 @@ def reload_tokens_file(tokens_path, load_message=True):
     #
     # returns: 1. a dictionary of dictionaries in json format containing details of the tokens we're rading
     #          2. the timestamp for the last modification of the file
-        
+    
     if load_message == True:
         print(timestamp(), "Loading tokens from", tokens_path)
 
@@ -626,7 +626,7 @@ def reload_tokens_file(tokens_path, load_message=True):
     # _ALL_TIME_HIGH'       - the highest price a token has had since the bot was started
     # _ALL_TIME_LOW'        - the lowest price a token has had since the bot was started
     # _CONTRACT_DECIMALS    - the number of decimals a contract uses. Used to speed up some of our processes
-    #                         instead of querying the contract for the same information repeatedly. 
+    #                         instead of querying the contract for the same information repeatedly.
     # _LAST_PRICE_MESSAGE   - a copy of the last pricing message printed to console, used to determine the price
     #                         should be printed again, or just a dot
 
@@ -2556,11 +2556,12 @@ def run():
             token['_TOKEN_BALANCE'] = check_balance(token['ADDRESS'], token['SYMBOL']) / token['_CONTRACT_DECIMALS']
             if token['_TOKEN_BALANCE'] > 0 :
                 printt_info(token['SYMBOL'], "started with", token['_TOKEN_BALANCE'], "tokens.")
-                if token['_TOKEN_BALANCE'] > float(token['MAXTOKENS']): token['_REACHED_MAX_TOKENS'] = True 
+                if token['_TOKEN_BALANCE'] > float(token['MAXTOKENS']): token['_REACHED_MAX_TOKENS'] = True
 
             # Calculate how much gas we should use for this token
             calculate_gas(token)
 
+            # Call of RugDoc API it parameter is set to True
             if token['RUGDOC_CHECK'] == 'true':
 
                 rugresponse = requests.get('https://honeypot.api.rugdoc.io/api/honeypotStatus.js?address=' + token['ADDRESS'] + rugdocchain)
@@ -2588,9 +2589,6 @@ def run():
                 else:
                     sys.exit()
 
-                # Calculate how much gas we should use for this token
-                
-        
         load_token_file_increment = 0
         tokens_file_modified_time = os.path.getmtime(command_line_args.tokens)
         while True:
@@ -2607,7 +2605,6 @@ def run():
             for token in tokens:
             
                 if token['ENABLED'] == 'true':
-
 
                     # Set the checksum addressed for the addresses we're working with
                     # inToken is the token you want to BUY (example : CAKE)
@@ -2629,72 +2626,16 @@ def run():
                             pool = check_pool(inToken, outToken, token['BASESYMBOL'])
                             token['_LIQUIDITY_READY'] = True
                             printt_info("Found liquidity for", token['SYMBOL'])
-
-                            #
-                            #  CHECK FOR LIQUIDITY AMOUNT
-                            #    If we've found liquidity and want to check for liquidity amount, do that here.
-                            #    If this token doesn't have enough liquidity. Disable it and break out of this
-                            #    loop for this token
-                            #
-                            #    There are 4 cases :
-                            #    1/ LIQUIDITYINNATIVETOKEN = true & USECUSTOMBASEPAIR = false --> we need to check liquidity in ETH / BNB...
-                            #    2/ LIQUIDITYINNATIVETOKEN = true & USECUSTOMBASEPAIR = true --> we need to check liquidity in ETH / BNB too
-                            #    3/ LIQUIDITYINNATIVETOKEN = false & USECUSTOMBASEPAIR = true --> we need to check liquidity in the CUSTOM Base Pair
-                            #    4/ LIQUIDITYINNATIVETOKEN = false & USECUSTOMBASEPAIR = false --> this case in handled line 1830 in the buy() function
-                            #
                             
-                            if token["LIQUIDITYCHECK"] == 'true' and token['_LIQUIDITY_CHECKED'] == False:
-                                # Cases 1 and 2 above : we always use weth as LP pair to check liquidity
-                                if token["LIQUIDITYINNATIVETOKEN"] == 'true':
-                                    pool = check_pool(inToken, weth, base_symbol)
-                                    printt("You have set LIQUIDITYCHECK = true.")
-                                    printt("Current", token['SYMBOL'], "Liquidity =", int(pool), base_symbol)
-    
-                                    if float(token['LIQUIDITYAMOUNT']) <= float(pool):
-                                        printt_ok("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
-                                                  " --> Enough liquidity detected : Buy Signal Found!")
-    
-                                    # This position isn't looking good. Inform the user, disable the token and break out of this loop
-                                    else:
-                                        printt_warn("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
-                                                    " : not enough liquidity, bot will not buy. Disableing the trade of this token.")
-                                        token['ENABLED'] = 'false'
-                                        quote = 0
-                                        break
-
-                                # Case 3 above
-                                if token["LIQUIDITYINNATIVETOKEN"] == 'false' and token["USECUSTOMBASEPAIR"] == 'true':
-                                    pool = check_pool(inToken, outToken, token['BASESYMBOL'])
-                                    printt("You have set LIQUIDITYCHECK = true.")
-                                    printt("Current", token['SYMBOL'], "Liquidity =", int(pool), token['BASESYMBOL'])
-    
-                                    if float(token['LIQUIDITYAMOUNT']) <= float(pool):
-                                        printt_ok("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
-                                                  " --> Enough liquidity detected : Buy Signal Found!")
-    
-                                    # This position isn't looking good. Inform the user, disable the token and break out of this loop
-                                    else:
-                                        printt_warn("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
-                                                    " : not enough liquidity, bot will not buy. Disableing the trade of this token.")
-                                        token['ENABLED'] = 'false'
-                                        quote = 0
-                                        break
-
-
-
-
                         except Exception:
-                            printt_repeating(token, token[
-                                'SYMBOL'] + " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
+                            printt_repeating(token, token['SYMBOL'] + " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
                             break
-
-
 
                     #
                     #  PRICE CHECK
                     #    Check the latest price on this token and record information on the price that we may
                     #    need to use later
-                    #                    
+                    #
                     token['_PREVIOUS_QUOTE'] = quote
                     quote = check_price(inToken, outToken, token['SYMBOL'], token['BASESYMBOL'],
                                        token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'],
@@ -2721,6 +2662,57 @@ def run():
                     #   the user that we've reached the maximum number of tokens, check for other criteria to buy.
                     #
                     if quote != 0 and quote < Decimal(token['BUYPRICEINBASE']) and token['_REACHED_MAX_TOKENS'] == False:
+    
+                        #
+                        #  CHECK FOR LIQUIDITY AMOUNT
+                        #    If we've found liquidity and want to check for liquidity amount, do that here.
+                        #    If this token doesn't have enough liquidity. Disable it and break out of this
+                        #    loop for this token
+                        #
+                        #    There are 4 cases :
+                        #    1/ LIQUIDITYINNATIVETOKEN = true & USECUSTOMBASEPAIR = false --> we need to check liquidity in ETH / BNB...
+                        #    2/ LIQUIDITYINNATIVETOKEN = true & USECUSTOMBASEPAIR = true --> we need to check liquidity in ETH / BNB too
+                        #    3/ LIQUIDITYINNATIVETOKEN = false & USECUSTOMBASEPAIR = true --> we need to check liquidity in the CUSTOM Base Pair
+                        #    4/ LIQUIDITYINNATIVETOKEN = false & USECUSTOMBASEPAIR = false --> this case in handled line 1830 in the buy() function
+                        #
+    
+                        if token["LIQUIDITYCHECK"] == 'true' and token['_LIQUIDITY_CHECKED'] == False:
+                            # Cases 1 and 2 above : we always use weth as LP pair to check liquidity
+                            if token["LIQUIDITYINNATIVETOKEN"] == 'true':
+                                pool = check_pool(inToken, weth, base_symbol)
+                                printt("You have set LIQUIDITYCHECK = true.")
+                                printt("Current", token['SYMBOL'], "Liquidity =", int(pool), base_symbol)
+            
+                                if float(token['LIQUIDITYAMOUNT']) <= float(pool):
+                                    printt_ok("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
+                                              " --> Enough liquidity detected : bot will buy when buy Signal Found!")
+            
+                                # This position isn't looking good. Inform the user, disable the token and break out of this loop
+                                else:
+                                    printt_warn("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
+                                                " : not enough liquidity, bot will not buy. Disableing the trade of this token.")
+                                    token['ENABLED'] = 'false'
+                                    quote = 0
+                                    break
+        
+                            # Case 3 above
+                            if token["LIQUIDITYINNATIVETOKEN"] == 'false' and token["USECUSTOMBASEPAIR"] == 'true':
+                                pool = check_pool(inToken, outToken, token['BASESYMBOL'])
+                                printt("You have set LIQUIDITYCHECK = true.")
+                                printt("Current", token['SYMBOL'], "Liquidity =", int(pool), token['BASESYMBOL'])
+            
+                                if float(token['LIQUIDITYAMOUNT']) <= float(pool):
+                                    printt_ok("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
+                                              " --> Enough liquidity detected : Buy Signal Found!")
+            
+                                # This position isn't looking good. Inform the user, disable the token and break out of this loop
+                                else:
+                                    printt_warn("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
+                                                " : not enough liquidity, bot will not buy. Disableing the trade of this token.")
+                                    token['ENABLED'] = 'false'
+                                    quote = 0
+                                    break
+    
                         #
                         # PURCHASE POSITION
                         #   If we've passed all checks, attempt to purchase the token
@@ -2816,7 +2808,7 @@ def run():
                             printt_ok("----------------------------------")
                             printt_ok("SUCCESS : your Tx is confirmed    ")
                             printt_ok("----------------------------------")
-                                
+                            
                             # Assumeing we've bought and sold this position, disabling token
                             printt_info("We have sold our position in", token['SYMBOL'], "DISABLING this token.")
                             token['ENABLED'] = 'false'
@@ -2826,7 +2818,7 @@ def run():
             sleep(cooldown)
 
     except Exception as ee:
-        print(timestamp(), "ERROR. Please go to /log folder and open your error logs : you will find more details.")
+        printt_err("ERROR. Please go to /log folder and open your error logs : you will find more details.")
         logging.exception(ee)
         logger1.exception(ee)
         sleep(10)
@@ -2847,16 +2839,18 @@ try:
     # Get the user password on first run
     userpassword = get_password()
 
-    # Handle any proccessing that is necessary to load the private key for the wallet
+    # Handle any processing that is necessary to load the private key for the wallet
     parse_wallet_settings(settings, userpassword)
 
     # The LIMIT balance of the user.
     true_balance = auth()
 
-    version = 3.44
-    logging.info("YOUR BOT IS CURRENTLY RUNNING VERSION " + str(version))
-    print("YOUR BOT IS CURRENTLY RUNNING VERSION " + str(version))
-    check_release()
+    # I removed the lines below because we don't use releases much anymore
+    # -------------------------
+    # version = 3.44
+    # logging.info("YOUR BOT IS CURRENTLY RUNNING VERSION " + str(version))
+    # print("YOUR BOT IS CURRENTLY RUNNING VERSION " + str(version))
+    # check_release()
 
     if true_balance >= 50:
         print(timestamp(), "Professional Subscriptions Active")
@@ -2878,7 +2872,7 @@ try:
             "10 - 50 LIMIT tokens needed to use this bot, please visit the LimitSwap.com for more info or buy more tokens on Uniswap to use!")
 
 except Exception as e:
-    print(timestamp(), "ERROR. Please go to /log folder and open your error logs : you will find more details.")
+    printt_err("ERROR. Please go to /log folder and open your error logs : you will find more details.")
     logging.exception(e)
     logger1.exception(e)
     print("Restarting LimitSwap")
