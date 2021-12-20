@@ -85,6 +85,7 @@ def timestamp():
 parser = argparse.ArgumentParser()
 
 # USER COMMAND LINE ARGUMENTS
+parser.add_argument("-c", "--cooldown", type=int, help="Slow the bot down by COOLDOWN number of seconds")
 parser.add_argument("--pump", type=int,
                     help="Holds the position as long as the price is going up. Sells when the price has gone down PUMP percent")
 parser.add_argument("-p", "--password", type=str,
@@ -2538,9 +2539,14 @@ def run():
     # Price Quote
     quote = 0
 
-    try:
-        tokens = load_tokens_file(command_line_args.tokens, True)
+    if command_line_args.cooldown is not None:
+        bot_too_fast_cooldown = command_line_args.cooldown
+    else:
+        bot_too_fast_cooldown = 0
 
+    try:
+
+        tokens = load_tokens_file(command_line_args.tokens, True)
         eth_balance = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
 
         if eth_balance < 0.05:
@@ -2563,7 +2569,6 @@ def run():
         # TODO PRUNE: Prune tokens if the user doesn't want to trade them. Exit only if we don't have any more tokens left
         # TODO ARG: Implement an argument that auto accepts or prunes tokens that are rejected/accepted by the rugdoc check
         for token in tokens:
-            
             # Calculate contract decimals
             token['_CONTRACT_DECIMALS'] = int(decimals(token['ADDRESS']))
             # Check to see if we have any tokens in our wallet already
@@ -2598,8 +2603,14 @@ def run():
                 # Calculate how much gas we should use for this token
                 
         
-        load_token_file_increment = 0
+        load_token_file_increment = -999
         tokens_file_modified_time = os.path.getmtime(command_line_args.tokens)
+
+        loopcheck_timestamp = 0
+        loopcheck_nextcheck = 0
+        loopcheck_stdout = "Calculating"
+        loopcheck_checkfrequency = 300
+
         while True:
 
             # Check to see if the tokens file has changed every 10 iterations
@@ -2612,10 +2623,30 @@ def run():
                 load_token_file_increment = load_token_file_increment + 1
 
             for token in tokens:
-            
-                if token['ENABLED'] == 'true':
+              
+                if loopcheck_nextcheck > 0:
+                    # Usually we just want to decrement when our next loop check will be
+                    loopcheck_nextcheck = loopcheck_nextcheck - 1
+                
+                elif loopcheck_timestamp == 0 and loopcheck_nextcheck == 0:
+                    # When we are being signaled to start a new check
+                    loopcheck_timestamp = time()
+                    loopcheck_nextcheck = loopcheck_checkfrequency
+
+                elif loopcheck_timestamp != 0 and loopcheck_nextcheck == 0:
+                    # When we are keeping track of time and next check is 0, we're ready to calculate queries per second
+                    loop_time = (time() - loopcheck_timestamp) / loopcheck_checkfrequency
+                    loopcheck_stdout = format(1 / loop_time, '.1f')
+                    loopcheck_timestamp = 0
+                    loopcheck_nextcheck = loopcheck_checkfrequency
+
+                    # If the bot is doing more than 10 queries a second out of sonic mode, slow it down
+                    if loop_time < 0.1 and settings['USECUSTOMNODE'] == 'false':
+                        printt_info ("Bot is moving way too fast for a public node. Slowing down to approximately 10 queries per second.")
+                        bot_too_fast_cooldown = 0.1
 
 
+                if token['ENABLED'] == 'true':                   
                     # Set the checksum addressed for the addresses we're working with
                     # inToken is the token you want to BUY (example : CAKE)
                     # TODO: We should do this once and store the values
@@ -2658,11 +2689,11 @@ def run():
                                                 " : not enough liquidity, bot will not buy. Disableing the trade of this token.")
                                         token['ENABLED'] = 'false'
                                         quote = 0
-                                        break
+                                        continue
 
                         except Exception:
-                            printt_repeating (token, token['SYMBOL'] + " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
-                            break
+                            printt_repeating (token, token['SYMBOL'] + " - Waiting for liquidity to be added on exchange [" + str(loopcheck_stdout) + " queries/s]")
+                            continue
 
 
 
@@ -2759,7 +2790,7 @@ def run():
                             printt_info("You own more tokens than your MAXTOKENS parameter for",token['SYMBOL'], " Looking to sell this position")
                             token['_INFORMED_SELL'] = True
 
-                        # Looking to dump this token as soon as it drops <PUMP> percentage
+                        # Looking to dump this token as soon as it drops <PUMP> percentage from our gains
                         if  isinstance(command_line_args.pump, int) and command_line_args.pump > 0 :
                             
                             if token['_COST_PER_TOKEN'] == 0 and token['_INFORMED_SELL'] == False:
@@ -2768,7 +2799,8 @@ def run():
 
                             printt_sell_price (token, quote)
 
-                            minimum_price = token['_ALL_TIME_HIGH'] - (command_line_args.pump * 0.01 * token['_ALL_TIME_HIGH'])
+                            maximum_gains = token['_ALL_TIME_HIGH'] - token['_COST_PER_TOKEN']
+                            minimum_price = token['_ALL_TIME_HIGH'] - (command_line_args.pump * 0.01 * maximum_gains)
                             if quote < minimum_price:
                                 printt_err(token['SYMBOL'],"has dropped", command_line_args.pump,"% from it's ATH - SELLING POSITION")
                                 price_conditions_met = True
@@ -2798,7 +2830,7 @@ def run():
                             check_balance(token['ADDRESS'], token['SYMBOL'])
 
 
-            sleep(cooldown)
+            sleep(cooldown + bot_too_fast_cooldown)
 
     except Exception as ee:
         print(timestamp(), "ERROR. Please go to /log folder and open your error logs : you will find more details.")
@@ -2835,7 +2867,7 @@ try:
 
     if true_balance >= 50:
         print(timestamp(), "Professional Subscriptions Active")
-        cooldown = 0.01
+        cooldown = 0
         run()
 
     elif true_balance >= 25 and true_balance < 50:
