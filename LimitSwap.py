@@ -1573,6 +1573,8 @@ def check_liquidity(token):
     #    4/ LIQUIDITYINNATIVETOKEN = false & USECUSTOMBASEPAIR = false --> this case in handled line 1830 in the buy() function
     #
 
+    printt_debug("ENTER: check_liquidity()")
+
     inToken = Web3.toChecksumAddress(token['ADDRESS'])
     outToken = Web3.toChecksumAddress(token['BASEADDRESS'])
 
@@ -1624,9 +1626,11 @@ def check_price(inToken, outToken, symbol, base, custom, routing, buypriceinbase
     DECIMALS = decimals(inToken)
     stamp = timestamp()
 
+    # USECUSTOMBASEPAIR = false
     if custom == 'false':
         base = base_symbol
 
+    # LIQUIDITYINNATIVETOKEN = true
     if routing == 'true':
         if outToken != weth:
             price_check = routerContract.functions.getAmountsOut(1 * DECIMALS, [inToken, weth, outToken]).call()[-1]
@@ -1642,6 +1646,7 @@ def check_price(inToken, outToken, symbol, base, custom, routing, buypriceinbase
             # print(stamp, symbol, "Price =", price_output, base, "//// your buyprice =", buypriceinbase, base,
             #       "//// your sellprice =", sellpriceinbase, base, "//// your stoplossprice =", stoplosspriceinbase, base)
 
+    # LIQUIDITYINNATIVETOKEN = false
     else:
         if outToken != weth:
             price_check = routerContract.functions.getAmountsOut(1 * DECIMALS, [inToken, outToken]).call()[-1]
@@ -2642,6 +2647,7 @@ def run():
                     decision = input(style.BLUE + "                           Would you like to snipe this token? (y/n): ")
 
                 if decision == "y":
+                    print(style.RESET + " ")
                     printt_ok ("OK let's go!!")
                 else:
                     sys.exit()
@@ -2677,16 +2683,32 @@ def run():
                     #
                     # CHECK LIQUIDITY ... if we haven't already checked liquidity
                     #   Break out of the loop for this token if we haven't found liquidity yet
+                    #   There are 2 cases :
+                    #       1/ LIQUIDITYINNATIVETOKEN = true  --> we will snipe using ETH / BNB liquidity --> we use check_pool with weth
+                    #       2/ LIQUIDITYINNATIVETOKEN = false --> we will snipe using Custom Base Pair    --> we use check_pool with outToken
                     #
+
                     if token['_LIQUIDITY_READY'] == False:
-                        try:
-                            pool = check_pool(inToken, outToken, token['BASESYMBOL'])
-                            token['_LIQUIDITY_READY'] = True
-                            printt_info("Found liquidity for", token['SYMBOL'])
-                            
-                        except Exception:
-                            printt_repeating(token, token['SYMBOL'] + " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
-                            break
+                        if token['LIQUIDITYINNATIVETOKEN'] == 'true':
+                            try:
+                                pool = check_pool(inToken, weth, token['BASESYMBOL'])
+                                token['_LIQUIDITY_READY'] = True
+                                printt_info("Found liquidity for", token['SYMBOL'])
+    
+                            except Exception:
+                                printt_repeating(token, token[
+                                    'SYMBOL'] + " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
+                                break
+                                
+                        else:
+                            try:
+                                pool = check_pool(inToken, outToken, token['BASESYMBOL'])
+                                token['_LIQUIDITY_READY'] = True
+                                printt_info("Found liquidity for", token['SYMBOL'])
+                                
+                            except Exception:
+                                printt_repeating(token, token['SYMBOL'] + " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
+                                break
 
                     #
                     #  PRICE CHECK
