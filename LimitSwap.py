@@ -1668,7 +1668,6 @@ def wait_for_tx(token_dict, tx_hash, address, max_wait_time=60):
         printt_ok("Transaction was successful with a status code of", return_value)
     
     elif got_receipt == True and len(txn_receipt['logs']) == 0:
-        token_dict['_FAILED_TRANSACTIONS'] += 1
         return_value = 2
         printt_err("Transaction was rejected by contract with a status code of", txn_receipt['status'])
     
@@ -1678,7 +1677,6 @@ def wait_for_tx(token_dict, tx_hash, address, max_wait_time=60):
     
     else:
         # We definitely get this far if the node is down
-        token_dict['_FAILED_TRANSACTIONS'] += 1
         return_value = -1
 
     return return_value
