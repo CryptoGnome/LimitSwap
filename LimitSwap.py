@@ -2717,14 +2717,14 @@ def run():
 
                             if tx != 1:
                                 # transaction is a FAILURE
-                                printt_err("---------------------------")
+                                printt_err("-------------------------------")
                                 printt_err("ERROR TRANSACTION FAILURE !")
-                                printt_err("---------------------------")
+                                printt_err("-------------------------------")
                                 printt_err("Causes of failure can be :")
                                 printt_err("- GASLIMIT too low")
                                 printt_err("- SLIPPAGE too low")
-                                printt_err("- Your node is not working properly")
-                                printt_err("--------------------------")
+                                printt_err("- your node is not working well")
+                                printt_err("-------------------------------")
                                 token['_FAILED_TRANSACTIONS'] += 1
                                 preapprove(tokens)
                             else:
