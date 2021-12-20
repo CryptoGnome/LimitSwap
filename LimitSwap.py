@@ -1196,24 +1196,24 @@ def get_password():
 
 # Rugdoc's answers interpretations
 interpretations = {
-    "UNKNOWN": (style.RED + '\nThe status of this token is unknown. '
-                            'This is usually a system error but could \n also be a bad sign for the token. Be careful.'),
-    "OK": (style.GREEN + '\nRUGDOC API RESULT : OK \n'
-                         '√ Honeypot tests passed. RugDoc program was able to buy and sell it successfully. This however does not guarantee that it is not a honeypot.'),
-    "NO_PAIRS": (style.RED + '\nRUGDOC API RESULT : NO_PAIRS \n'
-                             '⚠ Could not find any trading pair for this token on the default router and could thus not test it.'),
-    "SEVERE_FEE": (style.RED + '\nRUGDOC API RESULT : SEVERE_FEE \n'
-                               '/!\ /!\ A severely high trading fee (over 50%) was detected when selling or buying this token.'),
-    "HIGH_FEE": (style.YELLOW + '\nRUGDOC API RESULT : HIGH_FEE \n'
-                                '/!\ /!\ A high trading fee (Between 20% and 50%) was detected when selling or buying this token. Our system was however able to sell the token again.'),
-    "MEDIUM_FEE": (style.YELLOW + '\nRUGDOC API RESULT : MEDIUM_FEE \n'
-                                  '/!\ A trading fee of over 10% but less then 20% was detected when selling or buying this token. Our system was however able to sell the token again.'),
-    "APPROVE_FAILED": (style.RED + '\nRUGDOC API RESULT : APPROVE_FAILED \n'
-                                   '/!\ /!\ /!\ Failed to approve the token.\n This is very likely a honeypot.'),
-    "SWAP_FAILED": (style.RED + '\nRUGDOC API RESULT : SWAP_FAILED \n'
-                                '/!\ /!\ /!\ Failed to sell the token. \n This is very likely a honeypot.'),
-    "chain not found": (style.RED + '\nRUGDOC API RESULT : chain not found \n'
-                                    '/!\ Sorry, rugdoc API does not work on this chain... (it does not work on ETH, mainly) \n')
+    "UNKNOWN": (style.RED + 'The status of this token is unknown. '
+                            '                           This is usually a system error but could also be a bad sign for the token. Be careful.'),
+    "OK": (style.GREEN + 'RUGDOC API RESULT : OK \n'
+                         '                           √ Honeypot tests passed. RugDoc program was able to buy and sell it successfully. This however does not guarantee that it is not a honeypot.'),
+    "NO_PAIRS": (style.RED + 'RUGDOC API RESULT : NO_PAIRS \n'
+                             '                           ⚠ Could not find any trading pair for this token on the default router and could thus not test it.'),
+    "SEVERE_FEE": (style.RED + 'RUGDOC API RESULT : SEVERE_FEE \n'
+                               '                           /!\ /!\ A severely high trading fee (over 50%) was detected when selling or buying this token.'),
+    "HIGH_FEE": (style.YELLOW + 'RUGDOC API RESULT : HIGH_FEE \n'
+                                '                           /!\ /!\ A high trading fee (Between 20% and 50%) was detected when selling or buying this token. Our system was however able to sell the token again.'),
+    "MEDIUM_FEE": (style.YELLOW + 'RUGDOC API RESULT : MEDIUM_FEE \n'
+                                  '                           /!\ A trading fee of over 10% but less then 20% was detected when selling or buying this token. Our system was however able to sell the token again.'),
+    "APPROVE_FAILED": (style.RED + 'RUGDOC API RESULT : APPROVE_FAILED \n'
+                                   '                           /!\ /!\ /!\ Failed to approve the token.\n This is very likely a honeypot.'),
+    "SWAP_FAILED": (style.RED + 'RUGDOC API RESULT : SWAP_FAILED \n'
+                                '                           /!\ /!\ /!\ Failed to sell the token. \n This is very likely a honeypot.'),
+    "chain not found": (style.RED + 'RUGDOC API RESULT : chain not found \n'
+                                    '                           /!\ Sorry, rugdoc API does not work on this chain... (it does not work on ETH, mainly) \n')
 }
 
 
@@ -1268,8 +1268,8 @@ def parse_wallet_settings(settings, pwd):
         settings['LIMITWALLETPRIVATEKEY'] = cryptocode.decrypt(settings['LIMITWALLETPRIVATEKEY'], pwd)
 
         if settings['LIMITWALLETPRIVATEKEY'] == False:
-            print(style.RED + "ERROR: Your private key decryption password is incorrect")
-            print(style.RESET + "Please re-launch the bot and try again")
+            printt_err("ERROR: Your private key decryption password is incorrect")
+            printt_err("Please re-launch the bot and try again")
             sleep(10)
             sys.exit()
 
@@ -2626,23 +2626,23 @@ def run():
 
                 if rugresponse.status_code == 200:
                     d = json.loads(rugresponse.content)
-                    print("debug 200")
                     for key, value in interpretations.items():
                         if d["status"] in key:
                             honeypot_status = value
                             honeypot_code = key
-                            print(honeypot_status)
+                            printt(honeypot_status)
+                            print(style.RESET + " ")
 
                 else:
                     printt_warn("Sorry, Rugdoc's API does not work on this token (Rugdoc does not work on ETH chain for instance)")
 
                 decision = ""
                 while decision != "y" and decision != "n":
-                    print ("\nWhat is your decision?")
-                    decision = input("Would you like to snipe this token? (y/n): ")
+                    printt_info ("What is your decision?")
+                    decision = input(style.BLUE + "                           Would you like to snipe this token? (y/n): ")
 
                 if decision == "y":
-                    print ("\nOK let's go!!\n")
+                    printt_ok ("OK let's go!!")
                 else:
                     sys.exit()
 
