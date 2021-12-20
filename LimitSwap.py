@@ -1193,8 +1193,6 @@ def get_password():
     return pwd
 
 # RUGDOC CONTROL IMPLEMENTATION
-# Honeypot API details
-honeypot_url = 'https://honeypot.api.rugdoc.io/api/honeypotStatus.js?address='
 
 # Rugdoc's answers interpretations
 interpretations = {
@@ -1218,11 +1216,6 @@ interpretations = {
                                     '/!\ Sorry, rugdoc API does not work on this chain... (it does not work on ETH, mainly) \n')
 }
 
-# Function to check rugdoc API
-def honeypot_check(address):
-    url = (honeypot_url + address + rugdocchain)
-    # sending get request and saving the response as response object
-    return requests.get(url)
 
 def save_settings(settings, pwd):
     if len(pwd) > 0:
@@ -1620,7 +1613,7 @@ def calculate_gas(token):
         printt_info("Your GASLIMIT parameter is too low : LimitSwap has forced it to 300000 otherwise your transaction would fail for sure. We advise you to raise it to 1000000.")
         token['GASLIMIT'] = 300000
 
-    if token['GAS'] == 'boost':
+    if token['GAS'].lower() == 'boost':
         gas_check = client.eth.gasPrice
         gas_price = gas_check / 1000000000
         token['_GAS_TO_USE'] = (gas_price * ((int(token['BOOSTPERCENT'])) / 100)) + gas_price
@@ -1675,7 +1668,6 @@ def wait_for_tx(token_dict, tx_hash, address, max_wait_time=60):
         printt_ok("Transaction was successful with a status code of", return_value)
     
     elif got_receipt == True and len(txn_receipt['logs']) == 0:
-        token_dict['_FAILED_TRANSACTIONS'] += 1
         return_value = 2
         printt_err("Transaction was rejected by contract with a status code of", txn_receipt['status'])
     
@@ -1685,12 +1677,6 @@ def wait_for_tx(token_dict, tx_hash, address, max_wait_time=60):
     
     else:
         # We definitely get this far if the node is down
-        print("\n")
-        printt_err("Transaction was not confirmed after", max_wait_time, "seconds: something wrong happened.\n"
-                    "                           Please check if :\n"
-                    "                           - your node is running correctly\n"
-                    "                           - you have enough Gaslimit (check 'Gas Used by Transaction') if you have a failed Tx\n")
-        token_dict['_FAILED_TRANSACTIONS'] += 1
         return_value = -1
 
     return return_value
@@ -1937,7 +1923,7 @@ def buy(token_dict, inToken, outToken):
                     inToken).lower() == '0x55d398326f99059ff775485246999027b3197955' or str(
                     inToken).lower() == '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d' or str(
                     inToken).lower() == '0xdac17f958d2ee523a2206206994597c13d831ec7' or str(
-                    inToken).lower() == '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48') and int(amount) > 2999:
+                    inToken).lower() == '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48') and (int(amount)/DECIMALS) > 2999:
                     printt_info("YOU ARE TRADING WITH VERY BIG AMOUNT, BE VERY CAREFUL YOU COULD LOSE MONEY!!! TEAM RECOMMEND NOT TO DO THAT")
                 else:
                     pass
@@ -2577,13 +2563,20 @@ def run():
 
             if token['RUGDOC_CHECK'] == 'true':
 
-                honeypot = honeypot_check(address=token['ADDRESS'])
-                d = json.loads(honeypot.content)
-                for key, value in interpretations.items():
-                    if d["status"] in key:
-                        honeypot_status = value
-                        honeypot_code = key
-                        print(honeypot_status)
+                rugresponse = requests.get('https://honeypot.api.rugdoc.io/api/honeypotStatus.js?address=' + token['ADDRESS'] + rugdocchain)
+                # sending get request and saving the response as response object
+
+                if rugresponse.status_code == 200:
+                    d = json.loads(rugresponse.content)
+                    print("debug 200")
+                    for key, value in interpretations.items():
+                        if d["status"] in key:
+                            honeypot_status = value
+                            honeypot_code = key
+                            print(honeypot_status)
+
+                else:
+                    printt_warn("Sorry, Rugdoc's API does not work on this token (Rugdoc does not work on ETH chain for instance)")
 
                 decision = ""
                 while decision != "y" and decision != "n":
@@ -2722,13 +2715,14 @@ def run():
 
                             if tx != 1:
                                 # transaction is a FAILURE
-                                printt_err("---------------------------")
+                                printt_err("-------------------------------")
                                 printt_err("ERROR TRANSACTION FAILURE !")
-                                printt_err("---------------------------")
+                                printt_err("-------------------------------")
                                 printt_err("Causes of failure can be :")
                                 printt_err("- GASLIMIT too low")
                                 printt_err("- SLIPPAGE too low")
-                                printt_err("--------------------------")
+                                printt_err("- your node is not working well")
+                                printt_err("-------------------------------")
                                 token['_FAILED_TRANSACTIONS'] += 1
                                 preapprove(tokens)
                             else:
@@ -2848,9 +2842,9 @@ try:
         run()
     else:
         print(timestamp(),
-              "10 - 50 $LIMIT tokens needed to use this bot, please visit the LimitSwap.com for more info or buy more tokens on Uniswap to use!")
+              "10 - 50 LIMIT tokens needed to use this bot, please visit the LimitSwap.com for more info or buy more tokens on Uniswap to use!")
         logging.exception(
-            "10 - 50 $LIMIT tokens needed to use this bot, please visit the LimitSwap.com for more info or buy more tokens on Uniswap to use!")
+            "10 - 50 LIMIT tokens needed to use this bot, please visit the LimitSwap.com for more info or buy more tokens on Uniswap to use!")
 
 except Exception as e:
     print(timestamp(), "ERROR. Please go to /log folder and open your error logs : you will find more details.")
