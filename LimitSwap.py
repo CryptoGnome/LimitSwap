@@ -6,7 +6,7 @@ import json
 from decimal import Decimal
 import os
 import web3
-from web3.exceptions import ABIFunctionNotFound, TransactionNotFound, BadFunctionCallOutput
+from web3.exceptions import ABIFunctionNotFound, TransactionNotFound, BadFunctionCallOutputw
 import logging
 from datetime import datetime
 import sys
@@ -1678,11 +1678,6 @@ def wait_for_tx(token_dict, tx_hash, address, max_wait_time=60):
     
     else:
         # We definitely get this far if the node is down
-        print("\n")
-        printt_err("Transaction was not confirmed after", max_wait_time, "seconds: something wrong happened.\n"
-                    "                           Please check if :\n"
-                    "                           - your node is running correctly\n"
-                    "                           - you have enough Gaslimit (check 'Gas Used by Transaction') if you have a failed Tx\n")
         token_dict['_FAILED_TRANSACTIONS'] += 1
         return_value = -1
 
@@ -2728,6 +2723,7 @@ def run():
                                 printt_err("Causes of failure can be :")
                                 printt_err("- GASLIMIT too low")
                                 printt_err("- SLIPPAGE too low")
+                                printt_err("- Your node is not working properly")
                                 printt_err("--------------------------")
                                 token['_FAILED_TRANSACTIONS'] += 1
                                 preapprove(tokens)
