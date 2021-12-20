@@ -250,10 +250,9 @@ def printt_repeating(token_dict, message, print_frequency=500):
         repeated_message_quantity = 0
     
     token_dict['_LAST_MESSAGE'] = message
-    
 
 def printt_sell_price(token_dict, token_price):
-    #     Function: printt_buyprice
+    #     Function: printt_sell_price
     #     --------------------
     #     Formatted buying information
     #        
@@ -277,6 +276,18 @@ def printt_sell_price(token_dict, token_price):
         printt (price_message)
     
     token_dict['_LAST_PRICE_MESSAGE'] = price_message
+
+def printt_buy_price(token_dict, token_price):
+    #     Function: printt_buy_price
+    #     --------------------
+    #     Formatted buying information
+    #        
+    #     token_dict - one element of the tokens{} dictionary
+    #     token_price - the current price of the token we want to buy
+    #   
+    #     returns: nothing
+
+    printt_sell_price(token_dict, token_price)
 
 def load_settings_file(settings_path, load_message=True):
     # Function: load_settings_file
@@ -316,7 +327,7 @@ def load_settings_file(settings_path, load_message=True):
     # There are values that we will set internally. They must all begin with _
     # _NEED_NEW_LINE - set to true when the next printt statement will need to print a new line before data
     
-    default_false_settings =[
+    default_true_settings =[
         'VERBOSE_PRICING',
     ]
 
@@ -324,12 +335,12 @@ def load_settings_file(settings_path, load_message=True):
         '_NEED_NEW_LINE' : False
     }
 
-    for default_false in default_false_settings:
-        if default_false not in settings:
-            print(timestamp(),default_false, "not found in settings configuration file, settings a default value of false.")
-            bot_settings[default_false] = "false"
+    for default_true in default_true_settings:
+        if default_true not in settings:
+            print(timestamp(),default_true, "not found in settings configuration file, settings a default value of false.")
+            bot_settings[default_true] = "true"
         else:
-            bot_settings[default_false] = bot_settings[default_false].lower()
+            bot_settings[default_true] = bot_settings[default_true].lower()
     for value in program_defined_values:
         if value not in bot_settings: bot_settings[value] = program_defined_values[value]
 
@@ -528,6 +539,15 @@ def load_tokens_file(tokens_path, load_message=True):
             for value in program_defined_values:
                 token[value] = program_defined_values[value]
 
+        for key in token:
+            if(isinstance(token[key], str)):
+                if re.search(r'^\d*\.\d+$', str(token[key])): token[key] = float(token[key])
+                elif re.search(r'^\d+$', token[key]): token[key] = int(token[key])
+
+
+
+
+
     return tokens
 
 def reload_tokens_file(tokens_path, load_message=True):
@@ -668,13 +688,13 @@ def reload_tokens_file(tokens_path, load_message=True):
 
     return tokens
 
-def build_token_list(tokens, all_pairs=False):
-    # Function: build_token_pair_list
+def token_list_report(tokens, all_pairs=False):
+    # Function: token_list_report
     # ----------------------------
-    # takes our tokens object formated as an array of dicts and returns an array of trading pairs
+    # takes our tokens and reports on the ones that are still enabled
     #
     # tokens: array of dicts representing the tokens to trade in the format absorbed by load_tokens_file
-    # all_pairs: If False (default) returns all enabled pairs - if True returns both enabled and disabled pairs
+    # all_pairs: If False (default) reports all enabled pairs - if True reports on all pairs
     #
     # returns: an array of all SYMBOLS we are trading
 
@@ -686,9 +706,13 @@ def build_token_list(tokens, all_pairs=False):
                 token_list = token_list + " "
             token_list = token_list + token['SYMBOL']
 
-    return token_list
+    if all_pairs == False:
+        printt("Quantity of tokens attempting to trade:", len(tokens), "(" , token_list , ")")
+    else:
+        printt("Quantity of tokens attempting to trade:", len(tokens), "(" , token_list , ")")
+
   
-  
+
 """""""""""""""""""""""""""
 //PRELOAD
 """""""""""""""""""""""""""
@@ -1726,7 +1750,7 @@ def buy(token_dict, inToken, outToken):
 
 
 
-    if token_dict['_FAILED_TRANSACTIONS'] >= token_dict['MAX_FAILED_TRANSACTIONS_IN_A_ROW']:
+    if token_dict['_FAILED_TRANSACTIONS'] >= int(token_dict['MAX_FAILED_TRANSACTIONS_IN_A_ROW']):
         printt_err("---------------------------------------------------------------")
         printt_err("DISABLING", token_dict['SYMBOL'])
         printt_err("This token has reached maximum FAILED SIMULTANIOUS TRANSACTIONS")
@@ -2531,8 +2555,7 @@ def run():
             exit(1)
 
         # Display the number of token pairs we're attempting to trade
-        # TODO: I have plans to prune failed tokens and duplicate pairs, so displaying this information is going to become important
-        printt("Quantity of tokens attempting to trade:", len(tokens), "(" , build_token_list(tokens) , ")")
+        token_list_report(tokens)
 
 
         # Check to see if the user wants to pre-approve token transactions. If they do, work through that approval process
@@ -2600,7 +2623,7 @@ def run():
                 load_token_file_increment = load_token_file_increment + 1
 
             for token in tokens:
-
+              
                 if loopcheck_nextcheck > 0:
                     # Usually we just want to decrement when our next loop check will be
                     loopcheck_nextcheck = loopcheck_nextcheck - 1
@@ -2621,7 +2644,6 @@ def run():
                     if loop_time < 0.1 and settings['USECUSTOMNODE'] == 'false':
                         printt_info ("Bot is moving way too fast for a public node. Slowing down to approximately 10 queries per second.")
                         bot_too_fast_cooldown = 0.1
-
 
 
                 if token['ENABLED'] == 'true':                   
@@ -2694,6 +2716,11 @@ def run():
                     
                     elif quote < token['_ALL_TIME_LOW']:
                         token['_ALL_TIME_LOW'] = quote
+
+
+                    # If we're still in the market to buy tokens, the print the buy message
+                    if quote != 0 and token['_REACHED_MAX_TOKENS'] == False:
+                        printt_buy_price(token, quote)
 
                     #
                     # BUY CHECK
