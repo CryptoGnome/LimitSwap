@@ -1555,7 +1555,69 @@ def get_tokens_purchased(tx_hash):
     func_obj, func_params = contract.decode_function_input(tx["input"])
     print (func_params)
     exit(0)
- 
+
+
+def check_liquidity(token):
+    # Function: check_liquidity
+    # ----------------------------
+    # Tells if the liquidity of tokens purchased is enough for trading or not
+    #
+    # returns:
+    #       - 0 if NOT OK for trading
+    #       - 1 if OK for trading
+    #
+    #    There are 4 cases :
+    #    1/ LIQUIDITYINNATIVETOKEN = true & USECUSTOMBASEPAIR = false --> we need to check liquidity in ETH / BNB...
+    #    2/ LIQUIDITYINNATIVETOKEN = true & USECUSTOMBASEPAIR = true --> we need to check liquidity in ETH / BNB too
+    #    3/ LIQUIDITYINNATIVETOKEN = false & USECUSTOMBASEPAIR = true --> we need to check liquidity in the CUSTOM Base Pair
+    #    4/ LIQUIDITYINNATIVETOKEN = false & USECUSTOMBASEPAIR = false --> this case in handled line 1830 in the buy() function
+    #
+
+    inToken = Web3.toChecksumAddress(token['ADDRESS'])
+    outToken = Web3.toChecksumAddress(token['BASEADDRESS'])
+
+    if token['_LIQUIDITY_CHECKED'] == False:
+        # Cases 1 and 2 above : we always use weth as LP pair to check liquidity
+        if token["LIQUIDITYINNATIVETOKEN"] == 'true':
+            pool = check_pool(inToken, weth, base_symbol)
+            printt("You have set LIQUIDITYCHECK = true.")
+            printt("Current", token['SYMBOL'], "Liquidity =", int(pool), base_symbol)
+            
+            if float(token['LIQUIDITYAMOUNT']) <= float(pool):
+                printt_ok("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
+                          " --> Enough liquidity detected : Buy Signal Found!")
+                return 1
+            
+            # This position isn't looking good. Inform the user, disable the token and break out of this loop
+            else:
+                printt_warn("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
+                            " : not enough liquidity, bot will not buy. Disabling the trade of this token.")
+                token['ENABLED'] = 'false'
+                quote = 0
+                sys.exit()
+                return 0
+        
+        # Case 3 above
+        if token["LIQUIDITYINNATIVETOKEN"] == 'false' and token["USECUSTOMBASEPAIR"] == 'true':
+            pool = check_pool(inToken, outToken, token['BASESYMBOL'])
+            printt("You have set LIQUIDITYCHECK = true.")
+            printt("Current", token['SYMBOL'], "Liquidity =", int(pool), token['BASESYMBOL'])
+            
+            if float(token['LIQUIDITYAMOUNT']) <= float(pool):
+                printt_ok("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
+                          " --> Enough liquidity detected : Buy Signal Found!")
+                return 1
+
+            # This position isn't looking good. Inform the user, disable the token and break out of this loop
+            else:
+                printt_warn("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
+                            " : not enough liquidity, bot will not buy. Disableing the trade of this token.")
+                token['ENABLED'] = 'false'
+                quote = 0
+                sys.exit()
+                return 0
+
+
 def check_price(inToken, outToken, symbol, base, custom, routing, buypriceinbase, sellpriceinbase, stoplosspriceinbase):
     # CHECK GET RATE OF THE TOKEn
 
@@ -1613,7 +1675,7 @@ def calculate_gas(token):
         printt_info("Your GASLIMIT parameter is too low : LimitSwap has forced it to 300000 otherwise your transaction would fail for sure. We advise you to raise it to 1000000.")
         token['GASLIMIT'] = 300000
 
-    if token['GAS'].lower() == 'boost':
+    if token['GAS'] == 'boost':
         gas_check = client.eth.gasPrice
         gas_price = gas_check / 1000000000
         token['_GAS_TO_USE'] = (gas_price * ((int(token['BOOSTPERCENT'])) / 100)) + gas_price
@@ -1733,8 +1795,6 @@ def buy(token_dict, inToken, outToken):
     gaspriority = token_dict['GASPRIORITY_FOR_ETH_ONLY']
 
 
-
-
     if token_dict['_FAILED_TRANSACTIONS'] >= int(token_dict['MAX_FAILED_TRANSACTIONS_IN_A_ROW']):
         printt_err("---------------------------------------------------------------")
         printt_err("DISABLING", token_dict['SYMBOL'])
@@ -1746,9 +1806,6 @@ def buy(token_dict, inToken, outToken):
         sleep(token_dict['BUYAFTER_XXX_SECONDS'])
 
     printt_info("Placing New Buy Order for " + token_dict['SYMBOL'])
-
-
-
 
 
 
@@ -1766,7 +1823,7 @@ def buy(token_dict, inToken, outToken):
         balance = balance_check / DECIMALS
 
     if balance > Decimal(amount):
-        if gas.lower() == 'boost':
+        if gas == 'boost':
             gas_check = client.eth.gasPrice
             gas_price = gas_check / 1000000000
             gas = (gas_price * ((int(boost)) / 100)) + gas_price
@@ -2662,57 +2719,7 @@ def run():
                     #   the user that we've reached the maximum number of tokens, check for other criteria to buy.
                     #
                     if quote != 0 and quote < Decimal(token['BUYPRICEINBASE']) and token['_REACHED_MAX_TOKENS'] == False:
-    
-                        #
-                        #  CHECK FOR LIQUIDITY AMOUNT
-                        #    If we've found liquidity and want to check for liquidity amount, do that here.
-                        #    If this token doesn't have enough liquidity. Disable it and break out of this
-                        #    loop for this token
-                        #
-                        #    There are 4 cases :
-                        #    1/ LIQUIDITYINNATIVETOKEN = true & USECUSTOMBASEPAIR = false --> we need to check liquidity in ETH / BNB...
-                        #    2/ LIQUIDITYINNATIVETOKEN = true & USECUSTOMBASEPAIR = true --> we need to check liquidity in ETH / BNB too
-                        #    3/ LIQUIDITYINNATIVETOKEN = false & USECUSTOMBASEPAIR = true --> we need to check liquidity in the CUSTOM Base Pair
-                        #    4/ LIQUIDITYINNATIVETOKEN = false & USECUSTOMBASEPAIR = false --> this case in handled line 1830 in the buy() function
-                        #
-    
-                        if token["LIQUIDITYCHECK"] == 'true' and token['_LIQUIDITY_CHECKED'] == False:
-                            # Cases 1 and 2 above : we always use weth as LP pair to check liquidity
-                            if token["LIQUIDITYINNATIVETOKEN"] == 'true':
-                                pool = check_pool(inToken, weth, base_symbol)
-                                printt("You have set LIQUIDITYCHECK = true.")
-                                printt("Current", token['SYMBOL'], "Liquidity =", int(pool), base_symbol)
-            
-                                if float(token['LIQUIDITYAMOUNT']) <= float(pool):
-                                    printt_ok("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
-                                              " --> Enough liquidity detected : bot will buy when buy Signal Found!")
-            
-                                # This position isn't looking good. Inform the user, disable the token and break out of this loop
-                                else:
-                                    printt_warn("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
-                                                " : not enough liquidity, bot will not buy. Disableing the trade of this token.")
-                                    token['ENABLED'] = 'false'
-                                    quote = 0
-                                    break
-        
-                            # Case 3 above
-                            if token["LIQUIDITYINNATIVETOKEN"] == 'false' and token["USECUSTOMBASEPAIR"] == 'true':
-                                pool = check_pool(inToken, outToken, token['BASESYMBOL'])
-                                printt("You have set LIQUIDITYCHECK = true.")
-                                printt("Current", token['SYMBOL'], "Liquidity =", int(pool), token['BASESYMBOL'])
-            
-                                if float(token['LIQUIDITYAMOUNT']) <= float(pool):
-                                    printt_ok("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
-                                              " --> Enough liquidity detected : Buy Signal Found!")
-            
-                                # This position isn't looking good. Inform the user, disable the token and break out of this loop
-                                else:
-                                    printt_warn("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
-                                                " : not enough liquidity, bot will not buy. Disableing the trade of this token.")
-                                    token['ENABLED'] = 'false'
-                                    quote = 0
-                                    break
-    
+                        
                         #
                         # PURCHASE POSITION
                         #   If we've passed all checks, attempt to purchase the token
@@ -2728,6 +2735,15 @@ def run():
                         printt_ok("-----------------------------------------------------------")
                         printt_ok("Buy Signal Found =-= Buy Signal Found =-= Buy Signal Found ")
                         printt_ok("-----------------------------------------------------------")
+
+                        #
+                        # LIQUIDITY CHECK
+                        #   If the option is selected
+                        #
+
+                        if token["LIQUIDITYCHECK"] == 'true':
+                            check_liquidity(token)
+                        
                         if command_line_args.sim_buy:
                             tx = command_line_args.sim_buy
                         else:
