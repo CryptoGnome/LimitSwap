@@ -2561,7 +2561,7 @@ def run():
             # Calculate how much gas we should use for this token
             calculate_gas(token)
 
-            # Call of RugDoc API it parameter is set to True
+            # Call of RugDoc API if parameter is set to True
             if token['RUGDOC_CHECK'] == 'true':
 
                 rugresponse = requests.get('https://honeypot.api.rugdoc.io/api/honeypotStatus.js?address=' + token['ADDRESS'] + rugdocchain)
