@@ -6,7 +6,7 @@ import json
 from decimal import Decimal
 import os
 import web3
-from web3.exceptions import ABIFunctionNotFound, TransactionNotFound, BadFunctionCallOutputw
+from web3.exceptions import ABIFunctionNotFound, TransactionNotFound, BadFunctionCallOutput
 import logging
 from datetime import datetime
 import sys
