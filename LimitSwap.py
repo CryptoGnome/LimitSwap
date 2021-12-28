@@ -2495,8 +2495,8 @@ def buy(token_dict, inToken, outToken, pwd):
             return tx_hash
     
     else:
-        printt_err("You don't have enough in your wallet to make the BUY order of", token_dict['SYMBOL'], "--> bot do not buy", )
-        
+        printt_debug("2498 You don't have enough in your wallet to make the BUY order of", token_dict['SYMBOL'], "--> bot do not buy", )
+        return False
 
 
 def sell(token_dict, inToken, outToken):
@@ -3368,6 +3368,11 @@ def run():
                                 token['_COST_PER_TOKEN'] = float(token['BUYAMOUNTINBASE']) / float(token['_TOKEN_BALANCE'])
                                 printt_debug(token['SYMBOL'], " cost per token was: ", token['_COST_PER_TOKEN'])
                     
+                        else:
+                            printt_err("You don't have enough in your wallet to make the BUY order of",
+                                       token['SYMBOL'], "--> bot do not buy",write_to_log=False)
+                            continue
+
                     #
                     # SELL CHECK
                     #   If there are already more than MAX_TOKENS in the user's wallet, check to see if we should sell them.
