@@ -1530,7 +1530,7 @@ def decode_key():
 
 def check_release():
     try:
-        url = 'https://api.github.com/repos/tsarbuig2/LimitSwap/releases/latest'
+        url = 'https://api.github.com/repos/tsarbuig/LimitSwap/releases/latest'
         r = requests.get(url).json()['tag_name']
         printt("Checking Latest Release Version on Github, Please Make Sure You are Staying Updated = ", r,
                write_to_log=True)
