@@ -1618,7 +1618,7 @@ def approve(address, amount):
             return client.eth.sendRawTransaction(signed_txn.rawTransaction)
         finally:
             printt("Transaction Hash = ", Web3.toHex(client.keccak(signed_txn.rawTransaction)), write_to_log=True)
-            
+            tx_hash = client.toHex(client.keccak(signed_txn.rawTransaction))
             return tx_hash
     else:
         printt_err(
@@ -2318,7 +2318,8 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
         return client.eth.sendRawTransaction(signed_txn.rawTransaction)
     finally:
         printt("Transaction Hash = ", Web3.toHex(client.keccak(signed_txn.rawTransaction)), write_to_log=True)
-        
+
+        tx_hash = client.toHex(client.keccak(signed_txn.rawTransaction))
         return tx_hash
 
 
@@ -2466,9 +2467,6 @@ def buy(token_dict, inToken, outToken, pwd):
     else:
         balance = token_dict['_CUSTOM_BASE_BALANCE']
     
-    printt_debug("balance 2389 case2:", balance)
-    
-    printt_debug("2335 Decimal(amount):", Decimal(amount))
     if balance > Decimal(amount):
         # Calculate how much gas we should use for this token
         calculate_gas(token_dict)
@@ -2487,21 +2485,18 @@ def buy(token_dict, inToken, outToken, pwd):
             while True:
                 if buynumber < amount_of_buys:
                     printt("Placing New Buy Order for wallet number:", buynumber)
-                    make_the_buy(inToken, outToken, buynumber, pwd, amount, token_dict['_GAS_TO_USE'], gaslimit,
-                                 gaspriority, routing, custom, slippage, DECIMALS)
+                    make_the_buy(inToken, outToken, buynumber, pwd, amount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, DECIMALS)
                     buynumber += 1
                 else:
                     printt_ok("All BUYS orders have been sent - Stopping Bot")
                     sys.exit(0)
         else:
-            tx_hash = make_the_buy(inToken, outToken, 0, pwd, amount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority,
-                                   routing, custom, slippage, DECIMALS)
+            tx_hash = make_the_buy(inToken, outToken, 0, pwd, amount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, DECIMALS)
             return tx_hash
     
     else:
-        printt_err("You don't have enough in your wallet to make the BUY order, bot stops", )
-        # TODO : do not make the bot stop and continue trading other tokens
-        sys.exit()
+        printt_err("You don't have enough in your wallet to make the BUY order of", token_dict['SYMBOL'], "--> bot do not buy", )
+        
 
 
 def sell(token_dict, inToken, outToken):
@@ -3070,7 +3065,7 @@ def sell(token_dict, inToken, outToken):
             return client.eth.sendRawTransaction(signed_txn.rawTransaction)
         finally:
             printt("Transaction Hash = ", Web3.toHex(client.keccak(signed_txn.rawTransaction)), write_to_log=True)
-            
+            tx_hash = client.toHex(client.keccak(signed_txn.rawTransaction))
             return tx_hash
     else:
         printt("Your", token_dict['SYMBOL'], "balance is very small (< 1), so LimitSwap will not try to sell, so as not to waste fees.")
