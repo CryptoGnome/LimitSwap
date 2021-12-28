@@ -1618,15 +1618,6 @@ def approve(address, amount):
             return client.eth.sendRawTransaction(signed_txn.rawTransaction)
         finally:
             printt("Transaction Hash = ", Web3.toHex(client.keccak(signed_txn.rawTransaction)), write_to_log=True)
-            # LOG TX TO JSON
-            with open('./transactions.json', 'r') as fp:
-                data = json.load(fp)
-            tx_hash = client.toHex(client.keccak(signed_txn.rawTransaction))
-            tx_input = {"hash": tx_hash}
-            data.append(tx_input)
-            with open('./transactions.json', 'w') as fp:
-                json.dump(data, fp, indent=2)
-            fp.close()
             
             return tx_hash
     else:
@@ -2327,16 +2318,6 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
         return client.eth.sendRawTransaction(signed_txn.rawTransaction)
     finally:
         printt("Transaction Hash = ", Web3.toHex(client.keccak(signed_txn.rawTransaction)), write_to_log=True)
-        
-        # LOG TX TO JSON --> disabled as it now appears on the log file
-        # with open('./logs/transactions.json', 'r') as fp:
-        #     data = json.load(fp)
-        # tx_hash = client.toHex(client.keccak(signed_txn.rawTransaction))
-        # tx_input = {"hash": tx_hash}
-        # data.append(tx_input)
-        # with open('./logs/transactions.json', 'w') as fp:
-        #     json.dump(data, fp, indent=2)
-        # fp.close()
         
         return tx_hash
 
@@ -3089,15 +3070,6 @@ def sell(token_dict, inToken, outToken):
             return client.eth.sendRawTransaction(signed_txn.rawTransaction)
         finally:
             printt("Transaction Hash = ", Web3.toHex(client.keccak(signed_txn.rawTransaction)), write_to_log=True)
-            # LOG TX TO JSON
-            with open('./transactions.json', 'r') as fp:
-                data = json.load(fp)
-            tx_hash = client.toHex(client.keccak(signed_txn.rawTransaction))
-            tx_input = {"hash": tx_hash}
-            data.append(tx_input)
-            with open('./transactions.json', 'w') as fp:
-                json.dump(data, fp, indent=2)
-            fp.close()
             
             return tx_hash
     else:

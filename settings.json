@@ -1,15 +1,22 @@
 [
-    {
-        "LIMITWALLETPRIVATEKEY": "do not enter it manually, open the bot : it will encrypt it",
-        "LIMITWALLETADDRESS": "wallet address where you hold your LIMIT tokens",
-        "WALLETADDRESS": "wallet address you want to trade on : can be different from LIMIT wallet",
-        "PRIVATEKEY": "do not enter it manually, open the bot : it will encrypt it",
-	"USECUSTOMNODE": "false",
-        "CUSTOMNODE": "put your own node here if you want and make, USECUSTOMNODE = TRUE",
-        "EXCHANGE": "pancakeswap",
-		"EXCHANGEVERSION": "2",
-		"PREAPPROVE": "true",
-		"UNLIMITEDSLIPPAGE": "false"
-    }
+{
+"LIMITWALLETPRIVATEKEY": "do not enter it manually, open the bot : it will encrypt it",
+"LIMITWALLETADDRESS": "wallet address where you hold your LIMIT tokens",
+"WALLETADDRESS": "wallet address you want to trade on : can be different from LIMIT wallet",
+"PRIVATEKEY": "do not enter it manually, open the bot : it will encrypt it",
+"WALLETADDRESS2": "null",
+"PRIVATEKEY2": "null",
+"WALLETADDRESS3": "null",
+"PRIVATEKEY3": "null",
+"WALLETADDRESS4": "null",
+"PRIVATEKEY4": "null",
+"WALLETADDRESS5": "null",
+"PRIVATEKEY5": "null",
+"USECUSTOMNODE": "false",
+	"CUSTOMNODE": "put your own node here if you want and set USECUSTOMNODE = true",
+"EXCHANGE": "pancakeswap",
+	"EXCHANGEVERSION": "2",
+"PREAPPROVE": "true",
+"UNLIMITEDSLIPPAGE": "false"
+}
 ]
-
