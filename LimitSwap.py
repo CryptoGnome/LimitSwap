@@ -2467,6 +2467,8 @@ def buy(token_dict, inToken, outToken, pwd):
     else:
         balance = token_dict['_CUSTOM_BASE_BALANCE']
     
+    printt_debug("2470 balance:", balance)
+    
     if balance > Decimal(amount):
         # Calculate how much gas we should use for this token
         calculate_gas(token_dict)
@@ -2496,6 +2498,7 @@ def buy(token_dict, inToken, outToken, pwd):
     
     else:
         printt_debug("2498 You don't have enough in your wallet to make the BUY order of", token_dict['SYMBOL'], "--> bot do not buy", )
+        calculate_base_balance(token_dict)
         return False
 
 
@@ -3349,7 +3352,7 @@ def run():
                                 printt_ok("SUCCESS : your Tx is confirmed    ", write_to_log=True)
                                 # Re-calculate balances after buy()
                                 calculate_base_balance(token)
-
+                                
                                 # Check the balance of our wallet
                                 DECIMALS = decimals(inToken)
                                 token['_TOKEN_BALANCE'] = check_balance(inToken, token['SYMBOL'],display_quantity=True) / DECIMALS
@@ -3371,7 +3374,7 @@ def run():
                         else:
                             printt_err("You don't have enough in your wallet to make the BUY order of",
                                        token['SYMBOL'], "--> bot do not buy",write_to_log=False)
-                            continue
+                            
 
                     #
                     # SELL CHECK
@@ -3444,7 +3447,7 @@ def run():
                                 printt_ok("SUCCESS : your Tx is confirmed    ", write_to_log=True)
                                 # Re-calculate balances after buy()
                                 calculate_base_balance(token)
-                                
+
                                 # Assumeing we've bought and sold this position, disabling token --> UPDATE TsarBuig : disabling this
                                 # printt_info("We have sold our position in", token['SYMBOL'], "DISABLING this token.")
                                 # token['ENABLED'] = 'false'
