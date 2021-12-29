@@ -89,15 +89,12 @@ def timestamp():
 parser = argparse.ArgumentParser()
 
 # USER COMMAND LINE ARGUMENTS
-parser.add_argument("--pump", type=int,
-                    help="Holds the position as long as the price is going up. Sells when the price has gone down PUMP percent")
-parser.add_argument("-p", "--password", type=str,
-                    help="Password to decrypt private keys (WARNING: your password could be saved in your command prompt history)")
-parser.add_argument("-s", "--settings", type=str, help="Specify the file to user for settings (default: settings.json)",
-                    default="./settings.json")
-parser.add_argument("-t", "--tokens", type=str,
-                    help="Specify the file to use for tokens to trade (default: tokens.json)", default="./tokens.json")
+parser.add_argument("--pump", type=int,  help="Holds the position as long as the price is going up. Sells when the price has gone down PUMP percent")
+parser.add_argument("-p", "--password", type=str, help="Password to decrypt private keys (WARNING: your password could be saved in your command prompt history)")
+parser.add_argument("-s", "--settings", type=str, help="Specify the file to user for settings (default: settings.json)",default="./settings.json")
+parser.add_argument("-t", "--tokens", type=str, help="Specify the file to use for tokens to trade (default: tokens.json)", default="./tokens.json")
 parser.add_argument("-v", "--verbose", action='store_true', help="Print detailed messages to stdout")
+parser.add_argument("--always_check_balance", action='store_true', help="Always checks balance instead of checking only at bot launch")
 
 # DEVELOPER COMMAND LINE ARGUMENTS
 # --dev - general argument for developer options
@@ -489,6 +486,7 @@ def load_tokens_file(tokens_path, load_message=True):
         'HASFEES',
         'RUGDOC_CHECK',
         'MULTIPLEBUYS',
+        'KIND_OF_SWAP',
         'WAIT_FOR_OPEN_TRADE'
     ]
     
@@ -646,6 +644,7 @@ def reload_tokens_file(tokens_path, load_message=True):
         'USECUSTOMBASEPAIR',
         'HASFEES',
         'RUGDOC_CHECK',
+        'KIND_OF_SWAP',
         'MULTIPLEBUYS',
         'WAIT_FOR_OPEN_TRADE'
     ]
@@ -1931,6 +1930,8 @@ def calculate_base_balance(token):
     # so as the bot to be faster to make transactions
     #
     
+    printt_debug("ENTER: calculate_base_balance()")
+
     if token['USECUSTOMBASEPAIR'].lower() == 'false':
         token['_BASE_BALANCE'] = Web3.fromWei(check_bnb_balance(), 'ether')
         printt_debug("balance 2951 case1:", token['_BASE_BALANCE'])
@@ -2323,6 +2324,371 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
         return tx_hash
 
 
+def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspriority, routing, custom, slippage,
+                 DECIMALS):
+    # Function: make_the_buy_exact_tokens
+    # --------------------
+    # creates BUY order with the good condition
+    #
+    # returns - nothing
+    #
+    printt_debug("ENTER make_the_buy_exact_tokens")
+    
+    # Choose proper wallet.
+    if buynumber == 0:
+        walletused = settings['WALLETADDRESS']
+    if buynumber == 1:
+        walletused = settings['WALLETADDRESS2']
+    if buynumber == 2:
+        walletused = settings['WALLETADDRESS3']
+    if buynumber == 3:
+        walletused = settings['WALLETADDRESS4']
+    if buynumber == 4:
+        walletused = settings['WALLETADDRESS5']
+    
+    if custom.lower() == 'false':
+        # if USECUSTOMBASEPAIR = false
+        
+        if routing.lower() == 'false':
+            # LIQUIDITYINNATIVETOKEN = false
+            # USECUSTOMBASEPAIR = false
+            printt_err("You have selected LIQUIDITYINNATIVETOKEN = false , so you must choose USECUSTOMBASEPAIR = true")
+            printt_err("Please read Wiki carefully, it's very important you can lose money!!")
+            sleep(10)
+            sys.exit()
+        else:
+            # LIQUIDITYINNATIVETOKEN = true
+            # USECUSTOMBASEPAIR = false
+            amount_in = routerContract.functions.getAmountsIn(amount, [weth, outToken]).call()[-1]
+            if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
+                amountInMin = 100
+            else:
+                amountInMin = int(amount_in / 60000)
+            
+            deadline = int(time() + + 60)
+            
+            # THIS SECTION IS FOR MODIFIED CONTRACTS : EACH EXCHANGE NEEDS TO BE SPECIFIED
+            # USECUSTOMBASEPAIR = false
+            if modified == True:
+                
+                if settings["EXCHANGE"].lower() == 'koffeeswap':
+                    logging.info("make_the_buy_exact_tokens condition 1")
+                    transaction = routerContract.functions.swapExactKCSForTokens(
+                        amountOutMin,
+                        [weth, outToken],
+                        Web3.toChecksumAddress(walletused),
+                        deadline
+                    ).buildTransaction({
+                        'gasPrice': Web3.toWei(gas, 'gwei'),
+                        'gas': gaslimit,
+                        'value': amount,
+                        'from': Web3.toChecksumAddress(walletused),
+                        'nonce': client.eth.getTransactionCount(walletused)
+                    })
+                
+                elif settings["EXCHANGE"].lower() == 'pangolin' or settings["EXCHANGE"].lower() == 'traderjoe':
+                    logging.info("make_the_buy_exact_tokens condition 2")
+                    transaction = routerContract.functions.swapExactAVAXForTokens(
+                        amountOutMin,
+                        [weth, outToken],
+                        Web3.toChecksumAddress(walletused),
+                        deadline
+                    ).buildTransaction({
+                        'gasPrice': Web3.toWei(gas, 'gwei'),
+                        'gas': gaslimit,
+                        'value': amount,
+                        'from': Web3.toChecksumAddress(walletused),
+                        'nonce': client.eth.getTransactionCount(walletused)
+                    })
+            
+            
+            else:
+                # USECUSTOMBASEPAIR = false
+                # This section is for exchange with Modified = false --> uniswap / pancakeswap / apeswap, etc.
+                
+                # Special condition on Uniswap, to implement EIP-1559
+                
+                if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
+                    printt("------------------------------------------------------------------------",
+                           write_to_log=True)
+                    printt("temporary log write for ETH transaction only, to make some investigations",
+                           write_to_log=True)
+                    printt("------------------------------------------------------------------------",
+                           write_to_log=True)
+                    printt("amountOutMin:", amountOutMin, write_to_log=True)
+                    printt("weth:", weth, write_to_log=True)
+                    printt("outToken:", outToken, write_to_log=True)
+                    printt("walletused:", walletused, write_to_log=True)
+                    printt("deadline:", deadline, write_to_log=True)
+                    printt("gas:", gas, write_to_log=True)
+                    printt("gaspriority:", gaspriority, write_to_log=True)
+                    printt("gaslimit:", gaslimit, write_to_log=True)
+                    printt("amount:", amount, write_to_log=True)
+                    printt("------------------------------------------------------------------------",
+                           write_to_log=True)
+                    
+                    logging.info("make_the_buy_exact_tokens condition 3")
+                    
+                    transaction = routerContract.functions.swapExactETHForTokens(
+                        amountOutMin,
+                        [weth, outToken],
+                        Web3.toChecksumAddress(walletused),
+                        deadline
+                    ).buildTransaction({
+                        'maxFeePerGas': Web3.toWei(gas, 'gwei'),
+                        'maxPriorityFeePerGas': Web3.toWei(gaspriority, 'gwei'),
+                        'gas': gaslimit,
+                        'value': amount,
+                        'from': Web3.toChecksumAddress(walletused),
+                        'nonce': client.eth.getTransactionCount(walletused),
+                        'type': "0x02"
+                    })
+                
+                else:
+                    # USECUSTOMBASEPAIR = false
+                    # for all the rest of exchanges with Modified = false
+                    
+                    logging.info("make_the_buy_exact_tokens condition 4")
+                    
+                    printt("------------------------------------------------------------------------",
+                           write_to_log=True)
+                    printt("temporary log write to make some investigations",
+                           write_to_log=True)
+                    printt("------------------------------------------------------------------------",
+                           write_to_log=True)
+                    printt("amountInMin:", amountInMin, write_to_log=True)
+                    printt("weth:", weth, write_to_log=True)
+                    printt("outToken:", outToken, write_to_log=True)
+                    printt("walletused:", walletused, write_to_log=True)
+                    printt("deadline:", deadline, write_to_log=True)
+                    printt("gas:", gas, write_to_log=True)
+                    printt("gaspriority:", gaspriority, write_to_log=True)
+                    printt("gaslimit:", gaslimit, write_to_log=True)
+                    printt("amount:", amount, write_to_log=True)
+                    printt("------------------------------------------------------------------------",
+                           write_to_log=True)
+
+                    transaction = routerContract.functions.swapETHForExactTokens(
+                        amount,
+                        [weth, outToken],
+                        Web3.toChecksumAddress(walletused),
+                        deadline
+                    ).buildTransaction({
+                        'gasPrice': Web3.toWei(gas, 'gwei'),
+                        'gas': gaslimit,
+                        'value': amountInMin,
+                        'from': Web3.toChecksumAddress(walletused),
+                        'nonce': client.eth.getTransactionCount(walletused)
+                    })
+    
+    else:
+        # USECUSTOMBASEPAIR = true
+        if inToken == weth:
+            # USECUSTOMBASEPAIR = true
+            # but user chose to put WETH or WBNB contract as CUSTOMBASEPAIR address
+            amount_out = routerContract.functions.getAmountsOut(amount, [weth, outToken]).call()[-1]
+            if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
+                amountOutMin = 100
+            else:
+                amountOutMin = int(amount_out * (1 - (slippage / 100)))
+            deadline = int(time() + + 60)
+            
+            if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
+                # Special condition on Uniswap, to implement EIP-1559
+                logging.info("make_the_buy_exact_tokens condition 5")
+                transaction = routerContract.functions.swapExactTokensForTokens(
+                    amount,
+                    amountOutMin,
+                    [weth, outToken],
+                    Web3.toChecksumAddress(walletused),
+                    deadline
+                ).buildTransaction({
+                    'maxFeePerGas': Web3.toWei(gas, 'gwei'),
+                    'maxPriorityFeePerGas': Web3.toWei(gaspriority, 'gwei'),
+                    'gas': gaslimit,
+                    'from': Web3.toChecksumAddress(walletused),
+                    'nonce': client.eth.getTransactionCount(walletused),
+                    'type': "0x02"
+                })
+            
+            else:
+                logging.info("make_the_buy_exact_tokens condition 6")
+                transaction = routerContract.functions.swapExactTokensForTokens(
+                    amount,
+                    amountOutMin,
+                    [weth, outToken],
+                    Web3.toChecksumAddress(walletused),
+                    deadline
+                ).buildTransaction({
+                    'gasPrice': Web3.toWei(gas, 'gwei'),
+                    'gas': gaslimit,
+                    'from': Web3.toChecksumAddress(walletused),
+                    'nonce': client.eth.getTransactionCount(walletused)
+                })
+        
+        else:
+            # LIQUIDITYINNATIVETOKEN = true
+            # USECUSTOMBASEPAIR = true
+            # Base Pair different from weth
+            
+            # We display a warning message if user tries to swap with too much money
+            if (str(inToken).lower() == '0xe9e7cea3dedca5984780bafc599bd69add087d56' or str(
+                    inToken).lower() == '0x55d398326f99059ff775485246999027b3197955' or str(
+                inToken).lower() == '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d' or str(
+                inToken).lower() == '0xdac17f958d2ee523a2206206994597c13d831ec7' or str(
+                inToken).lower() == '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48') and (int(amount) / DECIMALS) > 2999:
+                printt_info(
+                    "YOU ARE TRADING WITH VERY BIG AMOUNT, BE VERY CAREFUL YOU COULD LOSE MONEY!!! TEAM RECOMMEND NOT TO DO THAT")
+            
+            if routing.lower() == 'true':
+                amount_out = routerContract.functions.getAmountsOut(amount, [inToken, weth, outToken]).call()[-1]
+                if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
+                    amountOutMin = 100
+                else:
+                    amountOutMin = int(amount_out * (1 - (slippage / 100)))
+                deadline = int(time() + + 60)
+                
+                if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
+                    # USECUSTOMBASEPAIR = true
+                    # Base Pair different from weth
+                    # LIQUIDITYINNATIVETOKEN = true
+                    
+                    # Special condition on Uniswap, to implement EIP-1559
+                    logging.info("make_the_buy_exact_tokens condition 7")
+                    transaction = routerContract.functions.swapExactTokensForTokens(
+                        amount,
+                        amountOutMin,
+                        [inToken, weth, outToken],
+                        Web3.toChecksumAddress(walletused),
+                        deadline
+                    ).buildTransaction({
+                        'maxFeePerGas': Web3.toWei(gas, 'gwei'),
+                        'maxPriorityFeePerGas': Web3.toWei(gaspriority, 'gwei'),
+                        'gas': gaslimit,
+                        'value': amount,
+                        'from': Web3.toChecksumAddress(walletused),
+                        'nonce': client.eth.getTransactionCount(walletused),
+                        'type': "0x02"
+                    })
+                
+                else:
+                    # USECUSTOMBASEPAIR = true
+                    # Base Pair different from weth
+                    # LIQUIDITYINNATIVETOKEN = true
+                    # Exchange different from Uniswap
+                    logging.info("make_the_buy_exact_tokens condition 8")
+                    transaction = routerContract.functions.swapExactTokensForTokens(
+                        amount,
+                        amountOutMin,
+                        [inToken, weth, outToken],
+                        Web3.toChecksumAddress(walletused),
+                        deadline
+                    ).buildTransaction({
+                        'gasPrice': Web3.toWei(gas, 'gwei'),
+                        'gas': gaslimit,
+                        'from': Web3.toChecksumAddress(walletused),
+                        'nonce': client.eth.getTransactionCount(walletused)
+                    })
+            
+            else:
+                # LIQUIDITYINNATIVETOKEN = false
+                # USECUSTOMBASEPAIR = true
+                # Base Pair different from weth
+                
+                # We display a warning message if user tries to swap with too much money
+                if (str(inToken).lower() == '0xe9e7cea3dedca5984780bafc599bd69add087d56' or str(
+                        inToken).lower() == '0x55d398326f99059ff775485246999027b3197955' or str(
+                    inToken).lower() == '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d' or str(
+                    inToken).lower() == '0xdac17f958d2ee523a2206206994597c13d831ec7' or str(
+                    inToken).lower() == '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48') and (
+                        int(amount) / DECIMALS) > 2999:
+                    printt_info(
+                        "YOU ARE TRADING WITH VERY BIG AMOUNT, BE VERY CAREFUL YOU COULD LOSE MONEY!!! TEAM RECOMMEND NOT TO DO THAT")
+                
+                amount_out = routerContract.functions.getAmountsOut(amount, [inToken, outToken]).call()[-1]
+                if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
+                    amountOutMin = 100
+                else:
+                    amountOutMin = int(amount_out * (1 - (slippage / 100)))
+                deadline = int(time() + + 60)
+                
+                if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
+                    # LIQUIDITYINNATIVETOKEN = false
+                    # USECUSTOMBASEPAIR = true
+                    # Base Pair different from weth
+                    # Special condition on Uniswap, to implement EIP-1559
+                    logging.info("make_the_buy_exact_tokens condition 9")
+                    transaction = routerContract.functions.swapExactTokensForTokens(
+                        amount,
+                        amountOutMin,
+                        [inToken, outToken],
+                        Web3.toChecksumAddress(walletused),
+                        deadline
+                    ).buildTransaction({
+                        'maxFeePerGas': Web3.toWei(gas, 'gwei'),
+                        'maxPriorityFeePerGas': Web3.toWei(gaspriority, 'gwei'),
+                        'gas': gaslimit,
+                        'value': amount,
+                        'from': Web3.toChecksumAddress(walletused),
+                        'nonce': client.eth.getTransactionCount(walletused),
+                        'type': "0x02"
+                    })
+                
+                else:
+                    # LIQUIDITYINNATIVETOKEN = false
+                    # USECUSTOMBASEPAIR = true
+                    # Base Pair different from weth
+                    # Exchange different from Uniswap
+                    logging.info("make_the_buy_exact_tokens condition 10")
+                    
+                    transaction = routerContract.functions.swapExactTokensForTokens(
+                        amount,
+                        amountOutMin,
+                        [inToken, outToken],
+                        Web3.toChecksumAddress(walletused),
+                        deadline
+                    ).buildTransaction({
+                        'gasPrice': Web3.toWei(gas, 'gwei'),
+                        'gas': gaslimit,
+                        'from': Web3.toChecksumAddress(walletused),
+                        'nonce': client.eth.getTransactionCount(walletused)
+                    })
+    
+    sync(inToken, outToken)
+    
+    if buynumber == 0:
+        # No need to decrypt PRIVATEKEY because it was already decrypted in parse_wallet_settings()
+        # Leave it like that because it's also used in Pre-Approve
+        #
+        # settings['PRIVATEKEY'] = settings['PRIVATEKEY'].replace('aes:', "", 1)
+        # settings['PRIVATEKEY'] = cryptocode.decrypt(settings['PRIVATEKEY'], pwd)
+        signed_txn = client.eth.account.signTransaction(transaction, private_key=settings['PRIVATEKEY'])
+    if buynumber == 1:
+        settings['PRIVATEKEY2'] = settings['PRIVATEKEY2'].replace('aes:', "", 1)
+        settings['PRIVATEKEY2'] = cryptocode.decrypt(settings['PRIVATEKEY2'], pwd)
+        signed_txn = client.eth.account.signTransaction(transaction, private_key=settings['PRIVATEKEY2'])
+    if buynumber == 2:
+        settings['PRIVATEKEY3'] = settings['PRIVATEKEY3'].replace('aes:', "", 1)
+        settings['PRIVATEKEY3'] = cryptocode.decrypt(settings['PRIVATEKEY3'], pwd)
+        signed_txn = client.eth.account.signTransaction(transaction, private_key=settings['PRIVATEKEY3'])
+    if buynumber == 3:
+        settings['PRIVATEKEY4'] = settings['PRIVATEKEY4'].replace('aes:', "", 1)
+        settings['PRIVATEKEY4'] = cryptocode.decrypt(settings['PRIVATEKEY4'], pwd)
+        signed_txn = client.eth.account.signTransaction(transaction, private_key=settings['PRIVATEKEY4'])
+    if buynumber == 4:
+        settings['PRIVATEKEY5'] = settings['PRIVATEKEY5'].replace('aes:', "", 1)
+        settings['PRIVATEKEY5'] = cryptocode.decrypt(settings['PRIVATEKEY5'], pwd)
+        signed_txn = client.eth.account.signTransaction(transaction, private_key=settings['PRIVATEKEY5'])
+    
+    try:
+        return client.eth.sendRawTransaction(signed_txn.rawTransaction)
+    finally:
+        printt("Transaction Hash = ", Web3.toHex(client.keccak(signed_txn.rawTransaction)), write_to_log=True)
+        
+        tx_hash = client.toHex(client.keccak(signed_txn.rawTransaction))
+        return tx_hash
+
+
 def wait_for_tx(token_dict, tx_hash, address, max_wait_time=60):
     # Function: wait_for_tx
     # --------------------
@@ -2462,11 +2828,13 @@ def buy(token_dict, inToken, outToken, pwd):
     
     # Define balance before BUY
     #
+    # if --always_check_balance parameter is used, bot will check all the time
+
     if custom.lower() == 'false':
         balance = token_dict['_BASE_BALANCE']
     else:
         balance = token_dict['_CUSTOM_BASE_BALANCE']
-    
+
     printt_debug("2470 balance:", balance)
     
     if balance > Decimal(amount):
@@ -2477,23 +2845,32 @@ def buy(token_dict, inToken, outToken, pwd):
         slippage = int(slippage)
         DECIMALS = decimals(inToken)
         amount = int(float(amount) * DECIMALS)
-        
+        buynumber = 0
+
         if multiplebuys.lower() == 'true':
             printt_warn(
                 "WARNING - Multiple Buys is an experimental feature : controls are only made for the first wallet")
-            buynumber = 0
             amount_of_buys = int(buycount)
             
             while True:
                 if buynumber < amount_of_buys:
                     printt("Placing New Buy Order for wallet number:", buynumber)
-                    make_the_buy(inToken, outToken, buynumber, pwd, amount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, DECIMALS)
+                    if token_dict['KIND_OF_SWAP'] == 'tokens':
+                        make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, DECIMALS)
+                    else:
+                        make_the_buy(inToken, outToken, buynumber, pwd, amount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, DECIMALS)
                     buynumber += 1
                 else:
                     printt_ok("All BUYS orders have been sent - Stopping Bot")
                     sys.exit(0)
         else:
-            tx_hash = make_the_buy(inToken, outToken, 0, pwd, amount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, DECIMALS)
+            if token_dict['KIND_OF_SWAP'] == 'tokens':
+                tx_hash = make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amount, token_dict['_GAS_TO_USE'],
+                                          gaslimit, gaspriority, routing, custom, slippage, DECIMALS)
+            else:
+                tx_hash = make_the_buy(inToken, outToken, buynumber, pwd, amount, token_dict['_GAS_TO_USE'], gaslimit,
+                             gaspriority, routing, custom, slippage, DECIMALS)
+    
             return tx_hash
     
     else:
@@ -3388,7 +3765,12 @@ def run():
                     #     printt_info("You own more tokens than your MAXTOKENS parameter for", token['SYMBOL'],
                     #                 " Looking to sell this position")
                     token['_INFORMED_SELL'] = True
-                    
+
+                    # if --always_check_balance parameter is used, bot will check all the time
+                    if command_line_args.always_check_balance:
+                        printt_debug("2832 always_check_balance is ON")
+                        token['_TOKEN_BALANCE'] = check_balance(token['ADDRESS'], token['SYMBOL'],display_quantity=False)
+
                     printt_debug("_TOKEN_BALANCE 3411", token['_TOKEN_BALANCE'])
                     # Looking to dump this token as soon as it drops <PUMP> percentage
                     if isinstance(command_line_args.pump, int) and command_line_args.pump > 0:
