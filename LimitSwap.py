@@ -3374,7 +3374,7 @@ def run():
                         else:
                             printt_err("You don't have enough in your wallet to make the BUY order of",
                                        token['SYMBOL'], "--> bot do not buy",write_to_log=False)
-                            
+                            continue
 
                     #
                     # SELL CHECK
