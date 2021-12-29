@@ -94,7 +94,6 @@ parser.add_argument("-p", "--password", type=str, help="Password to decrypt priv
 parser.add_argument("-s", "--settings", type=str, help="Specify the file to user for settings (default: settings.json)",default="./settings.json")
 parser.add_argument("-t", "--tokens", type=str, help="Specify the file to use for tokens to trade (default: tokens.json)", default="./tokens.json")
 parser.add_argument("-v", "--verbose", action='store_true', help="Print detailed messages to stdout")
-parser.add_argument("--always_check_balance", action='store_true', help="Always checks balance instead of checking only at bot launch")
 
 # DEVELOPER COMMAND LINE ARGUMENTS
 # --dev - general argument for developer options
@@ -487,6 +486,7 @@ def load_tokens_file(tokens_path, load_message=True):
         'RUGDOC_CHECK',
         'MULTIPLEBUYS',
         'KIND_OF_SWAP',
+        'ALWAYS_CHECK_BALANCE',
         'WAIT_FOR_OPEN_TRADE'
     ]
     
@@ -645,6 +645,7 @@ def reload_tokens_file(tokens_path, load_message=True):
         'HASFEES',
         'RUGDOC_CHECK',
         'KIND_OF_SWAP',
+        'ALWAYS_CHECK_BALANCE',
         'MULTIPLEBUYS',
         'WAIT_FOR_OPEN_TRADE'
     ]
@@ -2828,7 +2829,6 @@ def buy(token_dict, inToken, outToken, pwd):
     
     # Define balance before BUY
     #
-    # if --always_check_balance parameter is used, bot will check all the time
 
     if custom.lower() == 'false':
         balance = token_dict['_BASE_BALANCE']
@@ -3767,8 +3767,8 @@ def run():
                     token['_INFORMED_SELL'] = True
 
                     # if --always_check_balance parameter is used, bot will check all the time
-                    if command_line_args.always_check_balance:
-                        printt_debug("2832 always_check_balance is ON")
+                    if token['ALWAYS_CHECK_BALANCE'] == 'true':
+                        printt_debug("2832 ALWAYS_CHECK_BALANCE is ON")
                         token['_TOKEN_BALANCE'] = check_balance(token['ADDRESS'], token['SYMBOL'],display_quantity=False)
 
                     printt_debug("_TOKEN_BALANCE 3411", token['_TOKEN_BALANCE'])
