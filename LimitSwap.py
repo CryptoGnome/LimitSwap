@@ -14,6 +14,8 @@ import requests
 import cryptocode, re, pwinput
 import argparse
 import signal
+import itertools
+
 
 # DEVELOPER CONSIDERATIONS
 #
@@ -94,6 +96,7 @@ parser.add_argument("-p", "--password", type=str, help="Password to decrypt priv
 parser.add_argument("-s", "--settings", type=str, help="Specify the file to user for settings (default: settings.json)",default="./settings.json")
 parser.add_argument("-t", "--tokens", type=str, help="Specify the file to use for tokens to trade (default: tokens.json)", default="./tokens.json")
 parser.add_argument("-v", "--verbose", action='store_true', help="Print detailed messages to stdout")
+parser.add_argument("-pp", "--precise_price", action='store_true', help="Use check_precise_price function to check price. More accurate but slower")
 
 # DEVELOPER COMMAND LINE ARGUMENTS
 # --dev - general argument for developer options
@@ -528,6 +531,10 @@ def load_tokens_file(tokens_path, load_message=True):
     # _ALL_TIME_LOW'        - the lowest price a token has had since the bot was started
     # _CONTRACT_DECIMALS    - the number of decimals a contract uses. Used to speed up some of our processes
     #                         instead of querying the contract for the same information repeatedly.
+    # _BASE_DECIMALS - the number of decimals of custom base pair. Used to speed up some of our processes
+    #                         instead of querying the contract for the same information repeatedly.
+    # _WETH_DECIMALS        - the number of decimals of weth. Used to speed up some of our processes
+    #                         instead of querying the contract for the same information repeatedly.
     # _LAST_PRICE_MESSAGE   - a copy of the last pricing message printed to console, used to determine the price
     #                         should be printed again, or just a dot
     # _LAST_MESSAGE         - a place to store a copy of the last message printed to conside, use to avoid
@@ -548,6 +555,8 @@ def load_tokens_file(tokens_path, load_message=True):
         '_COST_PER_TOKEN': 0,
         '_ALL_TIME_LOW': 0,
         '_CONTRACT_DECIMALS': 0,
+        '_BASE_DECIMALS': 0,
+        '_WETH_DECIMALS': 0,
         '_LAST_PRICE_MESSAGE': 0,
         '_LAST_MESSAGE': 0
         
@@ -688,6 +697,10 @@ def reload_tokens_file(tokens_path, load_message=True):
     # _ALL_TIME_LOW'        - the lowest price a token has had since the bot was started
     # _CONTRACT_DECIMALS    - the number of decimals a contract uses. Used to speed up some of our processes
     #                         instead of querying the contract for the same information repeatedly.
+    # _BASE_DECIMALS - the number of decimals of custom base pair. Used to speed up some of our processes
+    #                         instead of querying the contract for the same information repeatedly.
+    # _WETH_DECIMALS        - the number of decimals of weth. Used to speed up some of our processes
+    #                         instead of querying the contract for the same information repeatedly.
     # _LAST_PRICE_MESSAGE   - a copy of the last pricing message printed to console, used to determine the price
     #                         should be printed again, or just a dot
     
@@ -707,6 +720,8 @@ def reload_tokens_file(tokens_path, load_message=True):
         '_COST_PER_TOKEN': 0,
         '_ALL_TIME_LOW': 0,
         '_CONTRACT_DECIMALS': 0,
+        '_BASE_DECIMALS': 0,
+        '_WETH_DECIMALS': 0,
         '_LAST_PRICE_MESSAGE': 0
     }
     
@@ -874,7 +889,7 @@ if settings['EXCHANGE'] == 'pancakeswap':
         my_provider = "https://bsc-dataseed4.defibit.io"
     
     if not my_provider:
-        print(timestamp(), 'Custom node empty. Exiting')
+        printt_err('Custom node empty. Exiting')
         exit(1)
     
     if my_provider[0].lower() == 'h':
@@ -886,7 +901,7 @@ if settings['EXCHANGE'] == 'pancakeswap':
     else:
         print(timestamp(), 'Using IPCProvider')
         client = Web3(Web3.IPCProvider(my_provider))
-    
+
     print(timestamp(), "Binance Smart Chain Connected =", client.isConnected())
     print(timestamp(), "Loading Smart Contracts...")
     
@@ -1570,7 +1585,7 @@ def approve(address, amount):
     eth_balance = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
     
     if base_symbol == "ETH":
-        minimumbalance = 0.05
+        minimumbalance = 0.000005
     else:
         minimumbalance = 0.01
     
@@ -1709,16 +1724,12 @@ def sync(inToken, outToken):
     sync = syncContract.functions.sync().call()
 
 
-def check_pool(inToken, outToken, symbol):
+def check_pool(inToken, outToken, symbol, DECIMALS_IN, DECIMALS_OUT):
     # This function is made to calculate Liquidity of a token
     pair_address = factoryContract.functions.getPair(inToken, outToken).call()
-    DECIMALS_IN = decimals(inToken)
-    DECIMALS_OUT = decimals(outToken)
     pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
     reserves = pair_contract.functions.getReserves().call()
     printt_debug("ENTER check_pool")
-    printt_debug("DECIMALS_IN:", DECIMALS_IN)
-    printt_debug("DECIMALS_OUT:", DECIMALS_OUT)
     
     # Tokens are ordered by the token contract address
     # The token contract address can be interpreted as a number
@@ -1786,7 +1797,7 @@ def check_liquidity(token):
     if token['_LIQUIDITY_CHECKED'] == False:
         # Cases 1 and 2 above : we always use weth as LP pair to check liquidity
         if token["LIQUIDITYINNATIVETOKEN"] == 'true':
-            pool = check_pool(inToken, weth, base_symbol)
+            pool = check_pool(inToken, weth, base_symbol, token['SYMBOL'])
             printt("You have set LIQUIDITYCHECK = true.")
             printt("Current", token['SYMBOL'], "Liquidity =", int(pool), base_symbol)
             
@@ -1825,16 +1836,9 @@ def check_liquidity(token):
                 return 0
 
 
-def check_price(inToken, outToken, symbol, base, custom, routing, buypriceinbase, sellpriceinbase, stoplosspriceinbase):
+def check_price(inToken, outToken, symbol, base, custom, routing, buypriceinbase, sellpriceinbase, stoplosspriceinbase, DECIMALS_weth, DECIMALS_IN, DECIMALS_OUT):
     # CHECK GET RATE OF THE TOKEn
     printt_debug("ENTER check_price")
-    printt_debug("inToken:", inToken)
-    printt_debug("outToken:", outToken)
-    printt_debug("weth: ", weth)
-    
-    DECIMALS = decimals(inToken)
-    printt_debug("DECIMALS inToken: ", DECIMALS)
-    
     stamp = timestamp()
     
     if custom == 'false':
@@ -1846,68 +1850,89 @@ def check_price(inToken, outToken, symbol, base, custom, routing, buypriceinbase
         if outToken != weth:
             # LIQUIDITYINNATIVETOKEN = true
             # USECUSTOMBASEPAIR = true and token put in BASEADDRESS is different from WBNB / WETH
-            price_check = routerContract.functions.getAmountsOut(1 * DECIMALS, [inToken, weth, outToken]).call()[-1]
-            printt_debug("DECIMALS price_check1: ", price_check)
-            DECIMALS = decimals(outToken)
-            tokenPrice = price_check / DECIMALS
+            price_check = routerContract.functions.getAmountsOut(1 * DECIMALS_IN, [inToken, weth, outToken]).call()[-1]
+            printt_debug("price_check1: ", price_check)
+            tokenPrice = price_check / DECIMALS_OUT
         else:
             # LIQUIDITYINNATIVETOKEN = true
-            # USECUSTOMBASEPAIR = true and token put in BASEADDRESS is WBNB / WETH (because outToken == weth)
-            price_check = routerContract.functions.getAmountsOut(1 * DECIMALS, [inToken, weth]).call()[-1]
-            printt_debug("DECIMALS price_check2: ", price_check)
-            DECIMALS = decimals(outToken)
-            tokenPrice = price_check / DECIMALS
+            # USECUSTOMBASEPAIR = false
+            # or USECUSTOMBASEPAIR = true and token put in BASEADDRESS is WBNB / WETH (because outToken == weth)
+            price_check = routerContract.functions.getAmountsOut(1 * DECIMALS_IN, [inToken, weth]).call()[-1]
+            printt_debug("price_check2: ", price_check)
+            tokenPrice = price_check / DECIMALS_OUT
     
     else:
         # LIQUIDITYINNATIVETOKEN = false
         if outToken != weth:
             # LIQUIDITYINNATIVETOKEN = false
             # USECUSTOMBASEPAIR = true and token put in BASEADDRESS is different from WBNB / WETH
-            price_check = routerContract.functions.getAmountsOut(1 * DECIMALS, [inToken, outToken]).call()[-1]
-            printt_debug("DECIMALS price_check3: ", price_check)
-            DECIMALS = decimals(outToken)
-            tokenPrice = price_check / DECIMALS
+            price_check = routerContract.functions.getAmountsOut(1 * DECIMALS_IN, [inToken, outToken]).call()[-1]
+            printt_debug("price_check3: ", price_check)
+            tokenPrice = price_check / DECIMALS_OUT
         else:
             # LIQUIDITYINNATIVETOKEN = false
             # USECUSTOMBASEPAIR = true and token put in BASEADDRESS is WBNB / WETH (because outToken == weth)
-            price_check = routerContract.functions.getAmountsOut(1 * DECIMALS, [inToken, weth]).call()[-1]
-            printt_debug("DECIMALS price_check4: ", price_check)
-            DECIMALS = decimals(outToken)
-            tokenPrice = price_check / DECIMALS
+            price_check = routerContract.functions.getAmountsOut(1 * DECIMALS_IN, [inToken, weth]).call()[-1]
+            printt_debug("price_check4: ", price_check)
+            tokenPrice = price_check / DECIMALS_OUT
     
     printt_debug("tokenPrice: ", tokenPrice)
     return tokenPrice
 
 
 ORDER_HASH = {}
-
-
-def check_price2(inToken, outToken, symbol, base, custom, routing, buypriceinbase, sellpriceinbase,
-                 stoplosspriceinbase):
+def check_precise_price(inToken, outToken, symbol, base, custom, routing, buypriceinbase, sellpriceinbase,
+                 stoplosspriceinbase, DECIMALS_weth, DECIMALS_IN, DECIMALS_OUT):
     # This function is made to calculate price of a token
-    # It was developed by the user Juan Lopez : thanks a lot :)
+    # It was first developed by the user Juan Lopez : thanks a lot :)
+    # and then improved by Tsarbuig to make it work on custom base pair
     
-    DECIMALS_OUT = decimals(outToken)
-    DECIMALS_IN = decimals(inToken)
-    
+    printt_debug("ENTER check_precise_price")
+
     if outToken != weth:
-        printt_debug("ENTER check_price2 condition 1")
-        # USECUSTOMBASEPAIR = true and token put in BASEADDRESS is different from WBNB / WETH
-        pair_address = factoryContract.functions.getPair(inToken, outToken).call()
+        printt_debug("ENTER check_precise_price condition 1")
+        # First step : calculates the price of token in ETH/BNB
+        pair_address = factoryContract.functions.getPair(inToken, weth).call()
         pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
         reserves = pair_contract.functions.getReserves().call()
-        
+
         if ORDER_HASH.get(pair_address) is None:
             value0 = pair_contract.functions.token0().call()
             ORDER_HASH[pair_address] = (value0 == inToken)
         if not ORDER_HASH[pair_address]:
-            tokenPrice = Decimal((reserves[0] / DECIMALS_OUT) / (reserves[1] / DECIMALS_IN))
+            tokenPrice1 = Decimal((reserves[0] / DECIMALS_weth) / (reserves[1] / DECIMALS_IN))
         else:
-            tokenPrice = Decimal((reserves[1] / DECIMALS_OUT) / (reserves[0] / DECIMALS_IN))
-        printt_debug("tokenPrice1: ", tokenPrice)
+            tokenPrice1 = Decimal((reserves[1] / DECIMALS_weth) / (reserves[0] / DECIMALS_IN))
+        printt_debug("tokenPrice1: ", tokenPrice1)
+        
+        # ------------------------------------------------------------------------
+        # Second step : calculates the price of Custom Base pair in ETH/BNB
+        pair_address = factoryContract.functions.getPair(outToken, weth).call()
+        pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
+        reserves = pair_contract.functions.getReserves().call()
+
+        if ORDER_HASH.get(pair_address) is None:
+            value0 = pair_contract.functions.token0().call()
+            ORDER_HASH[pair_address] = (value0 == outToken)
+        if not ORDER_HASH[pair_address]:
+            tokenPrice2 = Decimal((reserves[0] / DECIMALS_weth) / (reserves[1] / DECIMALS_OUT))
+        else:
+            tokenPrice2 = Decimal((reserves[1] / DECIMALS_weth) / (reserves[0] / DECIMALS_OUT))
+        printt_debug("tokenPrice2: ", tokenPrice2)
+        
+        # ------------------------------------------------------------------------
+        # Third step : division
+        # Example with BUSD pair :
+        #  - First step : token price = 0.000005 BNB
+        #  - Second step : BUSD price = 1/500 BUSD
+        #  --> Token price in BUSD = 0.00005 / (1/500) = 0.00005 * 500 = 0.00250 BUSD
+        tokenPrice = tokenPrice1 / tokenPrice2
+        
+        
     else:
-        printt_debug("ENTER check_price2 condition 2")
+        printt_debug("ENTER check_precise_price condition 2")
         # USECUSTOMBASEPAIR = true and token put in BASEADDRESS is WBNB / WETH (because outToken == weth)
+        # or USECUSTOMBASEPAIR = false
         pair_address = factoryContract.functions.getPair(inToken, weth).call()
         pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
         reserves = pair_contract.functions.getReserves().call()
@@ -2325,7 +2350,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
         return tx_hash
 
 
-def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspriority, routing, custom, slippage,
+def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amountOut, gas, gaslimit, gaspriority, routing, custom, slippage,
                  DECIMALS):
     # Function: make_the_buy_exact_tokens
     # --------------------
@@ -2360,12 +2385,15 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amount, gas, ga
         else:
             # LIQUIDITYINNATIVETOKEN = true
             # USECUSTOMBASEPAIR = false
-            amount_in = routerContract.functions.getAmountsIn(amount, [weth, outToken]).call()[-1]
+            amount_out = routerContract.functions.getAmountsOut(amountOut, [weth, outToken]).call()[-1]
             if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
-                amountInMin = 100
+                amountMin = 100
             else:
-                amountInMin = int(amount_in / 60000)
-            
+                amountMin = int(amount_out / 6000)
+
+            amountOutMin = amountOut * 0.80
+
+
             deadline = int(time() + + 60)
             
             # THIS SECTION IS FOR MODIFIED CONTRACTS : EACH EXCHANGE NEEDS TO BE SPECIFIED
@@ -2402,7 +2430,6 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amount, gas, ga
                         'nonce': client.eth.getTransactionCount(walletused)
                     })
             
-            
             else:
                 # USECUSTOMBASEPAIR = false
                 # This section is for exchange with Modified = false --> uniswap / pancakeswap / apeswap, etc.
@@ -2416,7 +2443,9 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amount, gas, ga
                            write_to_log=True)
                     printt("------------------------------------------------------------------------",
                            write_to_log=True)
-                    printt("amountOutMin:", amountOutMin, write_to_log=True)
+                    printt("amountOutMin:", amountMin, write_to_log=True)
+                    printt("amount_in   :", amount_out, write_to_log=True)
+                    printt("amount      :", amount, write_to_log=True)
                     printt("weth:", weth, write_to_log=True)
                     printt("outToken:", outToken, write_to_log=True)
                     printt("walletused:", walletused, write_to_log=True)
@@ -2424,7 +2453,6 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amount, gas, ga
                     printt("gas:", gas, write_to_log=True)
                     printt("gaspriority:", gaspriority, write_to_log=True)
                     printt("gaslimit:", gaslimit, write_to_log=True)
-                    printt("amount:", amount, write_to_log=True)
                     printt("------------------------------------------------------------------------",
                            write_to_log=True)
                     
@@ -2457,7 +2485,9 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amount, gas, ga
                            write_to_log=True)
                     printt("------------------------------------------------------------------------",
                            write_to_log=True)
-                    printt("amountInMin:", amountInMin, write_to_log=True)
+                    printt("amountMin     :", amountMin, write_to_log=True)
+                    printt("amountOutMin  :", amountOutMin, write_to_log=True)
+                    printt("amount_out    :", amount_out, write_to_log=True)
                     printt("weth:", weth, write_to_log=True)
                     printt("outToken:", outToken, write_to_log=True)
                     printt("walletused:", walletused, write_to_log=True)
@@ -2465,19 +2495,18 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amount, gas, ga
                     printt("gas:", gas, write_to_log=True)
                     printt("gaspriority:", gaspriority, write_to_log=True)
                     printt("gaslimit:", gaslimit, write_to_log=True)
-                    printt("amount:", amount, write_to_log=True)
                     printt("------------------------------------------------------------------------",
                            write_to_log=True)
 
                     transaction = routerContract.functions.swapETHForExactTokens(
-                        amount,
+                        amountOut,
                         [weth, outToken],
                         Web3.toChecksumAddress(walletused),
                         deadline
                     ).buildTransaction({
                         'gasPrice': Web3.toWei(gas, 'gwei'),
                         'gas': gaslimit,
-                        'value': amountInMin,
+                        'value': amount_out,
                         'from': Web3.toChecksumAddress(walletused),
                         'nonce': client.eth.getTransactionCount(walletused)
                     })
@@ -2803,7 +2832,8 @@ def buy(token_dict, inToken, outToken, pwd):
     gaspriority = token_dict['GASPRIORITY_FOR_ETH_ONLY']
     multiplebuys = token_dict['MULTIPLEBUYS']
     buycount = token_dict['BUYCOUNT']
-    
+    DECIMALS = token_dict['_CONTRACT_DECIMALS']
+
     # Check for amount of failed transactions before buy (MAX_FAILED_TRANSACTIONS_IN_A_ROW parameter)
     printt_debug("debug 2325 _FAILED_TRANSACTIONS:", token_dict['_FAILED_TRANSACTIONS'])
     if token_dict['_FAILED_TRANSACTIONS'] >= int(token_dict['MAX_FAILED_TRANSACTIONS_IN_A_ROW']):
@@ -2843,7 +2873,6 @@ def buy(token_dict, inToken, outToken, pwd):
         printt_debug("gas: 2380", token_dict['_GAS_TO_USE'])
         gaslimit = int(gaslimit)
         slippage = int(slippage)
-        DECIMALS = decimals(inToken)
         amount = int(float(amount) * DECIMALS)
         buynumber = 0
 
@@ -2879,7 +2908,7 @@ def buy(token_dict, inToken, outToken, pwd):
         return False
 
 
-def sell(token_dict, inToken, outToken):
+def sell(token_dict, inToken, outToken, DECIMALS):
     # Map variables until all code is cleaned up.
     amount = token_dict['SELLAMOUNTINTOKENS']
     moonbag = token_dict['MOONBAG']
@@ -2892,7 +2921,8 @@ def sell(token_dict, inToken, outToken):
     symbol = token_dict['SYMBOL']
     routing = token_dict['LIQUIDITYINNATIVETOKEN']
     gaspriority = token_dict['GASPRIORITY_FOR_ETH_ONLY']
-    
+    DECIMALS = token_dict['_CONTRACT_DECIMALS']
+
     # Check for amount of failed transactions before sell (MAX_FAILED_TRANSACTIONS_IN_A_ROW parameter)
     printt_debug("debug 2419 _FAILED_TRANSACTIONS:", token_dict['_FAILED_TRANSACTIONS'])
     if token_dict['_FAILED_TRANSACTIONS'] >= int(token_dict['MAX_FAILED_TRANSACTIONS_IN_A_ROW']):
@@ -2908,9 +2938,6 @@ def sell(token_dict, inToken, outToken):
     # TODO : do not check balance and use balance = token_dict['_TOKEN_BALANCE']
     balance = check_balance(inToken, symbol)
     # balance = int(token_dict['_TOKEN_BALANCE'] * DECIMALS)
-
-    DECIMALS = decimals(inToken)
-    printt_debug("2438 DECIMALS of inToken, the token we want to BUY:", DECIMALS)
     
     # We ask the bot to check if your allowance is > to your balance. Use a 10000000000000000 multiplier for decimals.
     # UPDATE : disabled for best speed --> put after a Tx failure on sell()
@@ -3456,17 +3483,23 @@ def run():
     # Price Quote
     quote = 0
     reload_tokens_file = False
-    
+
     # Determine minimum balance
     if base_symbol == "ETH":
-        minimumbalance = 0.05
+        minimumbalance = 0.000005
     else:
         minimumbalance = 0.01
-    
+
+    # Bot will get your balance, and show an error if there is a problem with your node.
+    try:
+        eth_balance = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
+    except Exception as e:
+        printt_err("ERROR with your node : please check logs.", write_to_log=True)
+        logger1.exception(e)
+        sys.exit()
+        
     try:
         tokens = load_tokens_file(command_line_args.tokens, True)
-        
-        eth_balance = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
         
         if eth_balance < minimumbalance:
             printt_err(
@@ -3489,11 +3522,21 @@ def run():
         # TODO ARG: Implement an argument that auto accepts or prunes tokens that are rejected/accepted by the rugdoc check
         for token in tokens:
             
-            # Calculate contract decimals
-            printt_debug("token['ADDRESS']:", token['ADDRESS'])
+            # Calculate contract / custom base pair / weth decimals
+            printt_debug("entering token:", token['ADDRESS'])
+            
             token['_CONTRACT_DECIMALS'] = int(decimals(token['ADDRESS']))
             printt_debug("token['_CONTRACT_DECIMALS']:", token['_CONTRACT_DECIMALS'])
-            
+
+            if token['USECUSTOMBASEPAIR'] == 'true':
+                token['_BASE_DECIMALS'] = int(decimals(token['BASEADDRESS']))
+            else:
+                token['_BASE_DECIMALS'] = int(decimals(weth))
+
+            token['_WETH_DECIMALS'] = int(decimals(weth))
+            printt_debug("token['_CONTRACT_DECIMALS']:", token['_WETH_DECIMALS'])
+
+
             # Check to see if we have any tokens in our wallet already
             token['_TOKEN_BALANCE'] = check_balance(token['ADDRESS'], token['SYMBOL'], display_quantity=False) / token[
                 '_CONTRACT_DECIMALS']
@@ -3556,10 +3599,8 @@ def run():
             printt_info(
                 "--> if liquidity is in BNB or ETH, use LIQUIDITYINNATIVETOKEN = true and USECUSTOMBASEPAIR = false")
             printt_info(" ")
-            printt_info("This message will be displayed during 2s before bot starts")
             printt_info(
                 "------------------------------------------------------------------------------------------------------------------------------")
-            sleep(2)
         
         while True:
             
@@ -3575,7 +3616,7 @@ def run():
             
             for token in tokens:
                 printt_debug("entering token :", token['SYMBOL'])
-    
+
                 if token['ENABLED'] == 'true':
                     
                     # Set the checksum addressed for the addresses we're working with
@@ -3600,7 +3641,7 @@ def run():
                     if token['_LIQUIDITY_READY'] == False:
                         if token['LIQUIDITYINNATIVETOKEN'] == 'true':
                             try:
-                                pool = check_pool(inToken, weth, token['BASESYMBOL'])
+                                pool = check_pool(inToken, weth, token['BASESYMBOL'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
                                 
                                 if pool != 0:
                                     token['_LIQUIDITY_READY'] = True
@@ -3618,7 +3659,7 @@ def run():
                         else:
                             # token['LIQUIDITYINNATIVETOKEN'] == 'false'
                             try:
-                                pool = check_pool(inToken, outToken, token['BASESYMBOL'])
+                                pool = check_pool(inToken, outToken, token['BASESYMBOL'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
                                 
                                 if pool != 0:
                                     token['_LIQUIDITY_READY'] = True
@@ -3638,11 +3679,19 @@ def run():
                     #    need to use later
                     #
                     token['_PREVIOUS_QUOTE'] = quote
-                    quote = check_price(inToken, outToken, token['SYMBOL'], token['BASESYMBOL'],
-                                        token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'],
-                                        token['BUYPRICEINBASE'], token['SELLPRICEINBASE'], token['STOPLOSSPRICEINBASE'])
+
+                    # if --check_precise_price parameter is used, bot will use dedicated function
+                    if command_line_args.precise_price:
+                        quote = check_precise_price(inToken, outToken, token['SYMBOL'], token['BASESYMBOL'],
+                                            token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'],
+                                            token['BUYPRICEINBASE'], token['SELLPRICEINBASE'], token['STOPLOSSPRICEINBASE'], token['_WETH_DECIMALS'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
+                    else:
+                        quote = check_price(inToken, outToken, token['SYMBOL'], token['BASESYMBOL'],
+                                            token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'],
+                                            token['BUYPRICEINBASE'], token['SELLPRICEINBASE'], token['STOPLOSSPRICEINBASE'], token['_WETH_DECIMALS'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
                     
                     printt_debug("quote 3245 :", quote)
+                    
                     if token['_ALL_TIME_HIGH'] == 0 and token['_ALL_TIME_LOW'] == 0:
                         token['_ALL_TIME_HIGH'] = quote
                         token['_ALL_TIME_LOW'] = quote
@@ -3731,7 +3780,7 @@ def run():
                                 calculate_base_balance(token)
                                 
                                 # Check the balance of our wallet
-                                DECIMALS = decimals(inToken)
+                                DECIMALS = token['_CONTRACT_DECIMALS']
                                 token['_TOKEN_BALANCE'] = check_balance(inToken, token['SYMBOL'],display_quantity=True) / DECIMALS
                                 printt_ok("----------------------------------", write_to_log=True)
                                 
@@ -3799,7 +3848,7 @@ def run():
                         printt_ok("Sell Signal Found =-= Sell Signal Found =-= Sell Signal Found ")
                         printt_ok("--------------------------------------------------------------")
                         
-                        tx = sell(token, inToken, outToken)
+                        tx = sell(token, inToken, outToken, token['_CONTRACT_DECIMALS'])
                         
                         if tx != False:
                             txsellresult = wait_for_tx(token, tx, token['ADDRESS'])
