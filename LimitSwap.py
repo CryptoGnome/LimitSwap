@@ -14,7 +14,6 @@ import requests
 import cryptocode, re, pwinput
 import argparse
 import signal
-import itertools
 
 
 # DEVELOPER CONSIDERATIONS
@@ -1585,7 +1584,7 @@ def approve(address, amount):
     eth_balance = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
     
     if base_symbol == "ETH":
-        minimumbalance = 0.000005
+        minimumbalance = 0.05
     else:
         minimumbalance = 0.01
     
@@ -1797,7 +1796,7 @@ def check_liquidity(token):
     if token['_LIQUIDITY_CHECKED'] == False:
         # Cases 1 and 2 above : we always use weth as LP pair to check liquidity
         if token["LIQUIDITYINNATIVETOKEN"] == 'true':
-            pool = check_pool(inToken, weth, base_symbol, token['SYMBOL'])
+            pool = check_pool(inToken, weth, base_symbol, token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
             printt("You have set LIQUIDITYCHECK = true.")
             printt("Current", token['SYMBOL'], "Liquidity =", int(pool), base_symbol)
             
@@ -1817,7 +1816,7 @@ def check_liquidity(token):
         
         # Case 3 above
         if token["LIQUIDITYINNATIVETOKEN"] == 'false' and token["USECUSTOMBASEPAIR"] == 'true':
-            pool = check_pool(inToken, outToken, token['BASESYMBOL'])
+            pool = check_pool(inToken, outToken, token['BASESYMBOL'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
             printt("You have set LIQUIDITYCHECK = true.")
             printt("Current", token['SYMBOL'], "Liquidity =", int(pool), token['BASESYMBOL'])
             
@@ -2908,7 +2907,7 @@ def buy(token_dict, inToken, outToken, pwd):
         return False
 
 
-def sell(token_dict, inToken, outToken, DECIMALS):
+def sell(token_dict, inToken, outToken):
     # Map variables until all code is cleaned up.
     amount = token_dict['SELLAMOUNTINTOKENS']
     moonbag = token_dict['MOONBAG']
@@ -3486,7 +3485,7 @@ def run():
 
     # Determine minimum balance
     if base_symbol == "ETH":
-        minimumbalance = 0.000005
+        minimumbalance = 0.05
     else:
         minimumbalance = 0.01
 
@@ -3848,7 +3847,7 @@ def run():
                         printt_ok("Sell Signal Found =-= Sell Signal Found =-= Sell Signal Found ")
                         printt_ok("--------------------------------------------------------------")
                         
-                        tx = sell(token, inToken, outToken, token['_CONTRACT_DECIMALS'])
+                        tx = sell(token, inToken, outToken)
                         
                         if tx != False:
                             txsellresult = wait_for_tx(token, tx, token['ADDRESS'])
