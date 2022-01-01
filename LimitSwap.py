@@ -51,9 +51,6 @@ import signal
 #
 # Global used for printt_repeating to track how many repeated messages have been printed to console
 repeated_message_quantity = 0
-# Global used to determine when trading has started (= OpenTrading is On)
-trading_is_on = False
-
 
 # color styles
 class style():  # Class of different text colours - default is white
@@ -273,13 +270,11 @@ def printt_sell_price(token_dict, token_price):
     #
     #     returns: nothing
     
-    global trading_is_on
-    printt_debug("trading_is_on 266:", trading_is_on)
-    printt_debug("_PREVIOUS_QUOTE 266:", token_dict['_PREVIOUS_QUOTE'])
+    printt_debug("token_dict['_TRADING_IS_ON'] 266:", token_dict['_TRADING_IS_ON'], "for token:", token_dict['SYMBOL'])
+    printt_debug("_PREVIOUS_QUOTE :", token_dict['_PREVIOUS_QUOTE'], "for token:", token_dict['SYMBOL'])
     
     if token_dict['USECUSTOMBASEPAIR'] == 'false':
-        price_message = token_dict['SYMBOL'] + " Price: " + "{0:.24f}".format(
-            token_price) + " " + base_symbol + " - Buy:" + str(token_dict['BUYPRICEINBASE'])
+        price_message = token_dict['SYMBOL'] + " Price: " + "{0:.24f}".format(token_price) + " " + base_symbol + " - Buy:" + str(token_dict['BUYPRICEINBASE'])
     
     else:
         price_message = token_dict['SYMBOL'] + " Price:" + "{0:.24f}".format(token_price) + " " + token_dict[
@@ -295,10 +290,10 @@ def printt_sell_price(token_dict, token_price):
         bot_settings['_NEED_NEW_LINE'] = True
     elif token_price > token_dict['_PREVIOUS_QUOTE']:
         printt_ok(price_message)
-        trading_is_on = True
+        token_dict['_TRADING_IS_ON'] = True
     elif token_price < token_dict['_PREVIOUS_QUOTE']:
         printt_err(price_message)
-        trading_is_on = True
+        token_dict['_TRADING_IS_ON'] = True
     else:
         printt(price_message)
     
@@ -520,17 +515,19 @@ def load_tokens_file(tokens_path, load_message=True):
     # _GAS_TO_USE           - the amount of gas the bot has estimated it should use for the purchase of a token
     #                         this number is calculated every bot start up
     # _FAILED_TRANSACTIONS  - the number of times a transaction has failed for this token
-    # _TOKEN_BALANCE'       - the number of traded tokens the user has in her wallet
-    # _BASE_BALANCE'        - balance of Base token, calculated at bot launch and after a BUY/SELL
-    # _CUSTOM_BASE_BALANCE' - balance of Custom Base token, calculated at bot launch and after a BUY/SELL
-    # _PREVIOUS_QUOTE'      - holds the ask price for a token the last time a price was queried, this is used
+    # _TRADING_IS_ON        - defines if trading is ON of OFF on a token. Used with WAIT_FOR_OPEN_TRADE parameter
+    # _TOKEN_BALANCE        - the number of traded tokens the user has in her wallet
+    # _BASE_BALANCE         - balance of Base token, calculated at bot launch and after a BUY/SELL
+    # _CUSTOM_BASE_BALANCE  - balance of Custom Base token, calculated at bot launch and after a BUY/SELL
+    # _QUOTE                - holds the token's quote
+    # _PREVIOUS_QUOTE       - holds the ask price for a token the last time a price was queried, this is used
     #                         to determine the direction the market is going
-    # _COST_PER_TOKEN'      - the calculated/estimated price the bot paid for the number of tokens it traded
-    # _ALL_TIME_HIGH'       - the highest price a token has had since the bot was started
-    # _ALL_TIME_LOW'        - the lowest price a token has had since the bot was started
+    # _COST_PER_TOKEN       - the calculated/estimated price the bot paid for the number of tokens it traded
+    # _ALL_TIME_HIGH        - the highest price a token has had since the bot was started
+    # _ALL_TIME_LOW         - the lowest price a token has had since the bot was started
     # _CONTRACT_DECIMALS    - the number of decimals a contract uses. Used to speed up some of our processes
     #                         instead of querying the contract for the same information repeatedly.
-    # _BASE_DECIMALS - the number of decimals of custom base pair. Used to speed up some of our processes
+    # _BASE_DECIMALS        - the number of decimals of custom base pair. Used to speed up some of our processes
     #                         instead of querying the contract for the same information repeatedly.
     # _WETH_DECIMALS        - the number of decimals of weth. Used to speed up some of our processes
     #                         instead of querying the contract for the same information repeatedly.
@@ -544,11 +541,13 @@ def load_tokens_file(tokens_path, load_message=True):
         '_LIQUIDITY_CHECKED': False,
         '_INFORMED_SELL': False,
         '_REACHED_MAX_TOKENS': False,
+        '_TRADING_IS_ON': False,
         '_GAS_TO_USE': 0,
         '_FAILED_TRANSACTIONS': 0,
         '_TOKEN_BALANCE': 0,
         '_BASE_BALANCE': 0,
         '_CUSTOM_BASE_BALANCE': 0,
+        '_QUOTE': 0,
         '_PREVIOUS_QUOTE': 0,
         '_ALL_TIME_HIGH': 0,
         '_COST_PER_TOKEN': 0,
@@ -686,17 +685,19 @@ def reload_tokens_file(tokens_path, load_message=True):
     # _GAS_TO_USE           - the amount of gas the bot has estimated it should use for the purchase of a token
     #                         this number is calculated every bot start up
     # _FAILED_TRANSACTIONS  - the number of times a transaction has failed for this token
-    # _TOKEN_BALANCE'       - the number of traded tokens the user has in her wallet
-    # _BASE_BALANCE'        - balance of Base token, calculated at bot launch and after a BUY/SELL
+    # _TRADING_IS_ON        - defines if trading is ON of OFF on a token. Used with WAIT_FOR_OPEN_TRADE parameter
+    # _TOKEN_BALANCE        - the number of traded tokens the user has in her wallet
+    # _BASE_BALANCE         - balance of Base token, calculated at bot launch and after a BUY/SELL
     # _CUSTOM_BASE_BALANCE' - balance of Custom Base token, calculated at bot launch and after a BUY/SELL
-    # _PREVIOUS_QUOTE'      - holds the ask price for a token the last time a price was queried, this is used
+    # _QUOTE                - holds the token's quote
+    # _PREVIOUS_QUOTE       - holds the ask price for a token the last time a price was queried, this is used
     #                         to determine the direction the market is going
-    # _COST_PER_TOKEN'      - the calculated/estimated price the bot paid for the number of tokens it traded
-    # _ALL_TIME_HIGH'       - the highest price a token has had since the bot was started
-    # _ALL_TIME_LOW'        - the lowest price a token has had since the bot was started
+    # _COST_PER_TOKEN       - the calculated/estimated price the bot paid for the number of tokens it traded
+    # _ALL_TIME_HIGH        - the highest price a token has had since the bot was started
+    # _ALL_TIME_LOW         - the lowest price a token has had since the bot was started
     # _CONTRACT_DECIMALS    - the number of decimals a contract uses. Used to speed up some of our processes
     #                         instead of querying the contract for the same information repeatedly.
-    # _BASE_DECIMALS - the number of decimals of custom base pair. Used to speed up some of our processes
+    # _BASE_DECIMALS        - the number of decimals of custom base pair. Used to speed up some of our processes
     #                         instead of querying the contract for the same information repeatedly.
     # _WETH_DECIMALS        - the number of decimals of weth. Used to speed up some of our processes
     #                         instead of querying the contract for the same information repeatedly.
@@ -709,12 +710,14 @@ def reload_tokens_file(tokens_path, load_message=True):
         '_LIQUIDITY_CHECKED': False,
         '_INFORMED_SELL': False,
         '_REACHED_MAX_TOKENS': False,
+        '_TRADING_IS_ON': False,
         '_GAS_TO_USE': 0,
         '_FAILED_TRANSACTIONS': 0,
         '_TOKEN_BALANCE': 0,
         '_BASE_BALANCE': 0,
         '_CUSTOM_BASE_BALANCE': 0,
         '_PREVIOUS_QUOTE': 0,
+        '_QUOTE': 0,
         '_ALL_TIME_HIGH': 0,
         '_COST_PER_TOKEN': 0,
         '_ALL_TIME_LOW': 0,
@@ -1819,7 +1822,7 @@ def check_liquidity(token):
                 printt_warn("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
                             " : not enough liquidity, bot will not buy. Disabling the trade of this token.")
                 token['ENABLED'] = 'false'
-                quote = 0
+                token['_QUOTE'] = 0
                 sys.exit()
                 return 0
         
@@ -1839,7 +1842,7 @@ def check_liquidity(token):
                 printt_warn("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
                             " : not enough liquidity, bot will not buy. Disableing the trade of this token.")
                 token['ENABLED'] = 'false'
-                quote = 0
+                token['_QUOTE'] = 0
                 sys.exit()
                 return 0
 
@@ -1960,12 +1963,34 @@ def check_precise_price(inToken, outToken, symbol, base, custom, routing, buypri
 def calculate_base_balance(token):
     # Function: calculate_base_balance
     # --------------------
-    # calculate balance before and after buy/sell
-    # so as the bot to be faster to make transactions
+    # calculate base balance
+    # it is done before and after buy/sell so as the bot to be faster to make transactions
     #
     
     printt_debug("ENTER: calculate_base_balance()")
 
+
+    # STEP 1 - Determine if wallet has minimum base balance
+    # Bot will get your balance, and show an error if there is a problem with your node.
+    if base_symbol == "ETH":
+        minimumbalance = 0.05
+    else:
+        minimumbalance = 0.01
+
+    try:
+        eth_balance = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
+    except Exception as e:
+        printt_err("ERROR with your node : please check logs.", write_to_log=True)
+        logger1.exception(e)
+        sys.exit()
+
+    if eth_balance < minimumbalance:
+        printt_err(
+            "You have less than 0.05 ETH or 0.01 BNB/FTM/MATIC/etc. token in your wallet, bot needs more to cover fees : please add some more in your wallet")
+        sleep(10)
+        exit(1)
+
+    # STEP 2 - update token['_BASE_BALANCE'] or token['_CUSTOM_BASE_BALANCE']
     if token['USECUSTOMBASEPAIR'].lower() == 'false':
         token['_BASE_BALANCE'] = Web3.fromWei(check_bnb_balance(), 'ether')
         printt_debug("balance 2951 case1:", token['_BASE_BALANCE'])
@@ -3488,32 +3513,10 @@ def sell(token_dict, inToken, outToken):
 
 
 def run():
-    # Price Quote
-    quote = 0
     reload_tokens_file = False
 
-    # Determine minimum balance
-    if base_symbol == "ETH":
-        minimumbalance = 0.05
-    else:
-        minimumbalance = 0.01
-
-    # Bot will get your balance, and show an error if there is a problem with your node.
-    try:
-        eth_balance = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
-    except Exception as e:
-        printt_err("ERROR with your node : please check logs.", write_to_log=True)
-        logger1.exception(e)
-        sys.exit()
-        
     try:
         tokens = load_tokens_file(command_line_args.tokens, True)
-        
-        if eth_balance < minimumbalance:
-            printt_err(
-                "You have less than 0.05 ETH or 0.01 BNB/FTM/MATIC/etc. token in your wallet, bot needs more to cover fees : please add some more in your wallet")
-            sleep(10)
-            exit(1)
         
         # Display the number of token pairs we're attempting to trade
         token_list_report(tokens)
@@ -3620,7 +3623,7 @@ def run():
                 tokens_file_modified_time = os.path.getmtime(command_line_args.tokens)
                 if (modification_check != tokens_file_modified_time):
                     reload_tokens_file = True
-                    raise Exception("tokens.json has been changed, reinitializing tokens.")
+                    raise Exception("tokens.json has been changed, reloading.")
             else:
                 load_token_file_increment = load_token_file_increment + 1
             
@@ -3671,34 +3674,34 @@ def run():
                     #    Check the latest price on this token and record information on the price that we may
                     #    need to use later
                     #
-                    token['_PREVIOUS_QUOTE'] = quote
-
+                    token['_PREVIOUS_QUOTE'] = token['_QUOTE']
+                    
                     # if --check_precise_price parameter is used, bot will use dedicated function
                     if command_line_args.precise_price:
-                        quote = check_precise_price(inToken, outToken, token['SYMBOL'], token['BASESYMBOL'],
+                        token['_QUOTE'] = check_precise_price(inToken, outToken, token['SYMBOL'], token['BASESYMBOL'],
                                             token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'],
                                             token['BUYPRICEINBASE'], token['SELLPRICEINBASE'], token['STOPLOSSPRICEINBASE'], token['_WETH_DECIMALS'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
                     else:
-                        quote = check_price(inToken, outToken, token['SYMBOL'], token['BASESYMBOL'],
+                        token['_QUOTE'] = check_price(inToken, outToken, token['SYMBOL'], token['BASESYMBOL'],
                                             token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'],
                                             token['BUYPRICEINBASE'], token['SELLPRICEINBASE'], token['STOPLOSSPRICEINBASE'], token['_WETH_DECIMALS'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
                     
-                    printt_debug("quote 3245 :", quote)
+                    printt_debug("token['_QUOTE'] 3245 :", token['_QUOTE'], "for the token:", token['SYMBOL'])
                     
                     if token['_ALL_TIME_HIGH'] == 0 and token['_ALL_TIME_LOW'] == 0:
-                        token['_ALL_TIME_HIGH'] = quote
-                        token['_ALL_TIME_LOW'] = quote
+                        token['_ALL_TIME_HIGH'] = token['_QUOTE']
+                        token['_ALL_TIME_LOW'] = token['_QUOTE']
                     
-                    elif quote > token['_ALL_TIME_HIGH']:
-                        token['_ALL_TIME_HIGH'] = quote
+                    elif token['_QUOTE'] > token['_ALL_TIME_HIGH']:
+                        token['_ALL_TIME_HIGH'] = token['_QUOTE']
                     
-                    elif quote < token['_ALL_TIME_LOW']:
-                        token['_ALL_TIME_LOW'] = quote
+                    elif token['_QUOTE'] < token['_ALL_TIME_LOW']:
+                        token['_ALL_TIME_LOW'] = token['_QUOTE']
                     
                     # If we're still in the market to buy tokens, the print the buy message
                     # added the condition "if token['_PREVIOUS_QUOTE'] != 0" to avoid having a green line in first position and make trading_is_on work
-                    if token['_PREVIOUS_QUOTE'] != 0 and quote != 0:  # and token['_REACHED_MAX_TOKENS'] == False:
-                        printt_buy_price(token, quote)
+                    if token['_PREVIOUS_QUOTE'] != 0 and token['_QUOTE'] != 0:  # and token['_REACHED_MAX_TOKENS'] == False:
+                        printt_buy_price(token, token['_QUOTE'])
                     
                     #
                     # BUY CHECK
@@ -3706,32 +3709,32 @@ def run():
                     #   the user that we've reached the maximum number of tokens, check for other criteria to buy.
                     #
                     
-                    if quote != 0 and quote < Decimal(token['BUYPRICEINBASE']) and token['_REACHED_MAX_TOKENS'] == False:
+                    if token['_QUOTE'] != 0 and token['_QUOTE'] < Decimal(token['BUYPRICEINBASE']) and token['_REACHED_MAX_TOKENS'] == False:
                         
                         #
                         # OPEN TRADE CHECK
                         #   If the option is selected, bot wait for trading_is_on == True to create a BUY order
                         #
                         
-                        if token['WAIT_FOR_OPEN_TRADE'].lower() == 'true' and trading_is_on == True:
+                        if token['WAIT_FOR_OPEN_TRADE'].lower() == 'true' and token['_TRADING_IS_ON'] == True:
                             printt_info("PRICE HAS MOVED --> trading is enabled --> Bot will buy")
                             pass
                         
-                        if token['WAIT_FOR_OPEN_TRADE'].lower() == 'true' and trading_is_on == False:
-                            printt_debug("waiting for open trade")
-                            break
+                        if token['WAIT_FOR_OPEN_TRADE'].lower() == 'true' and token['_TRADING_IS_ON'] == False:
+                            printt("Waiting for price to move")
+                            continue
                         
                         #
                         # PURCHASE POSITION
                         #   If we've passed all checks, attempt to purchase the token
                         #
                         printt_debug("===========================================")
-                        printt_debug("Quote:", quote)
+                        printt_debug("token['_QUOTE']:", token['_QUOTE'])
                         printt_debug("Buy Price:", Decimal(token['BUYPRICEINBASE']))
                         printt_debug("_REACHED_MAX_TOKENS:", token['_REACHED_MAX_TOKENS'])
                         printt_debug("===========================================")
                         
-                        log_price = "{:.18f}".format(quote)
+                        log_price = "{:.18f}".format(token['_QUOTE'])
                         logging.info("Buy Signal Found @" + str(log_price))
                         printt_ok("-----------------------------------------------------------")
                         printt_ok("Buy Signal Found =-= Buy Signal Found =-= Buy Signal Found ")
@@ -3808,12 +3811,12 @@ def run():
                     #                 " Looking to sell this position")
                     token['_INFORMED_SELL'] = True
 
-                    # if --always_check_balance parameter is used, bot will check all the time
+                    # if ALWAYS_CHECK_BALANCE parameter is used, bot will check balance all the time
                     if token['ALWAYS_CHECK_BALANCE'] == 'true':
-                        printt_debug("2832 ALWAYS_CHECK_BALANCE is ON")
+                        printt_debug("3815 ALWAYS_CHECK_BALANCE is ON")
                         token['_TOKEN_BALANCE'] = check_balance(token['ADDRESS'], token['SYMBOL'],display_quantity=False)
 
-                    printt_debug("_TOKEN_BALANCE 3411", token['_TOKEN_BALANCE'])
+                    printt_debug("_TOKEN_BALANCE 3411", token['_TOKEN_BALANCE'], "for the token:",token['SYMBOL'])
                     # Looking to dump this token as soon as it drops <PUMP> percentage
                     if isinstance(command_line_args.pump, int) and command_line_args.pump > 0:
                         
@@ -3821,21 +3824,19 @@ def run():
                             printt_warn("WARNING: You are running a pump on an already purchased position.")
                             sleep(5)
                         
-                        printt_sell_price(token, quote)
+                        printt_sell_price(token, token['_QUOTE'])
                         
-                        minimum_price = token['_ALL_TIME_HIGH'] - (
-                                    command_line_args.pump * 0.01 * token['_ALL_TIME_HIGH'])
+                        minimum_price = token['_ALL_TIME_HIGH'] - (command_line_args.pump * 0.01 * token['_ALL_TIME_HIGH'])
                         
-                        if quote < minimum_price and token['_TOKEN_BALANCE'] > 0:
-                            printt_err(token['SYMBOL'], "has dropped", command_line_args.pump,
-                                       "% from it's ATH - SELLING POSITION")
+                        if token['_QUOTE'] < minimum_price and token['_TOKEN_BALANCE'] > 0:
+                            printt_err(token['SYMBOL'], "has dropped", command_line_args.pump, "% from it's ATH - SELLING POSITION")
                             price_conditions_met = True
                     
-                    elif (quote > Decimal(token['SELLPRICEINBASE']) or quote < Decimal(token['STOPLOSSPRICEINBASE']))  and token['_TOKEN_BALANCE'] > 0:
+                    elif (token['_QUOTE'] > Decimal(token['SELLPRICEINBASE']) or token['_QUOTE'] < Decimal(token['STOPLOSSPRICEINBASE']))  and token['_TOKEN_BALANCE'] > 0:
                         price_conditions_met = True
                     
                     if price_conditions_met == True:
-                        log_price = "{:.18f}".format(quote)
+                        log_price = "{:.18f}".format(token['_QUOTE'])
                         logging.info("Sell Signal Found @" + str(log_price))
                         printt_ok("--------------------------------------------------------------")
                         printt_ok("Sell Signal Found =-= Sell Signal Found =-= Sell Signal Found ")
