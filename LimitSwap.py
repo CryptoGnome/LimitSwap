@@ -1504,6 +1504,7 @@ def parse_wallet_settings(settings, pwd):
         save_settings(settings, pwd)
 
 
+@cache
 def decimals(address):
     # Function: decimals
     # ----------------------------
@@ -1801,6 +1802,46 @@ def check_rugdoc_api(token):
         printt("DISABLING", token['SYMBOL'])
         token['ENABLED'] = 'false'
         token['_QUOTE'] = 0
+
+
+def wait_for_open_trade(token):
+    openTrade = False
+    tx_filter = client.eth.filter({"filter_params": "pending", "address": token})
+
+    list_of_methodId = ["0x7ff36ab5", "0xbccce037"]
+
+    # Examples of tokens and functions used
+    #
+    
+    # Jade - 0x7ad7242a99f21aa543f9650a56d141c57e4f6081
+    # Function: Transfer
+    # methodId = "0x7ff36ab5"
+
+    # WitcherVerse - 0xD2f71875d66188F96BaDBF98a5F020894209E34b
+    # https://bscscan.com/tx/0x19cac49bf8319689a7620935bf9466e469317992b994ec9692697a9ef71e3ace
+    # Function: preSaleAfter()
+    # methodId = "0xbccce037"
+
+    # https://bscscan.com/tx/0xb42089396c1b1f887cb79e0cf48ae785aa92fa66f0645c759244f70b2a2834f9
+    #
+
+
+    while openTrade == False:
+        try:
+            for tx_event in tx_filter.get_new_entries():
+
+                txHash = tx_event['transactionHash']
+                txHashDetails = client.eth.get_transaction(txHash)
+                txFunction = txHashDetails.input[:10]
+                if txFunction.lower() in list_of_methodId:
+                    openTrade = True
+                    print(timestamp(), " MethodID: ", txFunction, " Block: ", tx_event['blockNumber'], " Found Signal")
+                    #break
+                else:
+                    print(timestamp(), " MethodID: ", txFunction, " Block: ", tx_event['blockNumber'])
+        except:
+            print(timestamp(), " Error")
+            wait_for_open_trade(token)
 
 
 def get_tokens_purchased(tx_hash):
