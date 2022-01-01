@@ -1641,17 +1641,17 @@ def approve(address, amount):
         sys.exit()
 
 
-def check_approval(token, address, allowance_to_compare_with):
+def check_approval(token, address, allowance_to_compare_with, condition):
     printt_debug("ENTER check_approval()")
     printt("Checking Approval Status", address)
     contract = client.eth.contract(address=Web3.toChecksumAddress(address), abi=standardAbi)
-    actual_allowance = contract.functions.allowance(Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                                                    routerAddress).call()
+    actual_allowance = contract.functions.allowance(Web3.toChecksumAddress(settings['WALLETADDRESS']), routerAddress).call()
     
     printt_debug("actual_allowance 1591          :", actual_allowance)
     printt_debug("allowance_to_compare_with 1592 :", allowance_to_compare_with)
     
     allowance_request = 115792089237316195423570985008687907853269984665640564039457584007913129639935
+    
     if actual_allowance < allowance_to_compare_with or actual_allowance == 0:
         if settings["EXCHANGE"] == 'quickswap':
             
@@ -1661,10 +1661,19 @@ def check_approval(token, address, allowance_to_compare_with):
             tx = approve(address, allowance_request)
             wait_for_tx(token, tx, address)
         else:
-            printt_info("---------------------------------------------------------------------------")
-            printt_info("You need to APPROVE this token before selling it : LimitSwap will do it now")
-            printt_info("---------------------------------------------------------------------------")
-            
+            if condition == 'preapprove':
+                printt_info("-----------------------------------------------------------------------------")
+                printt_info("You have selected PREAPPROVE = true --> LimitSwap will now APPROVE this token")
+                printt_info("-----------------------------------------------------------------------------")
+            if condition == 'txfail':
+                printt_info("----------------------------------------------------------------------------------")
+                printt_info("You have failed to sell tokens --> LimitSwap will chack if it needs to be APPROVED")
+                printt_info("----------------------------------------------------------------------------------")
+            else:
+                printt_info("-------------------------------------")
+                printt_info("LimitSwap will now APPROVE this token")
+                printt_info("-------------------------------------")
+
             tx = approve(address, allowance_request)
             wait_for_tx(token, tx, address)
             printt_ok("---------------------------------------------------------")
@@ -2786,17 +2795,17 @@ def preapprove(tokens):
     for token in tokens:
         
         balance = Web3.fromWei(check_balance(token['ADDRESS'], token['SYMBOL'], display_quantity=False), 'ether')
-        check_approval(token, token['ADDRESS'], balance * 10000000000000000)
+        check_approval(token, token['ADDRESS'], balance * 10000000000000000, preapprove)
         
         # then of the base pair
         if token['USECUSTOMBASEPAIR'].lower() == 'false':
             balanceweth = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
             printt_debug("Balanceweth:", balanceweth)
-            check_approval(token, weth, balanceweth * 10000000000000000)
+            check_approval(token, weth, balanceweth * 10000000000000000, preapprove)
         else:
             balancebase = Web3.fromWei(check_balance(token['BASEADDRESS'], token['BASESYMBOL'], display_quantity=False),
                                        'ether')
-            check_approval(token, token['BASEADDRESS'], balancebase * 10000000000000000)
+            check_approval(token, token['BASEADDRESS'], balancebase * 10000000000000000, preapprove)
     
     printt_debug("EXIT - preapprove()")
 
@@ -3510,8 +3519,10 @@ def run():
         token_list_report(tokens)
         
         # Check to see if the user wants to pre-approve token transactions. If they do, work through that approval process
-        if settings['PREAPPROVE'] == 'true':
-            preapprove(tokens)
+        # UPDATE 01/01/2022 : removed here, to make the "instantafterbuy" default preapprove behaviour
+        #
+        # if settings['PREAPPROVE'] == 'true':
+        #    preapprove(tokens)
         
         # For each token check to see if the user wants to run a rugdoc check against them.
         #   then run the rugdoctor check and prompt the user if they want to continue trading
@@ -3633,45 +3644,32 @@ def run():
                     # CHECK LIQUIDITY ... if we haven't already checked liquidity
                     #   Break out of the loop for this token if we haven't found liquidity yet
                     #   There are 2 cases :
-                    #       1/ LIQUIDITYINNATIVETOKEN = true  --> we will snipe using ETH / BNB liquidity --> we use check_pool with weth
-                    #       2/ LIQUIDITYINNATIVETOKEN = false --> we will snipe using Custom Base Pair    --> we use check_pool with outToken
+                    #       Case 1/ LIQUIDITYINNATIVETOKEN = true  --> we will snipe using ETH / BNB liquidity --> we use check_pool with weth
+                    #       Case 2/ LIQUIDITYINNATIVETOKEN = false --> we will snipe using Custom Base Pair    --> we use check_pool with outToken
                     #
                     printt_debug("token['_LIQUIDITY_READY']:", token['_LIQUIDITY_READY'], "for token :", token['SYMBOL'])
+                    
                     if token['_LIQUIDITY_READY'] == False:
                         if token['LIQUIDITYINNATIVETOKEN'] == 'true':
-                            try:
-                                pool = check_pool(inToken, weth, token['BASESYMBOL'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
-                                
-                                if pool != 0:
-                                    token['_LIQUIDITY_READY'] = True
-                                    printt_info("Found liquidity for", token['SYMBOL'])
-                                    pass
-                                else:
-                                    printt_repeating(token, token['SYMBOL'] + " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
-                                    continue
-
-                            except Exception:
-                                printt_repeating(token, token['SYMBOL'] + " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
-                                continue
-                                
-
+                            #       Case 1/ LIQUIDITYINNATIVETOKEN = true  --> we will snipe using ETH / BNB liquidity --> we use check_pool with weth
+                            pool = check_pool(inToken, weth, token['BASESYMBOL'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
                         else:
-                            # token['LIQUIDITYINNATIVETOKEN'] == 'false'
-                            try:
-                                pool = check_pool(inToken, outToken, token['BASESYMBOL'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
-                                
-                                if pool != 0:
-                                    token['_LIQUIDITY_READY'] = True
-                                    printt_info("Found liquidity for", token['SYMBOL'])
-                                    pass
-                                else:
-                                    printt_repeating(token, token['SYMBOL'] + " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
-                                    continue
-                            
-                            except Exception:
+                            #       Case 2/ LIQUIDITYINNATIVETOKEN = false --> we will snipe using Custom Base Pair    --> we use check_pool with outToken
+                            pool = check_pool(inToken, outToken, token['BASESYMBOL'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
+    
+                        try:
+                            if pool != 0:
+                                token['_LIQUIDITY_READY'] = True
+                                printt_info("Found liquidity for", token['SYMBOL'])
+                                pass
+                            else:
                                 printt_repeating(token, token['SYMBOL'] + " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
                                 continue
-                    
+
+                        except Exception:
+                            printt_repeating(token, token['SYMBOL'] + " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
+                            continue
+                            
                     #
                     #  PRICE CHECK
                     #    Check the latest price on this token and record information on the price that we may
@@ -3784,8 +3782,8 @@ def run():
                                 printt_ok("----------------------------------", write_to_log=True)
                                 
                                 # if user has chose the option "instantafterbuy", token is approved right after buy order is confirmed.
-                                if settings['PREAPPROVE'] == 'instantafterbuy':
-                                    check_approval(token, token['ADDRESS'], token['_TOKEN_BALANCE'] * DECIMALS)
+                                if (settings['PREAPPROVE'] == 'instantafterbuy' or settings['PREAPPROVE'] == 'true'):
+                                    check_approval(token, token['ADDRESS'], token['_TOKEN_BALANCE'] * DECIMALS, preapprove)
 
                                 # Check if MAXTOKENS is reached or not
                                 if token['_TOKEN_BALANCE'] > Decimal(token['MAXTOKENS']):
@@ -3868,7 +3866,7 @@ def run():
                                 token['_FAILED_TRANSACTIONS'] += 1
                                 
                                 # We ask the bot to check if your allowance is > to your balance.
-                                check_approval(token, inToken, token['_TOKEN_BALANCE'] * 1000000000000000000)
+                                check_approval(token, inToken, token['_TOKEN_BALANCE'] * 1000000000000000000, txfail)
 
                                 printt_debug("3095 _FAILED_TRANSACTIONS:", token['_FAILED_TRANSACTIONS'])
                             else:
