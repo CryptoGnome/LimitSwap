@@ -516,6 +516,7 @@ def load_tokens_file(tokens_path, load_message=True):
     #                         this number is calculated every bot start up
     # _FAILED_TRANSACTIONS  - the number of times a transaction has failed for this token
     # _TRADING_IS_ON        - defines if trading is ON of OFF on a token. Used with WAIT_FOR_OPEN_TRADE parameter
+    # _RUGDOC_DECISION      - decision of the user after RugDoc API check
     # _TOKEN_BALANCE        - the number of traded tokens the user has in her wallet
     # _BASE_BALANCE         - balance of Base token, calculated at bot launch and after a BUY/SELL
     # _CUSTOM_BASE_BALANCE  - balance of Custom Base token, calculated at bot launch and after a BUY/SELL
@@ -542,6 +543,7 @@ def load_tokens_file(tokens_path, load_message=True):
         '_INFORMED_SELL': False,
         '_REACHED_MAX_TOKENS': False,
         '_TRADING_IS_ON': False,
+        '_RUGDOC_DECISION': "",
         '_GAS_TO_USE': 0,
         '_FAILED_TRANSACTIONS': 0,
         '_TOKEN_BALANCE': 0,
@@ -686,6 +688,7 @@ def reload_tokens_file(tokens_path, load_message=True):
     #                         this number is calculated every bot start up
     # _FAILED_TRANSACTIONS  - the number of times a transaction has failed for this token
     # _TRADING_IS_ON        - defines if trading is ON of OFF on a token. Used with WAIT_FOR_OPEN_TRADE parameter
+    # _RUGDOC_DECISION      - decision of the user after RugDoc API check
     # _TOKEN_BALANCE        - the number of traded tokens the user has in her wallet
     # _BASE_BALANCE         - balance of Base token, calculated at bot launch and after a BUY/SELL
     # _CUSTOM_BASE_BALANCE' - balance of Custom Base token, calculated at bot launch and after a BUY/SELL
@@ -711,6 +714,7 @@ def reload_tokens_file(tokens_path, load_message=True):
         '_INFORMED_SELL': False,
         '_REACHED_MAX_TOKENS': False,
         '_TRADING_IS_ON': False,
+        '_RUGDOC_DECISION': "",
         '_GAS_TO_USE': 0,
         '_FAILED_TRANSACTIONS': 0,
         '_TOKEN_BALANCE': 0,
@@ -1765,6 +1769,40 @@ def check_pool(inToken, outToken, symbol, DECIMALS_IN, DECIMALS_OUT):
     return pooled
 
 
+def check_rugdoc_api(token):
+    # Use Rugdoc API to check if token is a honeypot or not
+    rugresponse = requests.get(
+        'https://honeypot.api.rugdoc.io/api/honeypotStatus.js?address=' + token['ADDRESS'] + rugdocchain)
+    # sending get request and saving the response as response object
+
+    if rugresponse.status_code == 200:
+        d = json.loads(rugresponse.content)
+        for key, value in interpretations.items():
+            if d["status"] in key:
+                honeypot_status = value
+                honeypot_code = key
+                printt(honeypot_status)
+                print(style.RESET + " ")
+
+    else:
+        printt_warn(
+            "Sorry, Rugdoc's API does not work on this token (Rugdoc does not work on ETH chain for instance)")
+
+    token['_RUGDOC_DECISION'] = ""
+    while token['_RUGDOC_DECISION'] != "y" and token['_RUGDOC_DECISION'] != "n":
+        printt("What is your decision?")
+        token['_RUGDOC_DECISION'] = input("                           Would you like to snipe this token? (y/n): ")
+
+    if token['_RUGDOC_DECISION'] == "y":
+        print(style.RESET + " ")
+        printt_ok("OK let's go!!")
+    else:
+        print(style.RESET + " ")
+        printt("DISABLING", token['SYMBOL'])
+        token['ENABLED'] = 'false'
+        token['_QUOTE'] = 0
+
+
 def get_tokens_purchased(tx_hash):
     # Function: get_tokens_purchased
     # ----------------------------
@@ -1819,8 +1857,7 @@ def check_liquidity(token):
             
             # This position isn't looking good. Inform the user, disable the token and break out of this loop
             else:
-                printt_warn("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
-                            " : not enough liquidity, bot will not buy. Disabling the trade of this token.")
+                printt_warn("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']), " : not enough liquidity, bot will not buy. Disabling the trade of this token.")
                 token['ENABLED'] = 'false'
                 token['_QUOTE'] = 0
                 sys.exit()
@@ -1862,14 +1899,14 @@ def check_price(inToken, outToken, symbol, base, custom, routing, buypriceinbase
             # LIQUIDITYINNATIVETOKEN = true
             # USECUSTOMBASEPAIR = true and token put in BASEADDRESS is different from WBNB / WETH
             price_check = routerContract.functions.getAmountsOut(1 * DECIMALS_IN, [inToken, weth, outToken]).call()[-1]
-            printt_debug("price_check1: ", price_check)
+            printt_debug("price_check condition 1: ", price_check)
             tokenPrice = price_check / DECIMALS_OUT
         else:
             # LIQUIDITYINNATIVETOKEN = true
             # USECUSTOMBASEPAIR = false
             # or USECUSTOMBASEPAIR = true and token put in BASEADDRESS is WBNB / WETH (because outToken == weth)
             price_check = routerContract.functions.getAmountsOut(1 * DECIMALS_IN, [inToken, weth]).call()[-1]
-            printt_debug("price_check2: ", price_check)
+            printt_debug("price_check condition 2: ", price_check)
             tokenPrice = price_check / DECIMALS_OUT
     
     else:
@@ -3565,35 +3602,8 @@ def run():
             
             # Call of RugDoc API if parameter is set to True
             if token['RUGDOC_CHECK'] == 'true':
+                check_rugdoc_api(token)
                 
-                rugresponse = requests.get(
-                    'https://honeypot.api.rugdoc.io/api/honeypotStatus.js?address=' + token['ADDRESS'] + rugdocchain)
-                # sending get request and saving the response as response object
-                
-                if rugresponse.status_code == 200:
-                    d = json.loads(rugresponse.content)
-                    for key, value in interpretations.items():
-                        if d["status"] in key:
-                            honeypot_status = value
-                            honeypot_code = key
-                            printt(honeypot_status)
-                            print(style.RESET + " ")
-                
-                else:
-                    printt_warn(
-                        "Sorry, Rugdoc's API does not work on this token (Rugdoc does not work on ETH chain for instance)")
-                
-                decision = ""
-                while decision != "y" and decision != "n":
-                    printt_info("What is your decision?")
-                    decision = input(
-                        style.BLUE + "                           Would you like to snipe this token? (y/n): ")
-                
-                if decision == "y":
-                    print(style.RESET + " ")
-                    printt_ok("OK let's go!!")
-                else:
-                    sys.exit()
         
         load_token_file_increment = 0
         tokens_file_modified_time = os.path.getmtime(command_line_args.tokens)
@@ -3721,7 +3731,7 @@ def run():
                             pass
                         
                         if token['WAIT_FOR_OPEN_TRADE'].lower() == 'true' and token['_TRADING_IS_ON'] == False:
-                            printt("Waiting for price to move")
+                            printt("Waiting for price to move for token:", token['SYMBOL'])
                             continue
                         
                         #
