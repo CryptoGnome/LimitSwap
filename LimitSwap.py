@@ -2967,7 +2967,6 @@ def buy(token_dict, inToken, outToken, pwd):
     
     # Define balance before BUY
     #
-
     if custom.lower() == 'false':
         balance = token_dict['_BASE_BALANCE']
     else:
@@ -3684,21 +3683,24 @@ def run():
                     printt_debug("token['_LIQUIDITY_READY']:", token['_LIQUIDITY_READY'], "for token :", token['SYMBOL'])
                     
                     if token['_LIQUIDITY_READY'] == False:
-                        if token['LIQUIDITYINNATIVETOKEN'] == 'true':
-                            #       Case 1/ LIQUIDITYINNATIVETOKEN = true  --> we will snipe using ETH / BNB liquidity --> we use check_pool with weth
-                            pool = check_pool(inToken, weth, token['BASESYMBOL'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
-                        else:
-                            #       Case 2/ LIQUIDITYINNATIVETOKEN = false --> we will snipe using Custom Base Pair    --> we use check_pool with outToken
-                            pool = check_pool(inToken, outToken, token['BASESYMBOL'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
-    
-                        if pool != 0:
-                            token['_LIQUIDITY_READY'] = True
-                            printt_info("Found liquidity for", token['SYMBOL'])
-                            pass
-                        else:
+                        try:
+                            if token['LIQUIDITYINNATIVETOKEN'] == 'true':
+                                #       Case 1/ LIQUIDITYINNATIVETOKEN = true  --> we will snipe using ETH / BNB liquidity --> we use check_pool with weth
+                                pool = check_pool(inToken, weth, token['BASESYMBOL'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
+                            else:
+                                #       Case 2/ LIQUIDITYINNATIVETOKEN = false --> we will snipe using Custom Base Pair    --> we use check_pool with outToken
+                                pool = check_pool(inToken, outToken, token['BASESYMBOL'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
+        
+                            if pool != 0:
+                                token['_LIQUIDITY_READY'] = True
+                                printt_info("Found liquidity for", token['SYMBOL'])
+                                pass
+                            else:
+                                printt_repeating(token, token['SYMBOL'] + " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
+                                continue
+                        except Exception:
                             printt_repeating(token, token['SYMBOL'] + " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
                             continue
-
                             
                     #
                     #  PRICE CHECK
