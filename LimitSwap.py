@@ -488,7 +488,6 @@ def load_tokens_file(tokens_path, load_message=True):
     
     default_value_settings = {
         'SLIPPAGE': 49,
-        'MAXTOKENS': 0,
         'MOONBAG': 0,
         'SELLAMOUNTINTOKENS': 'all',
         'GAS': 8,
@@ -496,6 +495,7 @@ def load_tokens_file(tokens_path, load_message=True):
         'GASLIMIT': 1000000,
         'BUYAFTER_XXX_SECONDS': 0,
         'MAX_FAILED_TRANSACTIONS_IN_A_ROW': 2,
+        'MAX_SUCCESS_TRANSACTIONS_IN_A_ROW': 2,
         'GASPRIORITY_FOR_ETH_ONLY': 1.5,
         'STOPLOSSPRICEINBASE': 0,
         'BUYCOUNT': 0
@@ -507,13 +507,14 @@ def load_tokens_file(tokens_path, load_message=True):
     # _LIQUIDITY_READY      - a flag to test if we've found liquidity for this pair
     # _LIQUIDITY_CHECKED    - a flag to test if we've check for the amount of liquidity for this pair
     # _INFORMED_SELL        - a flag to store that we've printed to console that we are going to be selling the position
-    # _REACHED_MAX_TOKENS   - flag to look at to determine if the user's wallet has reached the maximum number of flags
-    #                         this flag is used for conditionals throughout the run of this bot. Be sure to set this
-    #                         flag after enough tokens that brings the number of token up to the MAXTOKENS. In other words
-    #                         done depend on (if MAXTOKENS < _TOKEN_BALANCE) conditionals
     # _GAS_TO_USE           - the amount of gas the bot has estimated it should use for the purchase of a token
     #                         this number is calculated every bot start up
     # _FAILED_TRANSACTIONS  - the number of times a transaction has failed for this token
+    # _SUCCESS_TRANSACTIONS - the number of times a transaction has succeeded for this token
+    # _REACHED_MAX_SUCCESS_TX  - flag to look at to determine if the user's wallet has reached the maximum number of flags
+    #                         this flag is used for conditionals throughout the run of this bot. Be sure to set this
+    #                         flag after enough tokens that brings the number of token up to the MAX_SUCCESS_TRANSACTIONS_IN_A_ROW. In other words
+    #                         done depend on (if MAX_SUCCESS_TRANSACTIONS_IN_A_ROW < _REACHED_MAX_SUCCESS_TX) conditionals
     # _TRADING_IS_ON        - defines if trading is ON of OFF on a token. Used with WAIT_FOR_OPEN_TRADE parameter
     # _RUGDOC_DECISION      - decision of the user after RugDoc API check
     # _TOKEN_BALANCE        - the number of traded tokens the user has in her wallet
@@ -540,11 +541,12 @@ def load_tokens_file(tokens_path, load_message=True):
         '_LIQUIDITY_READY': False,
         '_LIQUIDITY_CHECKED': False,
         '_INFORMED_SELL': False,
-        '_REACHED_MAX_TOKENS': False,
         '_TRADING_IS_ON': False,
         '_RUGDOC_DECISION': "",
         '_GAS_TO_USE': 0,
         '_FAILED_TRANSACTIONS': 0,
+        '_SUCCESS_TRANSACTIONS': 0,
+        '_REACHED_MAX_SUCCESS_TX': False,
         '_TOKEN_BALANCE': 0,
         '_BASE_BALANCE': 0,
         '_CUSTOM_BASE_BALANCE': 0,
@@ -656,7 +658,6 @@ def reload_tokens_file(tokens_path, load_message=True):
     
     default_value_settings = {
         'SLIPPAGE': 49,
-        'MAXTOKENS': 0,
         'MOONBAG': 0,
         'SELLAMOUNTINTOKENS': 'all',
         'GAS': 8,
@@ -664,6 +665,7 @@ def reload_tokens_file(tokens_path, load_message=True):
         'GASLIMIT': 1000000,
         'BUYAFTER_XXX_SECONDS': 0,
         'MAX_FAILED_TRANSACTIONS_IN_A_ROW': 2,
+        'MAX_SUCCESS_TRANSACTIONS_IN_A_ROW': 2,
         'GASPRIORITY_FOR_ETH_ONLY': 1.5,
         'STOPLOSSPRICEINBASE': 0,
         'BUYCOUNT': 0
@@ -675,13 +677,14 @@ def reload_tokens_file(tokens_path, load_message=True):
     # _LIQUIDITY_READY      - a flag to test if we've found liquidity for this pair
     # _LIQUIDITY_CHECKED    - a flag to test if we've check for the amount of liquidity for this pair
     # _INFORMED_SELL        - a flag to store that we've printed to console that we are going to be selling the position
-    # _REACHED_MAX_TOKENS   - flag to look at to determine if the user's wallet has reached the maximum number of flags
-    #                         this flag is used for conditionals throughout the run of this bot. Be sure to set this
-    #                         flag after enough tokens that brings the number of token up to the MAXTOKENS. In other words
-    #                         done depend on (if MAXTOKENS < _TOKEN_BALANCE) conditionals
     # _GAS_TO_USE           - the amount of gas the bot has estimated it should use for the purchase of a token
     #                         this number is calculated every bot start up
     # _FAILED_TRANSACTIONS  - the number of times a transaction has failed for this token
+    # _SUCCESS_TRANSACTIONS - the number of times a transaction has succeeded for this token
+    # _REACHED_MAX_SUCCESS_TX  - flag to look at to determine if the user's wallet has reached the maximum number of flags
+    #                         this flag is used for conditionals throughout the run of this bot. Be sure to set this
+    #                         flag after enough tokens that brings the number of token up to the MAX_SUCCESS_TRANSACTIONS_IN_A_ROW. In other words
+    #                         done depend on (if MAX_SUCCESS_TRANSACTIONS_IN_A_ROW < _REACHED_MAX_SUCCESS_TX) conditionals
     # _TRADING_IS_ON        - defines if trading is ON of OFF on a token. Used with WAIT_FOR_OPEN_TRADE parameter
     # _RUGDOC_DECISION      - decision of the user after RugDoc API check
     # _TOKEN_BALANCE        - the number of traded tokens the user has in her wallet
@@ -706,11 +709,12 @@ def reload_tokens_file(tokens_path, load_message=True):
         '_LIQUIDITY_READY': False,
         '_LIQUIDITY_CHECKED': False,
         '_INFORMED_SELL': False,
-        '_REACHED_MAX_TOKENS': False,
         '_TRADING_IS_ON': False,
         '_RUGDOC_DECISION': "",
         '_GAS_TO_USE': 0,
         '_FAILED_TRANSACTIONS': 0,
+        '_SUCCESS_TRANSACTIONS': 0,
+        '_REACHED_MAX_SUCCESS_TX': False,
         '_TOKEN_BALANCE': 0,
         '_BASE_BALANCE': 0,
         '_CUSTOM_BASE_BALANCE': 0,
@@ -1703,7 +1707,7 @@ def check_balance(address, symbol='UNKNOWN_TOKEN', display_quantity=True):
     
     balance = balanceContract.functions.balanceOf(settings['WALLETADDRESS']).call()
     if display_quantity == True:
-        printt("Current Wallet Balance is: ", str(balance / DECIMALS), " ", symbol, write_to_log=True)
+        printt("Current Wallet Balance is: ", str(balance / DECIMALS), symbol, write_to_log=True)
     else:
         printt_debug("display_quantity=False --> Do not display balance")
     printt_debug("EXIT: check_balance()")
@@ -2100,8 +2104,7 @@ def calculate_gas(token):
     return 0
 
 
-def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspriority, routing, custom, slippage,
-                 DECIMALS):
+def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit, gaspriority, routing, custom, slippage, DECIMALS):
     # Function: make_the_buy
     # --------------------
     # creates BUY order with the good condition
@@ -2122,6 +2125,14 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
     if buynumber == 4:
         walletused = settings['WALLETADDRESS5']
     
+    
+    # Set the amount to buy
+    amount = amount_to_buy
+    # implementing an ugly fix for those shitty tokens with decimals = 9 to solve https://github.com/CryptoGnome/LimitSwap/issues/401
+    if DECIMALS == 1000000000:
+        printt_debug("Fix applied for those shitty tokens with decimals = 9")
+        amount = 1000000000 * amount
+
     if custom.lower() == 'false':
         # if USECUSTOMBASEPAIR = false
         
@@ -2143,6 +2154,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
             
             deadline = int(time() + + 60)
             
+
             # THIS SECTION IS FOR MODIFIED CONTRACTS : EACH EXCHANGE NEEDS TO BE SPECIFIED
             # USECUSTOMBASEPAIR = false
             if modified == True:
@@ -2293,9 +2305,8 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
                     inToken).lower() == '0x55d398326f99059ff775485246999027b3197955' or str(
                 inToken).lower() == '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d' or str(
                 inToken).lower() == '0xdac17f958d2ee523a2206206994597c13d831ec7' or str(
-                inToken).lower() == '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48') and (int(amount) / DECIMALS) > 2999:
-                printt_info(
-                    "YOU ARE TRADING WITH VERY BIG AMOUNT, BE VERY CAREFUL YOU COULD LOSE MONEY!!! TEAM RECOMMEND NOT TO DO THAT")
+                inToken).lower() == '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48') and (int(amount) / 1000000000000000000) > 2999:
+                printt_info("YOU ARE TRADING WITH VERY BIG AMOUNT, BE VERY CAREFUL YOU COULD LOSE MONEY!!! TEAM RECOMMEND NOT TO DO THAT")
             
             if routing.lower() == 'true':
                 amount_out = routerContract.functions.getAmountsOut(amount, [inToken, weth, outToken]).call()[-1]
@@ -2925,12 +2936,22 @@ def buy(token_dict, inToken, outToken, pwd):
     DECIMALS = token_dict['_CONTRACT_DECIMALS']
 
     # Check for amount of failed transactions before buy (MAX_FAILED_TRANSACTIONS_IN_A_ROW parameter)
-    printt_debug("debug 2325 _FAILED_TRANSACTIONS:", token_dict['_FAILED_TRANSACTIONS'])
+    printt_debug("debug _FAILED_TRANSACTIONS:", token_dict['_FAILED_TRANSACTIONS'])
     if token_dict['_FAILED_TRANSACTIONS'] >= int(token_dict['MAX_FAILED_TRANSACTIONS_IN_A_ROW']):
-        printt_err("---------------------------------------------------------------")
-        printt_err("DISABLING", token_dict['SYMBOL'])
-        printt_err("This token has reached maximum FAILED SIMULTANIOUS TRANSACTIONS")
-        printt_err("---------------------------------------------------------------")
+        printt_err("---------------------------------------------------------------", write_to_log=True)
+        printt_err("DISABLING", token_dict['SYMBOL'], write_to_log=True)
+        printt_err("This token has reached maximum FAILED SIMULTANIOUS TRANSACTIONS", write_to_log=True)
+        printt_err("---------------------------------------------------------------", write_to_log=True)
+        token_dict['ENABLED'] = 'false'
+        return False
+    
+    # Check for amount of success transactions before buy (MAX_FAILED_TRANSACTIONS_IN_A_ROW parameter)
+    printt_debug("debug _SUCCESS_TRANSACTIONS:", token_dict['_SUCCESS_TRANSACTIONS'])
+    if token_dict['_SUCCESS_TRANSACTIONS'] >= int(token_dict['MAX_SUCCESS_TRANSACTIONS_IN_A_ROW']):
+        printt_ok("---------------------------------------------------------------", write_to_log=True)
+        printt_ok("DISABLING", token_dict['SYMBOL'], write_to_log=True)
+        printt_ok("This token has reached maximum SUCCESS SIMULTANIOUS TRANSACTIONS", write_to_log=True)
+        printt_ok("---------------------------------------------------------------", write_to_log=True)
         token_dict['ENABLED'] = 'false'
         return False
     
@@ -2957,7 +2978,7 @@ def buy(token_dict, inToken, outToken, pwd):
     if balance > Decimal(amount):
         # Calculate how much gas we should use for this token
         calculate_gas(token_dict)
-        printt_debug("gas: 2380", token_dict['_GAS_TO_USE'])
+        printt_debug("_GAS_TO_USE is set to: ", token_dict['_GAS_TO_USE'])
         gaslimit = int(gaslimit)
         slippage = int(slippage)
         amount = int(float(amount) * DECIMALS)
@@ -3015,6 +3036,16 @@ def sell(token_dict, inToken, outToken):
         printt_err("DISABLING", token_dict['SYMBOL'])
         printt_err("This token has reached maximum FAILED SIMULTANIOUS TRANSACTIONS")
         printt_err("---------------------------------------------------------------")
+        token_dict['ENABLED'] = 'false'
+        return False
+    
+    # Check for amount of success transactions before buy (MAX_FAILED_TRANSACTIONS_IN_A_ROW parameter)
+    printt_debug("debug _SUCCESS_TRANSACTIONS:", token_dict['_SUCCESS_TRANSACTIONS'])
+    if token_dict['_SUCCESS_TRANSACTIONS'] >= int(token_dict['MAX_SUCCESS_TRANSACTIONS_IN_A_ROW']):
+        printt_ok("---------------------------------------------------------------", write_to_log=True)
+        printt_ok("DISABLING", token_dict['SYMBOL'], write_to_log=True)
+        printt_ok("This token has reached maximum SUCCESS SIMULTANIOUS TRANSACTIONS", write_to_log=True)
+        printt_ok("---------------------------------------------------------------", write_to_log=True)
         token_dict['ENABLED'] = 'false'
         return False
     
@@ -3589,6 +3620,7 @@ def run():
             printt_debug("entering token:", token['ADDRESS'])
             
             token['_CONTRACT_DECIMALS'] = int(decimals(token['ADDRESS']))
+            
             printt_debug("token['_CONTRACT_DECIMALS']:", token['_CONTRACT_DECIMALS'])
 
             if token['USECUSTOMBASEPAIR'] == 'true':
@@ -3597,14 +3629,13 @@ def run():
                 token['_BASE_DECIMALS'] = int(decimals(weth))
 
             token['_WETH_DECIMALS'] = int(decimals(weth))
-            printt_debug("token['_CONTRACT_DECIMALS']:", token['_WETH_DECIMALS'])
+            printt_debug("token['_WETH_DECIMALS']:", token['_WETH_DECIMALS'])
 
 
             # Check to see if we have any tokens in our wallet already
             token['_TOKEN_BALANCE'] = check_balance(token['ADDRESS'], token['SYMBOL'], display_quantity=False) / token['_CONTRACT_DECIMALS']
             if token['_TOKEN_BALANCE'] > 0:
                 printt("Your wallet already owns : ", token['_TOKEN_BALANCE'], token['SYMBOL'], write_to_log=True)
-                if token['_TOKEN_BALANCE'] > float(token['MAXTOKENS']): token['_REACHED_MAX_TOKENS'] = True
             
             # Calculate balances prior to buy() to accelerate buy()
             calculate_base_balance(token)
@@ -3717,7 +3748,7 @@ def run():
                     #   the user that we've reached the maximum number of tokens, check for other criteria to buy.
                     #
                     
-                    if token['_QUOTE'] != 0 and token['_QUOTE'] < Decimal(token['BUYPRICEINBASE']) and token['_REACHED_MAX_TOKENS'] == False:
+                    if token['_QUOTE'] != 0 and token['_QUOTE'] < Decimal(token['BUYPRICEINBASE']) and token['_REACHED_MAX_SUCCESS_TX'] == False:
                         
                         #
                         # OPEN TRADE CHECK
@@ -3765,7 +3796,7 @@ def run():
                         printt_debug("===========================================")
                         printt_debug("token['_QUOTE']:", token['_QUOTE'])
                         printt_debug("Buy Price:", Decimal(token['BUYPRICEINBASE']))
-                        printt_debug("_REACHED_MAX_TOKENS:", token['_REACHED_MAX_TOKENS'])
+                        printt_debug("_REACHED_MAX_SUCCESS_TX:", token['_REACHED_MAX_SUCCESS_TX'])
                         printt_debug("===========================================")
                         
                         log_price = "{:.18f}".format(token['_QUOTE'])
@@ -3793,7 +3824,7 @@ def run():
                         
                         if tx != False:
                             txbuyresult = wait_for_tx(token, tx, token['ADDRESS'])
-                            printt_debug("tx result 3125 : ", txbuyresult)
+                            printt_debug("wait_for_tx result is : ", txbuyresult)
                             if txbuyresult != 1:
                                 # transaction is a FAILURE
                                 printt_err("-------------------------------")
@@ -3804,8 +3835,10 @@ def run():
                                 printt_err("- SLIPPAGE too low", write_to_log=False)
                                 printt_err("- your node is not working well", write_to_log=False)
                                 printt_err("-------------------------------", write_to_log=False)
+
+                                # increment _FAILED_TRANSACTIONS amount
                                 token['_FAILED_TRANSACTIONS'] += 1
-                                printt_debug("3095 _FAILED_TRANSACTIONS:", token['_FAILED_TRANSACTIONS'])
+                                printt_debug("3813 _FAILED_TRANSACTIONS:", token['_FAILED_TRANSACTIONS'])
                             else:
                                 # transaction is a SUCCESS
                                 printt_ok("----------------------------------", write_to_log=True)
@@ -3813,6 +3846,10 @@ def run():
                                 # Re-calculate balances after buy()
                                 calculate_base_balance(token)
                                 
+                                # increment _SUCCESS_TRANSACTIONS amount
+                                token['_SUCCESS_TRANSACTIONS'] += 1
+                                printt_debug("3840 _SUCCESS_TRANSACTIONS:", token['_SUCCESS_TRANSACTIONS'])
+
                                 # Check the balance of our wallet
                                 DECIMALS = token['_CONTRACT_DECIMALS']
                                 token['_TOKEN_BALANCE'] = check_balance(inToken, token['SYMBOL'],display_quantity=True) / DECIMALS
@@ -3822,18 +3859,17 @@ def run():
                                 if (settings['PREAPPROVE'] == 'instantafterbuy' or settings['PREAPPROVE'] == 'true'):
                                     check_approval(token, token['ADDRESS'], token['_TOKEN_BALANCE'] * DECIMALS, preapprove)
 
-                                # Check if MAXTOKENS is reached or not
-                                if token['_TOKEN_BALANCE'] > Decimal(token['MAXTOKENS']):
-                                    token['_REACHED_MAX_TOKENS'] = True
-                                    printt_info("You have reached the maximum number of tokens for this position.", write_to_log=True)
+                                # Check if MAX_SUCCESS_TRANSACTIONS_IN_A_ROW is reached or not
+                                if token['_SUCCESS_TRANSACTIONS'] >= token['MAX_SUCCESS_TRANSACTIONS_IN_A_ROW']:
+                                    token['_REACHED_MAX_SUCCESS_TX'] = True
+                                    printt_info("You have reached MAX_SUCCESS_TRANSACTIONS_IN_A_ROW for", token['SYMBOL'], "token --> disabling trade", write_to_log=True)
 
                                 # Calculates cost per token
                                 token['_COST_PER_TOKEN'] = float(token['BUYAMOUNTINBASE']) / float(token['_TOKEN_BALANCE'])
                                 printt_debug(token['SYMBOL'], " cost per token was: ", token['_COST_PER_TOKEN'])
                     
                         else:
-                            printt_err("You don't have enough in your wallet to make the BUY order of",
-                                       token['SYMBOL'], "--> bot do not buy",write_to_log=False)
+                            printt_err("You don't have enough in your wallet to make the BUY order of", token['SYMBOL'], "--> bot do not buy",write_to_log=False)
                             continue
 
                     #
@@ -3898,6 +3934,8 @@ def run():
                                 printt_err("- your node is not working well", write_to_log=False)
                                 printt_err("- you did not approve this token to be sold --> LimitSwap will now check if approval is done", write_to_log=False)
                                 printt_err("-------------------------------", write_to_log=False)
+                                
+                                # increment _FAILED_TRANSACTIONS amount
                                 token['_FAILED_TRANSACTIONS'] += 1
                                 
                                 # We ask the bot to check if your allowance is > to your balance.
@@ -3910,6 +3948,10 @@ def run():
                                 printt_ok("SUCCESS : your Tx is confirmed    ", write_to_log=True)
                                 # Re-calculate balances after buy()
                                 calculate_base_balance(token)
+
+                                # increment _SUCCESS_TRANSACTIONS amount
+                                token['_SUCCESS_TRANSACTIONS'] += 1
+                                printt_debug("3900 _SUCCESS_TRANSACTIONS:", token['_SUCCESS_TRANSACTIONS'])
 
                                 # Assumeing we've bought and sold this position, disabling token --> UPDATE TsarBuig : disabling this
                                 # printt_info("We have sold our position in", token['SYMBOL'], "DISABLING this token.")
@@ -3957,7 +3999,7 @@ try:
     
     # Check for version
     #
-    version = '4.0.1'
+    version = '4.0.2'
     printt("YOUR BOT IS CURRENTLY RUNNING VERSION ", version, write_to_log=True)
     check_release()
     
