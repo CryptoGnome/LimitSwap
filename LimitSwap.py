@@ -250,8 +250,7 @@ def printt_repeating(token_dict, message, print_frequency=500):
     
     global repeated_message_quantity
     
-    if message == token_dict['_LAST_MESSAGE'] and bot_settings[
-        'VERBOSE_PRICING'] == 'false' and print_frequency >= repeated_message_quantity:
+    if message == token_dict['_LAST_MESSAGE'] and bot_settings['VERBOSE_PRICING'] == 'false' and print_frequency >= repeated_message_quantity:
         print(".", end='', flush=True)
         bot_settings['_NEED_NEW_LINE'] = True
         repeated_message_quantity += 1
@@ -393,16 +392,14 @@ def load_settings_file(settings_path, load_message=True):
     
     for default_false in default_false_settings:
         if default_false not in settings:
-            print(timestamp(), default_false,
-                  "not found in settings configuration file, settings a default value of false.")
+            print(timestamp(), default_false, "not found in settings configuration file, settings a default value of false.")
             settings[default_false] = "false"
         else:
             settings[default_false] = settings[default_false].lower()
     
     for default_true in default_true_settings:
         if default_true not in settings:
-            print(timestamp(), default_true,
-                  "not found in settings configuration file, settings a default value of true.")
+            print(timestamp(), default_true, "not found in settings configuration file, settings a default value of true.")
             settings[default_true] = "true"
         else:
             settings[default_true] = settings[default_true].lower()
@@ -569,32 +566,28 @@ def load_tokens_file(tokens_path, load_message=True):
         # Keys that must be set
         for required_key in required_user_settings:
             if required_key not in token:
-                printt_err(required_key, "not found in configuration file in configuration for to token",
-                           token['SYMBOL'])
+                printt_err(required_key, "not found in configuration file in configuration for to token", token['SYMBOL'])
                 printt_err("Be careful, sometimes new parameter are added : please check default tokens.json file")
                 sleep(20)
                 exit(-1)
         
         for default_false in default_false_settings:
             if default_false not in token:
-                printt_v(default_false, "not found in configuration file in configuration for to token",
-                         token['SYMBOL'], "setting a default value of false")
+                printt_v(default_false, "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a default value of false")
                 token[default_false] = "false"
             else:
                 token[default_false] = token[default_false].lower()
         
         for default_true in default_true_settings:
             if default_true not in token:
-                printt_v(default_true, "not found in configuration file in configuration for to token",
-                         token['SYMBOL'], "setting a default value of false")
+                printt_v(default_true, "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a default value of false")
                 token[default_true] = "false"
             else:
                 token[default_true] = token[default_true].lower()
         
         for default_key in default_value_settings:
             if default_key not in token:
-                printt_v(default_key, "not found in configuration file in configuration for to token", token['SYMBOL'],
-                         "setting a value of", default_value_settings[default_key])
+                printt_v(default_key, "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a value of", default_value_settings[default_key])
                 token[default_key] = default_value_settings[default_key]
             elif default_key == 'SELLAMOUNTINTOKENS':
                 default_value_settings[default_key] = default_value_settings[default_key].lower()
@@ -737,32 +730,28 @@ def reload_tokens_file(tokens_path, load_message=True):
         # Keys that must be set
         for required_key in required_user_settings:
             if required_key not in token:
-                printt_err(required_key, "not found in configuration file in configuration for to token",
-                           token['SYMBOL'])
+                printt_err(required_key, "not found in configuration file in configuration for to token", token['SYMBOL'])
                 printt_err("Be careful, sometimes new parameter are added : please check default tokens.json file")
                 sleep(20)
                 exit(-1)
         
         for default_false in default_false_settings:
             if default_false not in token:
-                printt_v(default_false, "not found in configuration file in configuration for to token",
-                         token['SYMBOL'], "setting a default value of false")
+                printt_v(default_false, "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a default value of false")
                 token[default_false] = "false"
             else:
                 token[default_false] = token[default_false].lower()
         
         for default_true in default_true_settings:
             if default_true not in token:
-                printt_v(default_true, "not found in configuration file in configuration for to token",
-                         token['SYMBOL'], "setting a default value of false")
+                printt_v(default_true, "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a default value of false")
                 token[default_true] = "false"
             else:
                 token[default_true] = token[default_true].lower()
         
         for default_key in default_value_settings:
             if default_key not in token:
-                printt_v(default_key, "not found in configuration file in configuration for to token", token['SYMBOL'],
-                         "setting a value of", default_value_settings[default_key])
+                printt_v(default_key, "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a value of", default_value_settings[default_key])
                 token[default_key] = default_value_settings[default_key]
             elif default_key == 'SELLAMOUNTINTOKENS':
                 default_value_settings[default_key] = default_value_settings[default_key].lower()
@@ -874,15 +863,9 @@ logging.basicConfig(filename=file_name,
 logger1 = logging.getLogger('1')
 logger1.addHandler(logging.FileHandler(file_name2))
 
-printt(
-    "**********************************************************************************************************************",
-    write_to_log=True)
-printt(
-    "For Help & To Learn More About how the bot works please visit our wiki here: https://cryptognome.gitbook.io/limitswap/",
-    write_to_log=False)
-printt(
-    "**********************************************************************************************************************",
-    write_to_log=False)
+printt("**********************************************************************************************************************", write_to_log=True)
+printt("For Help & To Learn More About how the bot works please visit our wiki here: https://cryptognome.gitbook.io/limitswap/", write_to_log=False)
+printt("**********************************************************************************************************************", write_to_log=False)
 
 """""""""""""""""""""""""""
 //NETWORKS SELECT
@@ -1339,8 +1322,7 @@ interpretations = {
 def save_settings(settings, pwd):
     if len(pwd) > 0:
         encrypted_settings = settings.copy()
-        encrypted_settings['LIMITWALLETPRIVATEKEY'] = 'aes:' + cryptocode.encrypt(settings['LIMITWALLETPRIVATEKEY'],
-                                                                                  pwd)
+        encrypted_settings['LIMITWALLETPRIVATEKEY'] = 'aes:' + cryptocode.encrypt(settings['LIMITWALLETPRIVATEKEY'], pwd)
         encrypted_settings['PRIVATEKEY'] = 'aes:' + cryptocode.encrypt(settings['PRIVATEKEY'], pwd)
         if settings['PRIVATEKEY2'] != 'null':
             encrypted_settings['PRIVATEKEY2'] = 'aes:' + cryptocode.encrypt(settings['PRIVATEKEY2'], pwd)
@@ -2954,15 +2936,13 @@ def buy(token_dict, inToken, outToken, pwd):
     
     # Check if bot needs to wait before buy (BUYAFTER_XXX_SECONDS parameter)
     elif token_dict['BUYAFTER_XXX_SECONDS'] != 0:
-        printt_info("Bot will wait", token_dict['BUYAFTER_XXX_SECONDS'],
-                    " seconds before buy, as you entered in BUYAFTER_XXX_SECONDS parameter")
+        printt_info("Bot will wait", token_dict['BUYAFTER_XXX_SECONDS'], " seconds before buy, as you entered in BUYAFTER_XXX_SECONDS parameter")
         sleep(token_dict['BUYAFTER_XXX_SECONDS'])
     
     printt("Placing New Buy Order for " + token_dict['SYMBOL'])
     
     if int(gaslimit) < 250000:
-        printt_info(
-            "Your GASLIMIT parameter is too low : LimitSwap has forced it to 300000 otherwise your transaction would fail for sure. We advise you to raise it to 1000000.")
+        printt_info( "Your GASLIMIT parameter is too low : LimitSwap has forced it to 300000 otherwise your transaction would fail for sure. We advise you to raise it to 1000000.")
         gaslimit = 300000
     
     # Define balance before BUY
@@ -3001,11 +2981,9 @@ def buy(token_dict, inToken, outToken, pwd):
                     sys.exit(0)
         else:
             if token_dict['KIND_OF_SWAP'] == 'tokens':
-                tx_hash = make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amount, token_dict['_GAS_TO_USE'],
-                                          gaslimit, gaspriority, routing, custom, slippage, DECIMALS)
+                tx_hash = make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, DECIMALS)
             else:
-                tx_hash = make_the_buy(inToken, outToken, buynumber, pwd, amount, token_dict['_GAS_TO_USE'], gaslimit,
-                             gaspriority, routing, custom, slippage, DECIMALS)
+                tx_hash = make_the_buy(inToken, outToken, buynumber, pwd, amount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, DECIMALS)
     
             return tx_hash
     
@@ -3121,8 +3099,7 @@ def sell(token_dict, inToken, outToken):
             
             if balance < amount:
                 # Example 1
-                printt_warn("You are trying to sell more ", symbol,
-                            " than you own in your wallet --> Bot will sell remaining amount, after deducing Moonbag")
+                printt_warn("You are trying to sell more ", symbol, " than you own in your wallet --> Bot will sell remaining amount, after deducing Moonbag")
                 # it is same calculation as with amount == 'all'
                 amount = int(Decimal(balance - moonbag))
                 printt_debug("2556 amount :", amount)
@@ -3489,8 +3466,7 @@ def sell(token_dict, inToken, outToken):
                     # LIQUIDITYINNATIVETOKEN = false
                     # USECUSTOMBASEPAIR = true
                     # but user chose to put WETH or WBNB contract as CUSTOMBASEPAIR address
-                    printt_err(
-                        "ERROR IN YOUR TOKENS.JSON : YOU NEED TO CHOOSE THE PROPER BASE PAIR AS SYMBOL IF YOU ARE TRADING OUTSIDE OF NATIVE LIQUIDITY POOL")
+                    printt_err("ERROR IN YOUR TOKENS.JSON : YOU NEED TO CHOOSE THE PROPER BASE PAIR AS SYMBOL IF YOU ARE TRADING OUTSIDE OF NATIVE LIQUIDITY POOL")
                 
                 else:
                     printt_debug("amount 2824:", amount)
@@ -3625,8 +3601,7 @@ def run():
 
 
             # Check to see if we have any tokens in our wallet already
-            token['_TOKEN_BALANCE'] = check_balance(token['ADDRESS'], token['SYMBOL'], display_quantity=False) / token[
-                '_CONTRACT_DECIMALS']
+            token['_TOKEN_BALANCE'] = check_balance(token['ADDRESS'], token['SYMBOL'], display_quantity=False) / token['_CONTRACT_DECIMALS']
             if token['_TOKEN_BALANCE'] > 0:
                 printt("Your wallet already owns : ", token['_TOKEN_BALANCE'], token['SYMBOL'], write_to_log=True)
                 if token['_TOKEN_BALANCE'] > float(token['MAXTOKENS']): token['_REACHED_MAX_TOKENS'] = True
