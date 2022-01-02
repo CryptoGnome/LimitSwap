@@ -708,7 +708,6 @@ def reload_tokens_file(tokens_path, load_message=True):
     # _LAST_PRICE_MESSAGE   - a copy of the last pricing message printed to console, used to determine the price
     #                         should be printed again, or just a dot
     
-    # TODO: document all these variables
     program_defined_values = {
         '_LIQUIDITY_READY': False,
         '_LIQUIDITY_CHECKED': False,
@@ -1505,6 +1504,7 @@ def parse_wallet_settings(settings, pwd):
         save_settings(settings, pwd)
 
 
+@lru_cache(maxsize=None)
 def decimals(address):
     # Function: decimals
     # ----------------------------
@@ -1836,7 +1836,7 @@ def wait_for_open_trade(token):
                 txFunction = txHashDetails.input[:10]
                 if txFunction.lower() in list_of_methodId:
                     openTrade = True
-                    printt_info("PRICE HAS MOVED --> trading is enabled --> Bot will buy")
+                    printt_info("Trading is enabled --> Bot will buy")
                     printt_ok(" MethodID: ", txFunction, " Block: ", tx_event['blockNumber'], " Found Signal")
                     break
                 else:
@@ -3770,8 +3770,13 @@ def run():
                         #   If the option is selected, bot wait for trading_is_on == True to create a BUY order
                         #
                         
-                        if token['WAIT_FOR_OPEN_TRADE'].lower() == 'true':
-                            wait_for_open_trade(token['ADDRESS'])
+                        if token['WAIT_FOR_OPEN_TRADE'].lower() == 'true' and token['_TRADING_IS_ON'] == True:
+                            printt_info("PRICE HAS MOVED --> trading is enabled --> Bot will buy")
+                            pass
+                        
+                        if token['WAIT_FOR_OPEN_TRADE'].lower() == 'true' and token['_TRADING_IS_ON'] == False:
+                            printt("Waiting for price to move for token:", token['SYMBOL'])
+                            continue
                         
                         #
                         # PURCHASE POSITION
