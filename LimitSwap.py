@@ -9,6 +9,7 @@ import web3
 from web3.exceptions import ABIFunctionNotFound, TransactionNotFound, BadFunctionCallOutput
 import logging
 from datetime import datetime
+from functools import lru_cache
 import sys
 import requests
 import cryptocode, re, pwinput
@@ -1504,7 +1505,6 @@ def parse_wallet_settings(settings, pwd):
         save_settings(settings, pwd)
 
 
-@cache
 def decimals(address):
     # Function: decimals
     # ----------------------------
@@ -1805,6 +1805,7 @@ def check_rugdoc_api(token):
 
 
 def wait_for_open_trade(token):
+    printt_debug("ENTER wait_for_open_trade")
     openTrade = False
     tx_filter = client.eth.filter({"filter_params": "pending", "address": token})
 
@@ -1835,13 +1836,15 @@ def wait_for_open_trade(token):
                 txFunction = txHashDetails.input[:10]
                 if txFunction.lower() in list_of_methodId:
                     openTrade = True
-                    print(timestamp(), " MethodID: ", txFunction, " Block: ", tx_event['blockNumber'], " Found Signal")
-                    #break
+                    printt_info("PRICE HAS MOVED --> trading is enabled --> Bot will buy")
+                    printt_ok(" MethodID: ", txFunction, " Block: ", tx_event['blockNumber'], " Found Signal")
+                    break
                 else:
                     print(timestamp(), " MethodID: ", txFunction, " Block: ", tx_event['blockNumber'])
         except:
-            print(timestamp(), " Error")
-            wait_for_open_trade(token)
+            printt_err("wait_for_open_trade finished in Error. Please report it to LimitSwap team")
+            logger1.exception(ee)
+            sys.exit()
 
 
 def get_tokens_purchased(tx_hash):
@@ -3767,13 +3770,8 @@ def run():
                         #   If the option is selected, bot wait for trading_is_on == True to create a BUY order
                         #
                         
-                        if token['WAIT_FOR_OPEN_TRADE'].lower() == 'true' and token['_TRADING_IS_ON'] == True:
-                            printt_info("PRICE HAS MOVED --> trading is enabled --> Bot will buy")
-                            pass
-                        
-                        if token['WAIT_FOR_OPEN_TRADE'].lower() == 'true' and token['_TRADING_IS_ON'] == False:
-                            printt("Waiting for price to move for token:", token['SYMBOL'])
-                            continue
+                        if token['WAIT_FOR_OPEN_TRADE'].lower() == 'true':
+                            wait_for_open_trade(token['ADDRESS'])
                         
                         #
                         # PURCHASE POSITION
@@ -3942,7 +3940,6 @@ def run():
             reload_bot_settings(bot_settings)
             run()
         printt_err("ERROR. Please go to /log folder and open your logs : you will find more details.")
-        logging.exception(ee)
         logger1.exception(ee)
         sleep(10)
         print("Restarting LimitSwap")
