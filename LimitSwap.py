@@ -1866,8 +1866,8 @@ def get_tokens_purchased(tx_hash):
     exit(0)
 
 
-def check_liquidity(token):
-    # Function: check_liquidity
+def check_liquidity_amount(token):
+    # Function: check_liquidity_amount
     # ----------------------------
     # Tells if the liquidity of tokens purchased is enough for trading or not
     #
@@ -1882,21 +1882,21 @@ def check_liquidity(token):
     #    4/ LIQUIDITYINNATIVETOKEN = false & USECUSTOMBASEPAIR = false --> this case in handled line 1830 in the buy() function
     #
     
-    printt_debug("ENTER: check_liquidity()")
+    printt_debug("ENTER: check_liquidity_amount()")
     
     inToken = Web3.toChecksumAddress(token['ADDRESS'])
-    outToken = Web3.toChecksumAddress(token['BASEADDRESS'])
     
     if token['_LIQUIDITY_CHECKED'] == False:
         # Cases 1 and 2 above : we always use weth as LP pair to check liquidity
         if token["LIQUIDITYINNATIVETOKEN"] == 'true':
+            printt_debug("check_liquidity_amount case 1")
+
             pool = check_pool(inToken, weth, base_symbol, token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
             printt("You have set LIQUIDITYCHECK = true.")
             printt("Current", token['SYMBOL'], "Liquidity =", int(pool), base_symbol)
             
             if float(token['LIQUIDITYAMOUNT']) <= float(pool):
-                printt_ok("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
-                          " --> Enough liquidity detected : Buy Signal Found!")
+                printt_ok("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']), " --> Enough liquidity detected : Buy Signal Found!")
                 return 1
             
             # This position isn't looking good. Inform the user, disable the token and break out of this loop
@@ -1904,11 +1904,13 @@ def check_liquidity(token):
                 printt_warn("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']), " : not enough liquidity, bot will not buy. Disabling the trade of this token.")
                 token['ENABLED'] = 'false'
                 token['_QUOTE'] = 0
-                sys.exit()
                 return 0
         
         # Case 3 above
         if token["LIQUIDITYINNATIVETOKEN"] == 'false' and token["USECUSTOMBASEPAIR"] == 'true':
+            outToken = Web3.toChecksumAddress(token['BASEADDRESS'])
+            printt_debug("check_liquidity_amount case 1")
+
             pool = check_pool(inToken, outToken, token['BASESYMBOL'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
             printt("You have set LIQUIDITYCHECK = true.")
             printt("Current", token['SYMBOL'], "Liquidity =", int(pool), token['BASESYMBOL'])
@@ -1920,11 +1922,9 @@ def check_liquidity(token):
             
             # This position isn't looking good. Inform the user, disable the token and break out of this loop
             else:
-                printt_warn("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']),
-                            " : not enough liquidity, bot will not buy. Disableing the trade of this token.")
+                printt_warn("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']), " : not enough liquidity, bot will not buy. Disabling the trade of this token.")
                 token['ENABLED'] = 'false'
                 token['_QUOTE'] = 0
-                sys.exit()
                 return 0
 
 
@@ -2593,12 +2593,9 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amountOut, gas,
                     
                     logging.info("make_the_buy_exact_tokens condition 4")
                     
-                    printt("------------------------------------------------------------------------",
-                           write_to_log=True)
-                    printt("temporary log write to make some investigations",
-                           write_to_log=True)
-                    printt("------------------------------------------------------------------------",
-                           write_to_log=True)
+                    printt("------------------------------------------------------------------------", write_to_log=True)
+                    printt("temporary log write to make some investigations", write_to_log=True)
+                    printt("------------------------------------------------------------------------", write_to_log=True)
                     printt("amountMin     :", amountMin, write_to_log=True)
                     printt("amountOutMin  :", amountOutMin, write_to_log=True)
                     printt("amount_out    :", amount_out, write_to_log=True)
@@ -2609,8 +2606,7 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amountOut, gas,
                     printt("gas:", gas, write_to_log=True)
                     printt("gaspriority:", gaspriority, write_to_log=True)
                     printt("gaslimit:", gaslimit, write_to_log=True)
-                    printt("------------------------------------------------------------------------",
-                           write_to_log=True)
+                    printt("------------------------------------------------------------------------", write_to_log=True)
 
                     transaction = routerContract.functions.swapETHForExactTokens(
                         amountOut,
@@ -2744,10 +2740,8 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amountOut, gas,
                         inToken).lower() == '0x55d398326f99059ff775485246999027b3197955' or str(
                     inToken).lower() == '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d' or str(
                     inToken).lower() == '0xdac17f958d2ee523a2206206994597c13d831ec7' or str(
-                    inToken).lower() == '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48') and (
-                        int(amount) / DECIMALS) > 2999:
-                    printt_info(
-                        "YOU ARE TRADING WITH VERY BIG AMOUNT, BE VERY CAREFUL YOU COULD LOSE MONEY!!! TEAM RECOMMEND NOT TO DO THAT")
+                    inToken).lower() == '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48') and (int(amount) / DECIMALS) > 2999:
+                    printt_info( "YOU ARE TRADING WITH VERY BIG AMOUNT, BE VERY CAREFUL YOU COULD LOSE MONEY!!! TEAM RECOMMEND NOT TO DO THAT")
                 
                 amount_out = routerContract.functions.getAmountsOut(amount, [inToken, outToken]).call()[-1]
                 if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
@@ -3809,7 +3803,11 @@ def run():
                         #
                         
                         if token["LIQUIDITYCHECK"] == 'true':
-                            check_liquidity(token)
+                            liquidity_result = check_liquidity_amount(token)
+                            if liquidity_result == 0:
+                                continue
+                            else:
+                                pass
                         
                         if command_line_args.sim_buy:
                             tx = command_line_args.sim_buy
