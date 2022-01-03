@@ -852,6 +852,12 @@ file_path = os.path.join(directory, filename)
 with open(file_path) as json_file:
     joeRouter = json.load(json_file)
 
+directory = './abi/'
+filename = "bakeryRouter.json"
+file_path = os.path.join(directory, filename)
+with open(file_path) as json_file:
+    bakeryRouter = json.load(json_file)
+        
 """""""""""""""""""""""""""
 // LOGGING
 """""""""""""""""""""""""""
@@ -1089,7 +1095,42 @@ elif settings['EXCHANGE'].lower() == 'babyswap':
     base_symbol = "BNB"
     rugdocchain = '&chain=bsc'
     modified = False
-    
+
+elif settings['EXCHANGE'] == 'bakeryswap':
+    if settings['USECUSTOMNODE'] == 'true':
+        my_provider = settings['CUSTOMNODE']
+        print(timestamp(), 'Using custom node.')
+    else:
+        my_provider = "https://bsc-dataseed4.defibit.io"
+
+    if not my_provider:
+        print(timestamp(), 'Custom node empty. Exiting')
+        exit(1)
+
+    if my_provider[0].lower() == 'h':
+        print(timestamp(), 'Using HTTPProvider')
+        client = Web3(Web3.HTTPProvider(my_provider))
+    elif my_provider[0].lower() == 'w':
+        print(timestamp(), 'Using WebsocketProvider')
+        client = Web3(Web3.WebsocketProvider(my_provider))
+    else:
+        print(timestamp(), 'Using IPCProvider')
+        client = Web3(Web3.IPCProvider(my_provider))
+
+    print(timestamp(), "Binance Smart Chain Connected =", client.isConnected())
+    print(timestamp(), "Loading BakerySwap Smart Contracts...")
+
+    routerAddress = Web3.toChecksumAddress("0xCDe540d7eAFE93aC5fE6233Bee57E1270D3E330F")
+    factoryAddress = Web3.toChecksumAddress("0x01bF7C66c6BD861915CdaaE475042d3c4BaE16A7")
+
+    routerContract = client.eth.contract(address=routerAddress, abi=bakeryRouter)
+    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
+
+    weth = Web3.toChecksumAddress("0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c")
+    base_symbol = "BNB"
+    rugdocchain = '&chain=bsc'
+    modified = True
+
 elif settings['EXCHANGE'] == 'apeswap':
     if settings['USECUSTOMNODE'] == 'true':
         my_provider = settings['CUSTOMNODE']
@@ -2235,7 +2276,22 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
                         'from': Web3.toChecksumAddress(walletused),
                         'nonce': client.eth.getTransactionCount(walletused)
                     })
-            
+
+                elif settings["EXCHANGE"].lower() == 'bakeryswap':
+                    logging.info("make_the_buy condition 11")
+                    transaction = routerContract.functions.swapExactBNBForTokens(
+                        amountOutMin,
+                        [weth, outToken],
+                        Web3.toChecksumAddress(walletused),
+                        deadline
+                    ).buildTransaction({
+                        'gasPrice': Web3.toWei(gas, 'gwei'),
+                        'gas': gaslimit,
+                        'value': amount,
+                        'from': Web3.toChecksumAddress(walletused),
+                        'nonce': client.eth.getTransactionCount(walletused)
+                    })
+
             
             else:
                 # USECUSTOMBASEPAIR = false
@@ -2583,7 +2639,22 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amountOut, gas,
                         'from': Web3.toChecksumAddress(walletused),
                         'nonce': client.eth.getTransactionCount(walletused)
                     })
-            
+
+                elif settings["EXCHANGE"].lower() == 'bakeryswap':
+                    logging.info("make_the_buy_exact_tokens condition 11")
+                    transaction = routerContract.functions.swapExactBNBForTokens(
+                        amountOutMin,
+                        [weth, outToken],
+                        Web3.toChecksumAddress(walletused),
+                        deadline
+                    ).buildTransaction({
+                        'gasPrice': Web3.toWei(gas, 'gwei'),
+                        'gas': gaslimit,
+                        'value': amount,
+                        'from': Web3.toChecksumAddress(walletused),
+                        'nonce': client.eth.getTransactionCount(walletused)
+                    })
+
             else:
                 # USECUSTOMBASEPAIR = false
                 # This section is for exchange with Modified = false --> uniswap / pancakeswap / apeswap, etc.
@@ -3266,7 +3337,22 @@ def sell(token_dict, inToken, outToken):
                             'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
                             'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
                         })
-                
+
+                    if settings["EXCHANGE"].lower() == 'bakeryswap':
+                        printt_debug("sell condition 20")
+                        transaction = routerContract.functions.swapExactTokensForBNBSupportingFeeOnTransferTokens(
+                            amount,
+                            amountOutMin,
+                            [inToken, weth],
+                            Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                            deadline
+                        ).buildTransaction({
+                            'gasPrice': Web3.toWei(gas, 'gwei'),
+                            'gas': gaslimit,
+                            'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                            'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
+                        })
+
                 else:
                     # This section is for exchange with Modified = false --> uniswap / pancakeswap / apeswap, etc.
                     # USECUSTOMBASEPAIR = false
@@ -3311,6 +3397,21 @@ def sell(token_dict, inToken, outToken):
                     elif settings["EXCHANGE"].lower() == 'pangolin' or settings["EXCHANGE"].lower() == 'traderjoe':
                         printt_debug("sell condition 5")
                         transaction = routerContract.functions.swapExactTokensForAVAX(
+                            amount,
+                            amountOutMin,
+                            [inToken, outToken],
+                            Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                            deadline
+                        ).buildTransaction({
+                            'gasPrice': Web3.toWei(gas, 'gwei'),
+                            'gas': gaslimit,
+                            'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                            'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
+                        })
+                        
+                    elif settings["EXCHANGE"].lower() == 'bakeryswap':
+                        printt_debug("sell condition 21")
+                        transaction = routerContract.functions.swapExactTokensForBNB(
                             amount,
                             amountOutMin,
                             [inToken, outToken],
@@ -3414,7 +3515,22 @@ def sell(token_dict, inToken, outToken):
                                 'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
                                 'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
                             })
-                    
+                            
+                        elif settings["EXCHANGE"].lower() == 'bakeryswap':
+                            printt_debug("sell condition 22")
+                            transaction = routerContract.functions.swapExactTokensForBNBSupportingFeeOnTransferTokens(
+                                amount,
+                                amountOutMin,
+                                [inToken, weth],
+                                Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                                deadline
+                            ).buildTransaction({
+                                'gasPrice': Web3.toWei(gas, 'gwei'),
+                                'gas': gaslimit,
+                                'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
+                                'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
+                            })
+                                                
                     else:
                         # USECUSTOMBASEPAIR = true
                         # HASFEES = true
