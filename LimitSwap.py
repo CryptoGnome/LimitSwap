@@ -482,6 +482,7 @@ def load_tokens_file(tokens_path, load_message=True):
         'RUGDOC_CHECK',
         'MULTIPLEBUYS',
         'KIND_OF_SWAP',
+        'PRECISE_PRICE',
         'ALWAYS_CHECK_BALANCE',
         'WAIT_FOR_OPEN_TRADE'
     ]
@@ -657,6 +658,7 @@ def reload_tokens_file(tokens_path, load_message=True):
         'HASFEES',
         'RUGDOC_CHECK',
         'KIND_OF_SWAP',
+        'PRECISE_PRICE',
         'ALWAYS_CHECK_BALANCE',
         'MULTIPLEBUYS',
         'WAIT_FOR_OPEN_TRADE'
@@ -1885,7 +1887,7 @@ def wait_for_open_trade(token):
     token = Web3.toChecksumAddress(token)
 
     tx_filter = client.eth.filter({"filter_params": "pending", "address": token})
-    list_of_methodId = ["0x0d295980", "0xbccce037"]
+    list_of_methodId = ["0x0d295980", "0xbccce037", "0x8a8c523c"]
 
     # Examples of tokens and functions used
     #
@@ -1900,6 +1902,11 @@ def wait_for_open_trade(token):
     # Function: preSaleAfter()
     # methodId = "0xbccce037"
 
+    # VatoInu (VatoInu)
+    # https://etherscan.io/tx/0x303143b2015a398050a50e4dc2ef16668b974c06db2fd4c4e4abbe64f0c2d592
+    # Function: enableTrading()
+    # MethodID: 0x8a8c523c
+
 
     while openTrade == False:
         try:
@@ -1907,6 +1914,7 @@ def wait_for_open_trade(token):
 
                 txHash = tx_event['transactionHash']
                 txHashDetails = client.eth.get_transaction(txHash)
+                printt_debug(txHashDetails)
                 txFunction = txHashDetails.input[:10]
                 if txFunction.lower() in list_of_methodId:
                     openTrade = True
@@ -3882,8 +3890,8 @@ def run():
                     #
                     token['_PREVIOUS_QUOTE'] = token['_QUOTE']
                     
-                    # if --check_precise_price parameter is used, bot will use dedicated function
-                    if command_line_args.precise_price:
+                    # if --check_precise_price or PRECISE_PRICE parameter is used, bot will use dedicated function
+                    if command_line_args.precise_price or token['PRECISE_PRICE'] == 'true':
                         token['_QUOTE'] = check_precise_price(inToken, outToken, token['SYMBOL'], token['BASESYMBOL'],
                                             token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'],
                                             token['BUYPRICEINBASE'], token['SELLPRICEINBASE'], token['STOPLOSSPRICEINBASE'], token['_WETH_DECIMALS'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
