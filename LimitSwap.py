@@ -1887,7 +1887,7 @@ def wait_for_open_trade(token):
     token = Web3.toChecksumAddress(token)
 
     tx_filter = client.eth.filter({"filter_params": "pending", "address": token})
-    list_of_methodId = ["0x0d295980", "0xbccce037", "0x8a8c523c"]
+    list_of_methodId = ["0x0d295980", "0xbccce037", "0x8a8c523c", "0x4efac329"]
 
     # Examples of tokens and functions used
     #
@@ -1907,6 +1907,9 @@ def wait_for_open_trade(token):
     # Function: enableTrading()
     # MethodID: 0x8a8c523c
 
+    # https://bscscan.com/tx/0x5b8d8d70b6d1e591d0620a50247deef38bb924de0c38307cc9c5b77839f68bcc
+    # Function: snipeListing() ** *
+    # MethodID: 0x4efac329
 
     while openTrade == False:
         try:
