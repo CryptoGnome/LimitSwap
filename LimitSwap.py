@@ -100,10 +100,12 @@ parser.add_argument("-pp", "--precise_price", action='store_true', help="Use che
 # --dev - general argument for developer options
 # --sim_buy tx - simulates the buying process, you must provide a transaction of a purchase of the token
 # --sim_sell tx - simulates the buying process, you must provide a transaction of a purchase of the token
+# --benchmark - run benchmark mode
 parser.add_argument("--dev", action='store_true', help=argparse.SUPPRESS)
 parser.add_argument("--sim_buy", type=str, help=argparse.SUPPRESS)
 parser.add_argument("--sim_sell", type=str, help=argparse.SUPPRESS)
 parser.add_argument("--debug", action='store_true', help=argparse.SUPPRESS)
+parser.add_argument("--benchmark", action='store_true', help=argparse.SUPPRESS)
 
 command_line_args = parser.parse_args()
 
@@ -3767,6 +3769,64 @@ def sell(token_dict, inToken, outToken):
         return False
 
 
+def benchmark():
+    printt_ok('*** Start Benchmark Mode ***', write_to_log=True)
+    printt('Benchmark running, please wait a few minutes...')
+    rounds = 60
+# Check RPC Node latency
+    k = 0
+    if my_provider[0].lower() == 'h' or my_provider[0].lower() == 'w':
+        provider = my_provider.replace('wss://', 'https://')
+        for i in range(5):
+            response = requests.post(provider)
+            k = k + response.elapsed.total_seconds()
+            sleep(0.05)
+        printt('RPC Node average latency :', str(int((k/5)*1000)), 'ms', write_to_log=True)
+
+# Check 'check_price' function speed
+    token = load_tokens_file(command_line_args.tokens, False)
+    token[0]['_WETH_DECIMALS'] = int(decimals(weth))
+    token[0]['_CONTRACT_DECIMALS'] = int(decimals(token[0]['ADDRESS']))
+    inToken = Web3.toChecksumAddress(token[0]['ADDRESS'])
+    if token[0]['USECUSTOMBASEPAIR'] == 'true':
+        token[0]['_BASE_DECIMALS'] = int(decimals(token[0]['BASEADDRESS']))
+        outToken = Web3.toChecksumAddress(token[0]['BASEADDRESS'])
+    else:
+        token[0]['_BASE_DECIMALS'] = int(decimals(weth))
+        outToken = weth
+
+    start_time = time()
+    for i in range(rounds):
+        tmp = check_price(inToken, outToken, token[0]['SYMBOL'], token[0]['BASESYMBOL'],
+                token[0]['USECUSTOMBASEPAIR'], token[0]['LIQUIDITYINNATIVETOKEN'],
+                token[0]['BUYPRICEINBASE'], token[0]['SELLPRICEINBASE'], token[0]['STOPLOSSPRICEINBASE'],
+                token[0]['_WETH_DECIMALS'], token[0]['_CONTRACT_DECIMALS'], token[0]['_BASE_DECIMALS'])
+    end_time = time()
+    printt('Check_price function     :', round((60/(end_time - start_time)), 2), 'query/s Total:', round((end_time - start_time), 2), "s", write_to_log=True)
+
+# Check 'check_precise_price' function speed
+    i = 0
+    start_time = time()
+    for i in range(rounds):
+        tmp = check_precise_price(inToken, outToken, token[0]['SYMBOL'], token[0]['BASESYMBOL'],
+                token[0]['USECUSTOMBASEPAIR'], token[0]['LIQUIDITYINNATIVETOKEN'],
+                token[0]['BUYPRICEINBASE'], token[0]['SELLPRICEINBASE'], token[0]['STOPLOSSPRICEINBASE'],
+                token[0]['_WETH_DECIMALS'], token[0]['_CONTRACT_DECIMALS'], token[0]['_BASE_DECIMALS'])
+    end_time = time()
+    printt('Check_precise_price func :', round((60/(end_time - start_time)), 2), 'query/s Total:', round((end_time - start_time), 2), "s", write_to_log=True)
+
+# Check 'check_pool' function speed
+    i = 0
+    start_time = time()
+    for i in range(rounds):
+        check_pool(inToken, weth, base_symbol, token[0]['_CONTRACT_DECIMALS'], token[0]['_BASE_DECIMALS'])
+    end_time = time()
+    printt('Check_pool function      :', round((60/(end_time - start_time)), 2), 'query/s Total:', round((end_time - start_time), 2), "s", write_to_log=True)
+
+    printt_ok('*** End Benchmark Mode ***', write_to_log=True)
+    sys.exit()
+
+    
 def run():
     reload_tokens_file = False
 
@@ -4171,7 +4231,9 @@ def run():
 
 
 try:
-    
+
+    if command_line_args.benchmark == True: benchmark()
+
     # Get the user password on first run
     userpassword = get_password()
     
