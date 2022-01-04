@@ -8,7 +8,7 @@ LimitSwap is a trading bot for UniSwap & Many Other DEXs. It has the ability to 
 &nbsp;
 
 ## HOW TO INSTALL LimitSwap
-There are 2 ways to install LimitSwap : 
+There are 3 ways to install LimitSwap : 
 
 &nbsp;
 
@@ -68,8 +68,35 @@ Please install the default package and all those options :
 - [x] Simply **double-click on "LimitSwap.py"** and it will run, since you've installed Python 👍👍
 
 &nbsp;
+&nbsp;
 
-### 2. With Docker
+### 2. Download the pre-compiled package [*This can lag behind current version*]
+That we provide on the Release page : it's a .exe file that you can run on your computer.
+https://github.com/CryptoGnome/LimitSwap/releases
+
+
+- [x] Download last Zip file, for instance :
+
+<img src="https://user-images.githubusercontent.com/70858574/145737351-c659185f-e1f5-4ede-b81e-3b03d0f900f9.png" width="200">
+
+- [x] Unzip it
+- [x] Open "tokens.json - Shortcut" and configure it for your needs
+- [x] Open "Start LimitSwap.cmd" --> it will configure your settings.json
+
+✅ ✅ ✅ And it's done! ✅ ✅ ✅
+
+&nbsp; 
+
+#### Pros and cons
+🟢 : very easy to setup
+
+🔴 : it's pre-compiled, so you cannot check the Source Code
+
+&nbsp;
+&nbsp;
+
+
+### 3. With Docker
 
 #### Requirements
 MacOS and Windows users require Docker for Desktop https://www.docker.com/products/docker-desktop
