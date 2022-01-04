@@ -57,6 +57,8 @@ Please install the default package and all those options :
 
 - [x] Run command: `pip install -r requirements.txt`  --> this will install all the packages needed to run LimitSwap
 
+(if you have an error here, double check you have selected "Add Python to PATH" on the Python step. If you did not, uninstall Python and reinstall it checking the option "Add Python to PATH")
+
 &nbsp;
 
 ✅ ✅ ✅ And it's done! ✅ ✅ ✅
