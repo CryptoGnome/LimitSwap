@@ -72,7 +72,7 @@ Please install the default package and all those options :
 
 ### 2. Download the pre-compiled package [*This can lag behind current version*]
 That we provide on the Release page : it's a .exe file that you can run on your computer.
-https://github.com/CryptoGnome/LimitSwap/releases
+https://github.com/tsarbuig/LimitSwap/releases
 
 
 - [x] Download last Zip file, for instance :
