@@ -3010,28 +3010,23 @@ def wait_for_tx(token_dict, tx_hash, address, max_wait_time=60):
     return return_value
 
 
-def preapprove(tokens):
-    # We ask the bot to check if your allowance is > to your balance. Use a 10000000000000000 multiplier for decimals.
+def preapprove_base(tokens):
+    # we approve the base pair, so as the bot is able to use it to buy token
     
-    # First in all the tokens of the tokens.json
-    printt_debug("ENTER - preapprove()")
+    printt_debug("ENTER - preapprove_base()")
+    
+    printt("LimitSwap will now check approval of your Base or Custom Base pair")
     
     for token in tokens:
-        
-        balance = Web3.fromWei(check_balance(token['ADDRESS'], token['SYMBOL'], display_quantity=False), 'ether')
-        check_approval(token, token['ADDRESS'], balance * 10000000000000000, preapprove)
-        
-        # then of the base pair
         if token['USECUSTOMBASEPAIR'].lower() == 'false':
             balanceweth = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
-            printt_debug("Balanceweth:", balanceweth)
-            check_approval(token, weth, balanceweth * 10000000000000000, preapprove)
+            check_approval(token, weth, balanceweth * 10000000000000000, 'preapprove')
         else:
-            balancebase = Web3.fromWei(check_balance(token['BASEADDRESS'], token['BASESYMBOL'], display_quantity=False),
-                                       'ether')
-            check_approval(token, token['BASEADDRESS'], balancebase * 10000000000000000, preapprove)
-    
-    printt_debug("EXIT - preapprove()")
+            balancebase = Web3.fromWei(check_balance(token['BASEADDRESS'], token['BASESYMBOL'], display_quantity=False), 'ether')
+            check_approval(token, token['BASEADDRESS'], balancebase * 10000000000000000, 'preapprove')
+
+        
+    printt_debug("EXIT - preapprove_base()")
 
 
 def buy(token_dict, inToken, outToken, pwd):
@@ -3838,9 +3833,8 @@ def run():
         
         # Check to see if the user wants to pre-approve token transactions. If they do, work through that approval process
         # UPDATE 01/01/2022 : removed here, to make the "instantafterbuy" default preapprove behaviour
-        #
-        # if settings['PREAPPROVE'] == 'true':
-        #    preapprove(tokens)
+        # UPDATE 01/04/2022 : after a bug report, I realized that you need to approve the Base pair, so as the bot is able to use it to buy token
+        preapprove_base(tokens)
         
         # For each token check to see if the user wants to run a rugdoc check against them.
         #   then run the rugdoctor check and prompt the user if they want to continue trading
@@ -4096,7 +4090,7 @@ def run():
                                 
                                 # if user has chose the option "instantafterbuy", token is approved right after buy order is confirmed.
                                 if (settings['PREAPPROVE'] == 'instantafterbuy' or settings['PREAPPROVE'] == 'true'):
-                                    check_approval(token, token['ADDRESS'], token['_TOKEN_BALANCE'] * DECIMALS, preapprove)
+                                    check_approval(token, token['ADDRESS'], token['_TOKEN_BALANCE'] * DECIMALS, 'preapprove')
 
                                 # Check if MAX_SUCCESS_TRANSACTIONS_IN_A_ROW is reached or not
                                 if token['_SUCCESS_TRANSACTIONS'] >= token['MAX_SUCCESS_TRANSACTIONS_IN_A_ROW']:
@@ -4183,7 +4177,7 @@ def run():
                                 token['_FAILED_TRANSACTIONS'] += 1
                                 
                                 # We ask the bot to check if your allowance is > to your balance.
-                                check_approval(token, inToken, token['_TOKEN_BALANCE'] * 1000000000000000000, txfail)
+                                check_approval(token, inToken, token['_TOKEN_BALANCE'] * 1000000000000000000, 'txfail')
 
                                 printt_debug("3095 _FAILED_TRANSACTIONS:", token['_FAILED_TRANSACTIONS'])
                             else:
