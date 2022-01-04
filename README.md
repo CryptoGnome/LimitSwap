@@ -15,8 +15,8 @@ There are 2 ways to install LimitSwap :
 
 ### 1. Run The Python Code Locally [*this is most ideal and can work on any OS*]
 Here is a tutorial step-by-step: 
-- [x] Download last LimitSwap code on the "Code" page https://github.com/CryptoGnome/LimitSwap by clicking on Code > Download Zip : 
-<img src="https://user-images.githubusercontent.com/70858574/145568534-e22c2887-d761-4fba-8dd0-f765b4300a6c.png" width="300">
+- [x] Download last LimitSwap code on the "Code" page https://github.com/tsarbuig/LimitSwap by clicking on Code > Download Zip : 
+<img src="https://user-images.githubusercontent.com/70858574/148130738-ef447465-511a-41b8-bcf2-6766a41fdbb8.png" width="300">
 
 - [x] Unzip file
 - [x] Install Python on your computer : https://www.python.org/downloads/ 

@@ -1695,6 +1695,18 @@ def approve(address, amount):
         elif settings['EXCHANGE'] == 'pangolin':
             gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
             print("Current Gas Price = ", gas)
+        elif settings['EXCHANGE'] == 'bakeryswap':
+            gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
+            print("Current Gas Price = ", gas)
+        elif settings['EXCHANGE'] == 'babyswap':
+            gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
+            print("Current Gas Price = ", gas)
+        elif settings['EXCHANGE'] == 'biswap':
+            gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
+            print("Current Gas Price = ", gas)
+        elif settings['EXCHANGE'] == 'pinkswap':
+            gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
+            print("Current Gas Price = ", gas)
         elif settings['EXCHANGE'] == 'quickswap':
             gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
             print("Current Gas Price = ", gas)
