@@ -1678,47 +1678,15 @@ def approve(address, amount):
     
     if eth_balance > minimumbalance:
         print("Estimating Gas Cost Using Web3")
-        if settings['EXCHANGE'] == 'uniswap':
-            gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
-            print("Current Gas Price =", gas)
-        elif settings['EXCHANGE'] == 'uniswaptestnet':
+        # Estimates GAS price and use a +20% factor
+        if settings['EXCHANGE'] == 'uniswaptestnet':
+            # Special condition on uniswaptestnet to make GAS > Priority Gas
             gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(200) / 100)
-            print("Current Gas Price = ", gas)
-        elif settings['EXCHANGE'] == 'pancakeswap' or settings['EXCHANGE'] == 'pancakeswaptestnet':
-            gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
-            print("Current Gas Price = ", gas)
-        elif settings['EXCHANGE'] == 'spiritswap':
-            gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
-            print("Current Gas Price = ", gas)
-        elif settings['EXCHANGE'] == 'spookyswap':
-            gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
-            print("Current Gas Price = ", gas)
-        elif settings['EXCHANGE'] == 'pangolin':
-            gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
-            print("Current Gas Price = ", gas)
-        elif settings['EXCHANGE'] == 'bakeryswap':
-            gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
-            print("Current Gas Price = ", gas)
-        elif settings['EXCHANGE'] == 'babyswap':
-            gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
-            print("Current Gas Price = ", gas)
-        elif settings['EXCHANGE'] == 'biswap':
-            gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
-            print("Current Gas Price = ", gas)
-        elif settings['EXCHANGE'] == 'pinkswap':
-            gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
-            print("Current Gas Price = ", gas)
-        elif settings['EXCHANGE'] == 'quickswap':
-            gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
-            print("Current Gas Price = ", gas)
-        elif settings['EXCHANGE'] == 'kuswap' or 'koffeeswap':
-            gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
-            print("Current Gas Price = ", gas)
+            print("Current Gas Price =", gas)
         else:
-            print("EXCHANGE NAME IN SETTINGS IS SPELLED INCORRECTLY OR NOT SUPPORTED YET CHECK WIKI!")
-            logging.info("EXCHANGE NAME IN SETTINGS IS SPELLED INCORRECTLY OR NOT SUPPORTED YET CHECK WIKI!")
-            exit()
-        
+            gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
+            print("Current Gas Price = ", gas)
+            
         contract = client.eth.contract(address=Web3.toChecksumAddress(address), abi=standardAbi)
         transaction = contract.functions.approve(routerAddress, amount).buildTransaction({
             'gasPrice': Web3.toWei(gas, 'gwei'),
