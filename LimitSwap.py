@@ -1795,6 +1795,11 @@ def fetch_pair(inToken, outToken, contract):
     return pair
 
 
+@lru_cache(maxsize=None)
+def getContractLP(pair_address):
+    return client.eth.contract(address=pair_address, abi=lpAbi)
+
+
 def sync(inToken, outToken):
     pair = fetch_pair(inToken, outToken,factoryContract)
     syncContract = client.eth.contract(address=Web3.toChecksumAddress(pair), abi=lpAbi)
@@ -2052,7 +2057,7 @@ def check_precise_price(inToken, outToken, DECIMALS_weth, DECIMALS_IN, DECIMALS_
         printt_debug("ENTER check_precise_price condition 1")
         # First step : calculates the price of token in ETH/BNB
         pair_address = fetch_pair(inToken, weth,factoryContract)
-        pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
+        pair_contract = getContractLP(pair_address)
         reserves = pair_contract.functions.getReserves().call()
 
         if ORDER_HASH.get(pair_address) is None:
@@ -2067,7 +2072,7 @@ def check_precise_price(inToken, outToken, DECIMALS_weth, DECIMALS_IN, DECIMALS_
         # ------------------------------------------------------------------------
         # Second step : calculates the price of Custom Base pair in ETH/BNB
         pair_address = fetch_pair( outToken,weth,factoryContract)
-        pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
+        pair_contract = getContractLP(pair_address)
         reserves = pair_contract.functions.getReserves().call()
 
         if ORDER_HASH.get(pair_address) is None:
@@ -2093,7 +2098,7 @@ def check_precise_price(inToken, outToken, DECIMALS_weth, DECIMALS_IN, DECIMALS_
         # USECUSTOMBASEPAIR = true and token put in BASEADDRESS is WBNB / WETH (because outToken == weth)
         # or USECUSTOMBASEPAIR = false
         pair_address = fetch_pair(inToken, weth,factoryContract)
-        pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
+        pair_contract = getContractLP(pair_address)
         reserves = pair_contract.functions.getReserves().call()
         
         if ORDER_HASH.get(pair_address) is None:
