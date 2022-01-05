@@ -95,6 +95,8 @@ parser.add_argument("-s", "--settings", type=str, help="Specify the file to user
 parser.add_argument("-t", "--tokens", type=str, help="Specify the file to use for tokens to trade (default: tokens.json)", default="./tokens.json")
 parser.add_argument("-v", "--verbose", action='store_true', help="Print detailed messages to stdout")
 parser.add_argument("-pp", "--precise_price", action='store_true', help="Use check_precise_price function to check price. More accurate but slower")
+parser.add_argument("-pc", "--password_on_change", action='store_true', help="Ask user password again if you change tokens.json")
+
 
 # DEVELOPER COMMAND LINE ARGUMENTS
 # --dev - general argument for developer options
@@ -861,7 +863,7 @@ filename = "bakeryRouter.json"
 file_path = os.path.join(directory, filename)
 with open(file_path) as json_file:
     bakeryRouter = json.load(json_file)
-        
+    
 """""""""""""""""""""""""""
 // LOGGING
 """""""""""""""""""""""""""
@@ -1464,8 +1466,7 @@ def parse_wallet_settings(settings, pwd):
     # Check for limit wallet private key
     if " " in settings['LIMITWALLETPRIVATEKEY'] or settings['LIMITWALLETPRIVATEKEY'] == "":
         settings_changed = True
-        settings['LIMITWALLETPRIVATEKEY'] = input(
-            "Please provide the private key for the wallet where you have your LIMIT: ")
+        settings['LIMITWALLETPRIVATEKEY'] = input("Please provide the private key for the wallet where you have your LIMIT: ")
     
     # If the limit wallet private key is already set and encrypted, decrypt it
     elif settings['LIMITWALLETPRIVATEKEY'].startswith('aes:'):
@@ -3550,7 +3551,7 @@ def sell(token_dict, inToken, outToken):
                                 'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
                                 'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
                             })
-                                                
+                            
                     else:
                         # USECUSTOMBASEPAIR = true
                         # HASFEES = true
@@ -3902,6 +3903,16 @@ def run():
                 modification_check = tokens_file_modified_time
                 tokens_file_modified_time = os.path.getmtime(command_line_args.tokens)
                 if (modification_check != tokens_file_modified_time):
+                    #ask for user password to change tokens.json, if --password_on_change or -pc option is used
+                    if command_line_args.password_on_change:
+                        pkpassword = pwinput.pwinput(prompt="\nPlease enter your password to change tokens.json: ")
+                        
+                        if pkpassword != userpassword:
+                            printt_err("ERROR: Your private key decryption password is incorrect")
+                            printt_err("Please re-launch the bot and try again")
+                            sleep(10)
+                            sys.exit()
+
                     reload_tokens_file = True
                     raise Exception("tokens.json has been changed, reloading.")
             else:
