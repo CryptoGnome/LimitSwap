@@ -1878,7 +1878,7 @@ def wait_for_open_trade(token):
     token = Web3.toChecksumAddress(token)
 
     tx_filter = client.eth.filter({"filter_params": "pending", "address": token})
-    list_of_methodId = ["0x0d295980", "0xbccce037", "0x8a8c523c", "0x4efac329"]
+    list_of_methodId = ["0x0d295980", "0xbccce037", "0x8a8c523c", "0x4efac329", "0x0d295980", "0x7b9e987a"]
 
     # Examples of tokens and functions used
     #
@@ -1901,6 +1901,15 @@ def wait_for_open_trade(token):
     # https://bscscan.com/tx/0x5b8d8d70b6d1e591d0620a50247deef38bb924de0c38307cc9c5b77839f68bcc
     # Function: snipeListing() ** *
     # MethodID: 0x4efac329
+    
+    # https://bscscan.com/tx/0xa98ae84de5aee32d216d734b790131a845548c7e5013085688dccd58c9b5b277
+    # Function: tradingStatus
+    # MethodID: 0x0d295980
+
+    # https://bscscan.com/tx/0x0c528819b84a7336c3ff1cc72290ba8ca48555b932383fcbe6722a703a6b72a4
+    # Function: SetupEnableTrading
+    # MethodID: 0x7b9e987a
+
 
     while openTrade == False:
         try:
@@ -3046,7 +3055,7 @@ def preapprove_base(tokens):
     
     printt_debug("ENTER - preapprove_base()")
     
-    printt("LimitSwap will now check approval of your Base or Custom Base pair")
+    printt("LimitSwap will now check approval of your Base or Custom Base pair for all tokens, to ensure you can buy them")
     
     for token in tokens:
         if token['USECUSTOMBASEPAIR'].lower() == 'false':
@@ -3055,8 +3064,7 @@ def preapprove_base(tokens):
         else:
             balancebase = Web3.fromWei(check_balance(token['BASEADDRESS'], token['BASESYMBOL'], display_quantity=False), 'ether')
             check_approval(token, token['BASEADDRESS'], balancebase * 10000000000000000, 'preapprove')
-
-        
+ 
     printt_debug("EXIT - preapprove_base()")
 
 
@@ -3797,8 +3805,10 @@ def sell(token_dict, inToken, outToken):
 
 def benchmark():
     printt_ok('*** Start Benchmark Mode ***', write_to_log=True)
-    printt('Benchmark running, we will do 60 tests. Please wait a few seconds...')
+    printt('This benchmark will use your tokens.json: ADDRESS / LIQUIDITYINNATIVETOKEN / USECUSTOMBASEPAIR / BASEADDRESS')
     rounds = 60
+    printt("Benchmark running, we will do", rounds,"tests. Please wait a few seconds...")
+
 # Check RPC Node latency
     k = 0
     if my_provider[0].lower() == 'h' or my_provider[0].lower() == 'w':
@@ -3815,6 +3825,8 @@ def benchmark():
     token[0]['_CONTRACT_DECIMALS'] = int(decimals(token[0]['ADDRESS']))
     inToken = Web3.toChecksumAddress(token[0]['ADDRESS'])
     if token[0]['USECUSTOMBASEPAIR'] == 'true':
+        printt('Testing with USECUSTOMBASEPAIR ')
+    
         token[0]['_BASE_DECIMALS'] = int(decimals(token[0]['BASEADDRESS']))
         outToken = Web3.toChecksumAddress(token[0]['BASEADDRESS'])
     else:
@@ -3825,7 +3837,7 @@ def benchmark():
     for i in range(rounds):
         tmp = check_price(inToken, outToken, token[0]['USECUSTOMBASEPAIR'], token[0]['LIQUIDITYINNATIVETOKEN'], token[0]['_CONTRACT_DECIMALS'], token[0]['_BASE_DECIMALS'])
     end_time = time()
-    printt('Check_price function     :', round((60/(end_time - start_time)), 2), 'query/s Total:', round((end_time - start_time), 2), "s", write_to_log=True)
+    printt('Check_price function     :', round((rounds/(end_time - start_time)), 2), 'query/s Total:', round((end_time - start_time), 2), "s", write_to_log=True)
 
 # Check 'check_precise_price' function speed
     i = 0
@@ -3833,7 +3845,7 @@ def benchmark():
     for i in range(rounds):
         tmp = check_precise_price(inToken, outToken, token[0]['_WETH_DECIMALS'], token[0]['_CONTRACT_DECIMALS'], token[0]['_BASE_DECIMALS'])
     end_time = time()
-    printt('Check_precise_price func :', round((60/(end_time - start_time)), 2), 'query/s Total:', round((end_time - start_time), 2), "s", write_to_log=True)
+    printt('Check_precise_price func :', round((rounds/(end_time - start_time)), 2), 'query/s Total:', round((end_time - start_time), 2), "s", write_to_log=True)
 
 # Check 'check_pool' function speed
     i = 0
@@ -3841,11 +3853,11 @@ def benchmark():
     for i in range(rounds):
         check_pool(inToken, weth, base_symbol, token[0]['_CONTRACT_DECIMALS'], token[0]['_BASE_DECIMALS'])
     end_time = time()
-    printt('Check_pool function      :', round((60/(end_time - start_time)), 2), 'query/s Total:', round((end_time - start_time), 2), "s", write_to_log=True)
+    printt('Check_pool function      :', round((rounds/(end_time - start_time)), 2), 'query/s Total:', round((end_time - start_time), 2), "s", write_to_log=True)
 
     printt_ok('*** End Benchmark Mode ***', write_to_log=True)
     sys.exit()
-
+    
     
 def run():
     reload_tokens_file = False
@@ -3870,10 +3882,9 @@ def run():
         for token in tokens:
             
             # Calculate contract / custom base pair / weth decimals
-            printt_debug("entering token:", token['ADDRESS'])
+            printt_debug("Pre-calculations for token:", token['ADDRESS'], ": Gas / Decimals / Balance / RugDoc check")
             
             token['_CONTRACT_DECIMALS'] = int(decimals(token['ADDRESS']))
-            
             printt_debug("token['_CONTRACT_DECIMALS']:", token['_CONTRACT_DECIMALS'])
 
             if token['USECUSTOMBASEPAIR'] == 'true':
@@ -3891,7 +3902,7 @@ def run():
                 printt("Your wallet already owns : ", token['_TOKEN_BALANCE'], token['SYMBOL'], write_to_log=True)
                 if token['_TOKEN_BALANCE'] > float(token['MAXTOKENS']):
                     token['_REACHED_MAX_TOKENS'] = True
-                    printt_warn("You have reached MAXTOKENS for token ", token['SYMBOL'], "--> trading is disabled", write_to_log=True)
+                    printt_warn("You have reached MAXTOKENS for token ", token['SYMBOL'], "--> bot stops to buy", write_to_log=True)
 
             
             # Calculate balances prior to buy() to accelerate buy()
@@ -3982,11 +3993,16 @@ def run():
                     #
                     token['_PREVIOUS_QUOTE'] = token['_QUOTE']
                     
-                    # if --check_precise_price or PRECISE_PRICE parameter is used, bot will use dedicated function
+                    # if --check_precise_price or PRECISE_PRICE parameter is used, bot will use check_precise_price all the time
                     if command_line_args.precise_price or token['PRECISE_PRICE'] == 'true':
                         token['_QUOTE'] = check_precise_price(inToken, outToken, token['_WETH_DECIMALS'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
                     else:
-                        token['_QUOTE'] = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
+                        # otherwise, bot will use check_precise_price only if USECUSTOMBASEPAIR = false, because it's 2x slower with USECUSTOMBASEPAIR = true
+                        if token['USECUSTOMBASEPAIR'] == 'false':
+                            token['_QUOTE'] = check_precise_price(inToken, outToken, token['_WETH_DECIMALS'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
+                        else:
+                            token['_QUOTE'] = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
+                    
                     
                     printt_debug("token['_QUOTE'] 3245 :", token['_QUOTE'], "for the token:", token['SYMBOL'])
                     
@@ -4091,14 +4107,17 @@ def run():
                             printt_debug("wait_for_tx result is : ", txbuyresult)
                             if txbuyresult != 1:
                                 # transaction is a FAILURE
-                                printt_err("-------------------------------")
+                                printt_err("-------------------------------", write_to_log=True)
                                 printt_err("ERROR TRANSACTION FAILURE !")
                                 printt_err("-------------------------------")
-                                printt_err("Causes of failure can be :", write_to_log=False)
-                                printt_err("- GASLIMIT too low", write_to_log=False)
-                                printt_err("- SLIPPAGE too low", write_to_log=False)
-                                printt_err("- your node is not working well", write_to_log=False)
-                                printt_err("-------------------------------", write_to_log=False)
+                                printt_err("Type of failures and possible causes:")
+                                printt_err("- TRANSFER_FROM_FAILED         --> GASLIMIT too low. Raise it to GASLIMIT = 1000000 at least")
+                                printt_err("- TRANSFER_FROM_FAILED         --> Your BASE token is not approved for trade")
+                                printt_err("- INSUFFICIENT_OUTPUT_AMOUNT   --> SLIPPAGE too low")
+                                printt_err("- TRANSFER_FAILED              --> Trading is not enabled. Use WAIT_FOR_OPEN_TRADE parameter after reading wiki")
+                                printt_err("- TRANSFER_FAILED              --> There is a whitelist")
+                                printt_err("- Your node is not working well")
+                                printt_err("-------------------------------")
 
                                 # increment _FAILED_TRANSACTIONS amount
                                 token['_FAILED_TRANSACTIONS'] += 1
@@ -4202,12 +4221,14 @@ def run():
                                 printt_err("-------------------------------")
                                 printt_err("ERROR TRANSACTION FAILURE !")
                                 printt_err("-------------------------------")
-                                printt_err("Causes of failure can be :", write_to_log=False)
-                                printt_err("- GASLIMIT too low", write_to_log=False)
-                                printt_err("- SLIPPAGE too low", write_to_log=False)
-                                printt_err("- your node is not working well", write_to_log=False)
-                                printt_err("- you did not approve this token to be sold --> LimitSwap will now check if approval is done", write_to_log=False)
-                                printt_err("-------------------------------", write_to_log=False)
+                                printt_err("Type of failures and possible causes:")
+                                printt_err("- TRANSFER_FROM_FAILED         --> GASLIMIT too low. Raise it to GASLIMIT = 1000000 at least")
+                                printt_err("- TRANSFER_FROM_FAILED         --> Token is not approved for trade. LimitSwap will check approval right now.")
+                                printt_err("- INSUFFICIENT_OUTPUT_AMOUNT   --> SLIPPAGE too low")
+                                printt_err("- TRANSFER_FAILED              --> Trading is not enabled. Use WAIT_FOR_OPEN_TRADE parameter after reading wiki")
+                                printt_err("- TRANSFER_FAILED              --> There is a whitelist")
+                                printt_err("- Your node is not working well")
+                                printt_err("-------------------------------")
                                 
                                 # increment _FAILED_TRANSACTIONS amount
                                 token['_FAILED_TRANSACTIONS'] += 1
