@@ -2141,6 +2141,50 @@ def check_precise_price(inToken, outToken, symbol, base, custom, routing, buypri
     return tokenPrice
 
 
+def calculate_base_price():
+    # This function is made to calculate price of base token (ETH / BNB / AVAX...)
+    
+    printt_debug("ENTER calculate_base_price")
+
+    if base_symbol == "BNB":
+        DECIMALS_STABLES = 1000000000000000000
+        DECIMALS_BNB = 1000000000000000000
+
+        # BUSD
+        pair_address = '0x58F876857a02D6762E0101bb5C46A8c1ED44Dc16'
+        pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
+        reserves = pair_contract.functions.getReserves().call()
+        basePrice = Decimal((reserves[1] / DECIMALS_STABLES) / (reserves[0] / DECIMALS_BNB))
+        printt_debug("BNB PRICE: ", basePrice)
+
+    if base_symbol == "ETH":
+        DECIMALS_STABLES = 1000000
+        DECIMALS_ETH = 1000000000000000000
+
+        # USDT
+        pair_address = '0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852'
+        printt_debug("pair_address:", pair_address)
+        pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
+        reserves = pair_contract.functions.getReserves().call()
+        basePrice = Decimal((reserves[1] / DECIMALS_STABLES) / (reserves[0] / DECIMALS_ETH))
+        printt_debug("ETH PRICE: ", basePrice)
+    
+    if base_symbol == "AVAX":
+        DECIMALS_STABLES = 1000000
+        DECIMALS_ETH = 1000000000000000000
+    
+        # USDT 0xc7198437980c041c805a1edcba50c1ce5db95118
+        pair_address = '0xe28984e1EE8D431346D32BeC9Ec800Efb643eef4'
+        printt_debug("pair_address:", pair_address)
+        pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
+        reserves = pair_contract.functions.getReserves().call()
+        basePrice = Decimal((reserves[1] / DECIMALS_STABLES) / (reserves[0] / DECIMALS_ETH))
+        printt_debug("AVAX PRICE: ", basePrice)
+
+    return basePrice
+
+
+
 def calculate_base_balance(token):
     # Function: calculate_base_balance
     # --------------------
