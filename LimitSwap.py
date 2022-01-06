@@ -377,12 +377,13 @@ def load_settings_file(settings_path, load_message=True):
     #
     
     if len(settings) == 0:
-        print(timestamp(), "No exchange settings found in settings.jon. Exiting.")
+        print(timestamp(), "No exchange settings found in settings.json. Exiting.")
         exit(11)
     
     default_false_settings = [
         'UNLIMITEDSLIPPAGE',
-        'USECUSTOMNODE'
+        'USECUSTOMNODE',
+        'PASSWORD_ON_CHANGE'
     ]
     
     default_true_settings = [
@@ -3926,8 +3927,8 @@ def run():
                 modification_check = tokens_file_modified_time
                 tokens_file_modified_time = os.path.getmtime(command_line_args.tokens)
                 if (modification_check != tokens_file_modified_time):
-                    #ask for user password to change tokens.json, if --password_on_change or -pc option is used
-                    if command_line_args.password_on_change:
+                    #ask for user password to change tokens.json, if --password_on_change or PASSWORD_ON_CHANGE option is used
+                    if command_line_args.password_on_change or settings['PASSWORD_ON_CHANGE'] == 'true':
                         pkpassword = pwinput.pwinput(prompt="\nPlease enter your password to change tokens.json: ")
                         
                         if pkpassword != userpassword:

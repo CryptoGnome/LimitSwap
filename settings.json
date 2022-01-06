@@ -17,6 +17,7 @@
 "EXCHANGE": "pancakeswap",
 	"EXCHANGEVERSION": "2",
 "PREAPPROVE": "true",
-"UNLIMITEDSLIPPAGE": "false"
+"UNLIMITEDSLIPPAGE": "false",
+"PASSWORD_ON_CHANGE": "false"
 }
 ]
