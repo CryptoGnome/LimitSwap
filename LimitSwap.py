@@ -1723,26 +1723,34 @@ def check_approval(token, address, allowance_to_compare_with, condition):
     allowance_request = 115792089237316195423570985008687907853269984665640564039457584007913129639935
     
     if actual_allowance < allowance_to_compare_with or actual_allowance == 0:
-        if condition == 'preapprove':
-            printt_info("-----------------------------------------------------------------------------")
-            printt_info("You have selected PREAPPROVE = true --> LimitSwap will now APPROVE this token")
-            printt_info("-----------------------------------------------------------------------------")
-        if condition == 'txfail':
-            printt_info("----------------------------------------------------------------------------------")
-            printt_info("You have failed to sell tokens --> LimitSwap will chack if it needs to be APPROVED")
-            printt_info("----------------------------------------------------------------------------------")
+        if settings["EXCHANGE"] == 'quickswap':
+            
+            print("Revert to Zero To change approval")
+            tx = approve(address, 0)
+            wait_for_tx(token, tx, address)
+            tx = approve(address, allowance_request)
+            wait_for_tx(token, tx, address)
         else:
-            printt_info("-------------------------------------")
-            printt_info("LimitSwap will now APPROVE this token")
-            printt_info("-------------------------------------")
+            if condition == 'preapprove':
+                printt_info("-----------------------------------------------------------------------------")
+                printt_info("You have selected PREAPPROVE = true --> LimitSwap will now APPROVE this token")
+                printt_info("-----------------------------------------------------------------------------")
+            if condition == 'txfail':
+                printt_info("----------------------------------------------------------------------------------")
+                printt_info("You have failed to sell tokens --> LimitSwap will chack if it needs to be APPROVED")
+                printt_info("----------------------------------------------------------------------------------")
+            else:
+                printt_info("-------------------------------------")
+                printt_info("LimitSwap will now APPROVE this token")
+                printt_info("-------------------------------------")
 
-        tx = approve(address, allowance_request)
-        wait_for_tx(token, tx, address)
-        printt_ok("---------------------------------------------------------")
-        printt_ok("  Token is now approved : LimitSwap can sell this token", write_to_log=True)
-        printt_ok("---------------------------------------------------------")
-    
-    return allowance_request
+            tx = approve(address, allowance_request)
+            wait_for_tx(token, tx, address)
+            printt_ok("---------------------------------------------------------")
+            printt_ok("  Token is now approved : LimitSwap can sell this token", write_to_log=True)
+            printt_ok("---------------------------------------------------------")
+        
+        return allowance_request
     
     else:
         printt_ok("Token is already approved --> LimitSwap can sell this token ")
@@ -3028,10 +3036,10 @@ def preapprove_base(tokens):
     for token in tokens:
         if token['USECUSTOMBASEPAIR'].lower() == 'false':
             balanceweth = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
-            check_approval(token, weth, balanceweth * 10000000000000000, 'preapprove')
+            check_approval(token, weth, balanceweth * decimals(weth), 'preapprove')
         else:
             balancebase = Web3.fromWei(check_balance(token['BASEADDRESS'], token['BASESYMBOL'], display_quantity=False), 'ether')
-            check_approval(token, token['BASEADDRESS'], balancebase * 10000000000000000, 'preapprove')
+            check_approval(token, token['BASEADDRESS'], balancebase * decimals(token['BASEADDRESS'), 'preapprove')
  
     printt_debug("EXIT - preapprove_base()")
 
