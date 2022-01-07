@@ -1597,7 +1597,7 @@ def decimals(address):
     # address - token contract
     #
     # returns: returns the number of tokens for this contract
-    
+
     try:
         balanceContract = client.eth.contract(address=Web3.toChecksumAddress(address), abi=standardAbi)
         decimals = balanceContract.functions.decimals().call()
@@ -1726,12 +1726,17 @@ def check_approval(token, address, allowance_to_compare_with, condition):
     
     if actual_allowance < allowance_to_compare_with or actual_allowance == 0:
         if settings["EXCHANGE"] == 'quickswap':
+            if actual_allowance == 0:
+                tx = approve(address, allowance_request)
+                wait_for_tx(token, tx, address)
             
-            print("Revert to Zero To change approval")
-            tx = approve(address, 0)
-            wait_for_tx(token, tx, address)
-            tx = approve(address, allowance_request)
-            wait_for_tx(token, tx, address)
+            else:
+                print("Revert to Zero To change approval")
+                tx = approve(address, 0)
+                wait_for_tx(token, tx, address)
+                tx = approve(address, allowance_request)
+                wait_for_tx(token, tx, address)
+
         else:
             if condition == 'preapprove':
                 printt_info("-----------------------------------------------------------------------------")
@@ -2075,7 +2080,7 @@ def check_precise_price(inToken, outToken, DECIMALS_weth, DECIMALS_IN, DECIMALS_
     if outToken != weth:
         printt_debug("ENTER check_precise_price condition 1")
         # First step : calculates the price of token in ETH/BNB
-        pair_address = fetch_pair(inToken, weth,factoryContract)
+        pair_address = fetch_pair(inToken, weth, factoryContract)
         pair_contract = getContractLP(pair_address)
         reserves = pair_contract.functions.getReserves().call()
 
@@ -2090,7 +2095,7 @@ def check_precise_price(inToken, outToken, DECIMALS_weth, DECIMALS_IN, DECIMALS_
         
         # ------------------------------------------------------------------------
         # Second step : calculates the price of Custom Base pair in ETH/BNB
-        pair_address = fetch_pair( outToken,weth,factoryContract)
+        pair_address = fetch_pair(outToken, weth, factoryContract)
         pair_contract = getContractLP(pair_address)
         # We use cache to check price of Custom Base pair for price calculation. Price will be updated every 30s (ttl = 30)
         reserves = getReserves_with_cache(pair_contract)
