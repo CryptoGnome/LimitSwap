@@ -2751,14 +2751,14 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amountOut, gas,
                     printt("------------------------------------------------------------------------", write_to_log=True)
 
                     transaction = routerContract.functions.swapETHForExactTokens(
-                        amountOutMin,
+                        amountOut,
                         [weth, outToken],
                         Web3.toChecksumAddress(walletused),
                         deadline
                     ).buildTransaction({
                         'gasPrice': Web3.toWei(gas, 'gwei'),
                         'gas': gaslimit,
-                        'value': amountOut,
+                        'value': amountOutMin,
                         'from': Web3.toChecksumAddress(walletused),
                         'nonce': client.eth.getTransactionCount(walletused)
                     })
