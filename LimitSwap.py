@@ -2614,8 +2614,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
         return tx_hash
 
 
-def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amountOut, gas, gaslimit, gaspriority, routing, custom, slippage,
-                 DECIMALS):
+def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amountOut, gas, gaslimit, gaspriority, routing, custom, slippage, DECIMALS):
     # Function: make_the_buy_exact_tokens
     # --------------------
     # creates BUY order with the good condition
@@ -2651,15 +2650,12 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amountOut, gas,
             # USECUSTOMBASEPAIR = false
             amount_out = routerContract.functions.getAmountsOut(amountOut, [weth, outToken]).call()[-1]
             if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
-                amountMin = 100
+                amountOutMin = 100
             else:
-                amountMin = int(amount_out / 6000)
-
-            amountOutMin = amountOut * 0.80
-
+                amountOutMin = int(amount_out * (1 - (slippage / 100)))
 
             deadline = int(time() + + 60)
-            
+
             # THIS SECTION IS FOR MODIFIED CONTRACTS : EACH EXCHANGE NEEDS TO BE SPECIFIED
             # USECUSTOMBASEPAIR = false
             if modified == True:
@@ -2716,25 +2712,6 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amountOut, gas,
                 # Special condition on Uniswap, to implement EIP-1559
                 
                 if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
-                    printt("------------------------------------------------------------------------",
-                           write_to_log=True)
-                    printt("temporary log write for ETH transaction only, to make some investigations",
-                           write_to_log=True)
-                    printt("------------------------------------------------------------------------",
-                           write_to_log=True)
-                    printt("amountOutMin:", amountMin, write_to_log=True)
-                    printt("amount_in   :", amount_out, write_to_log=True)
-                    printt("amount      :", amount, write_to_log=True)
-                    printt("weth:", weth, write_to_log=True)
-                    printt("outToken:", outToken, write_to_log=True)
-                    printt("walletused:", walletused, write_to_log=True)
-                    printt("deadline:", deadline, write_to_log=True)
-                    printt("gas:", gas, write_to_log=True)
-                    printt("gaspriority:", gaspriority, write_to_log=True)
-                    printt("gaslimit:", gaslimit, write_to_log=True)
-                    printt("------------------------------------------------------------------------",
-                           write_to_log=True)
-                    
                     logging.info("make_the_buy_exact_tokens condition 3")
                     
                     transaction = routerContract.functions.swapExactETHForTokens(
@@ -2757,13 +2734,13 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amountOut, gas,
                     # for all the rest of exchanges with Modified = false
                     
                     logging.info("make_the_buy_exact_tokens condition 4")
-                    
+
                     printt("------------------------------------------------------------------------", write_to_log=True)
                     printt("temporary log write to make some investigations", write_to_log=True)
                     printt("------------------------------------------------------------------------", write_to_log=True)
-                    printt("amountMin     :", amountMin, write_to_log=True)
                     printt("amountOutMin  :", amountOutMin, write_to_log=True)
                     printt("amount_out    :", amount_out, write_to_log=True)
+                    printt("amountOut     :", amountOut, write_to_log=True)
                     printt("weth:", weth, write_to_log=True)
                     printt("outToken:", outToken, write_to_log=True)
                     printt("walletused:", walletused, write_to_log=True)
@@ -2774,18 +2751,18 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amountOut, gas,
                     printt("------------------------------------------------------------------------", write_to_log=True)
 
                     transaction = routerContract.functions.swapETHForExactTokens(
-                        amountOut,
+                        amountOutMin,
                         [weth, outToken],
                         Web3.toChecksumAddress(walletused),
                         deadline
                     ).buildTransaction({
                         'gasPrice': Web3.toWei(gas, 'gwei'),
                         'gas': gaslimit,
-                        'value': amount_out,
+                        'value': amountOut,
                         'from': Web3.toChecksumAddress(walletused),
                         'nonce': client.eth.getTransactionCount(walletused)
                     })
-    
+
     else:
         # USECUSTOMBASEPAIR = true
         if inToken == weth:
