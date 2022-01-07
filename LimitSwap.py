@@ -3039,7 +3039,7 @@ def preapprove_base(tokens):
             check_approval(token, weth, balanceweth * decimals(weth), 'preapprove')
         else:
             balancebase = Web3.fromWei(check_balance(token['BASEADDRESS'], token['BASESYMBOL'], display_quantity=False), 'ether')
-            check_approval(token, token['BASEADDRESS'], balancebase * decimals(token['BASEADDRESS'), 'preapprove')
+            check_approval(token, token['BASEADDRESS'], balancebase * decimals(token['BASEADDRESS']), 'preapprove')
  
     printt_debug("EXIT - preapprove_base()")
 
