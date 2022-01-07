@@ -10,6 +10,7 @@ from web3.exceptions import ABIFunctionNotFound, TransactionNotFound, BadFunctio
 import logging
 from datetime import datetime
 from functools import lru_cache
+from cachetools import cached, LRUCache, TTLCache
 from hexbytes import HexBytes
 import sys
 import requests
@@ -94,12 +95,12 @@ parser.add_argument("-p", "--password", type=str, help="Password to decrypt priv
 parser.add_argument("-s", "--settings", type=str, help="Specify the file to user for settings (default: settings.json)",default="./settings.json")
 parser.add_argument("-t", "--tokens", type=str, help="Specify the file to use for tokens to trade (default: tokens.json)", default="./tokens.json")
 parser.add_argument("-v", "--verbose", action='store_true', help="Print detailed messages to stdout")
-parser.add_argument("-pp", "--precise_price", action='store_true', help="Use check_precise_price function to check price. More accurate but slower")
 parser.add_argument("-pc", "--password_on_change", action='store_true', help="Ask user password again if you change tokens.json")
 
 
 # DEVELOPER COMMAND LINE ARGUMENTS
 # --dev - general argument for developer options
+# --debug - to display the "printt_debug" lines
 # --sim_buy tx - simulates the buying process, you must provide a transaction of a purchase of the token
 # --sim_sell tx - simulates the buying process, you must provide a transaction of a purchase of the token
 # --benchmark - run benchmark mode
@@ -487,7 +488,6 @@ def load_tokens_file(tokens_path, load_message=True):
         'RUGDOC_CHECK',
         'MULTIPLEBUYS',
         'KIND_OF_SWAP',
-        'PRECISE_PRICE',
         'ALWAYS_CHECK_BALANCE',
         'WAIT_FOR_OPEN_TRADE'
     ]
@@ -664,7 +664,6 @@ def reload_tokens_file(tokens_path, load_message=True):
         'HASFEES',
         'RUGDOC_CHECK',
         'KIND_OF_SWAP',
-        'PRECISE_PRICE',
         'ALWAYS_CHECK_BALANCE',
         'MULTIPLEBUYS',
         'WAIT_FOR_OPEN_TRADE'
@@ -1803,6 +1802,12 @@ def getContractLP(pair_address):
     return client.eth.contract(address=pair_address, abi=lpAbi)
 
 
+# We use cache to check price of Custom Base pair for price calculation. Price will be updated every 30s (ttl = 30)
+@cached(cache=TTLCache(maxsize=128, ttl=30))
+def getReserves_with_cache(pair_contract):
+    return pair_contract.functions.getReserves().call()
+
+
 def sync(inToken, outToken):
     pair = fetch_pair(inToken, outToken,factoryContract)
     syncContract = client.eth.contract(address=Web3.toChecksumAddress(pair), abi=lpAbi)
@@ -2085,7 +2090,9 @@ def check_precise_price(inToken, outToken, DECIMALS_weth, DECIMALS_IN, DECIMALS_
         # Second step : calculates the price of Custom Base pair in ETH/BNB
         pair_address = fetch_pair( outToken,weth,factoryContract)
         pair_contract = getContractLP(pair_address)
-        reserves = pair_contract.functions.getReserves().call()
+        # We use cache to check price of Custom Base pair for price calculation. Price will be updated every 30s (ttl = 30)
+        reserves = getReserves_with_cache(pair_contract)
+
 
         if ORDER_HASH.get(pair_address) is None:
             value0 = pair_contract.functions.token0().call()
@@ -2098,6 +2105,7 @@ def check_precise_price(inToken, outToken, DECIMALS_weth, DECIMALS_IN, DECIMALS_
         
         # ------------------------------------------------------------------------
         # Third step : division
+        #
         # Example with BUSD pair :
         #  - First step : token price = 0.000005 BNB
         #  - Second step : BUSD price = 1/500 BUSD
@@ -2614,7 +2622,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
         return tx_hash
 
 
-def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amountOut, gas, gaslimit, gaspriority, routing, custom, slippage, DECIMALS):
+def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspriority, routing, custom, slippage, DECIMALS):
     # Function: make_the_buy_exact_tokens
     # --------------------
     # creates BUY order with the good condition
@@ -2648,7 +2656,7 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amountOut, gas,
         else:
             # LIQUIDITYINNATIVETOKEN = true
             # USECUSTOMBASEPAIR = false
-            amount_out = routerContract.functions.getAmountsOut(amountOut, [weth, outToken]).call()[-1]
+            amount_out = routerContract.functions.getAmountsIn(amount, [weth, outToken]).call()[-1]
             if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
                 amountOutMin = 100
             else:
@@ -2740,7 +2748,7 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amountOut, gas,
                     printt("------------------------------------------------------------------------", write_to_log=True)
                     printt("amountOutMin  :", amountOutMin, write_to_log=True)
                     printt("amount_out    :", amount_out, write_to_log=True)
-                    printt("amountOut     :", amountOut, write_to_log=True)
+                    printt("amount        :", amount, write_to_log=True)
                     printt("weth:", weth, write_to_log=True)
                     printt("outToken:", outToken, write_to_log=True)
                     printt("walletused:", walletused, write_to_log=True)
@@ -2751,7 +2759,7 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amountOut, gas,
                     printt("------------------------------------------------------------------------", write_to_log=True)
 
                     transaction = routerContract.functions.swapETHForExactTokens(
-                        amountOut,
+                        amount,
                         [weth, outToken],
                         Web3.toChecksumAddress(walletused),
                         deadline
@@ -3971,18 +3979,7 @@ def run():
                     #
                     token['_PREVIOUS_QUOTE'] = token['_QUOTE']
                     
-                    # if --check_precise_price or PRECISE_PRICE parameter is used, bot will use check_precise_price all the time
-                    if command_line_args.precise_price or token['PRECISE_PRICE'] == 'true':
-                        token['_QUOTE'] = check_precise_price(inToken, outToken, token['_WETH_DECIMALS'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
-                    else:
-                        # otherwise, bot will use check_precise_price only if USECUSTOMBASEPAIR = false, because it's 2x slower with USECUSTOMBASEPAIR = true
-                        if token['USECUSTOMBASEPAIR'] == 'false':
-                            token['_QUOTE'] = check_precise_price(inToken, outToken, token['_WETH_DECIMALS'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
-                        else:
-                            token['_QUOTE'] = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
-                    
-                    
-                    printt_debug("token['_QUOTE'] 3245 :", token['_QUOTE'], "for the token:", token['SYMBOL'])
+                    token['_QUOTE'] = check_precise_price(inToken, outToken, token['_WETH_DECIMALS'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
                     
                     if token['_ALL_TIME_HIGH'] == 0 and token['_ALL_TIME_LOW'] == 0:
                         token['_ALL_TIME_HIGH'] = token['_QUOTE']

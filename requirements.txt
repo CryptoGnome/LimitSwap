@@ -4,6 +4,7 @@ async-timeout==4.0.1
 attrs==21.2.0
 base58==2.1.1
 bitarray==1.2.2
+cachetools==5.0.0
 certifi==2021.10.8
 charset-normalizer==2.0.7
 cryptocode==0.1
