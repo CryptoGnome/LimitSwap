@@ -494,6 +494,7 @@ def load_tokens_file(tokens_path, load_message=True):
     
     default_value_settings = {
         'SLIPPAGE': 49,
+        'BUYAMOUNTINTOKEN': 0,
         'MAXTOKENS': 0,
         'MOONBAG': 0,
         'SELLAMOUNTINTOKENS': 'all',
@@ -671,6 +672,7 @@ def reload_tokens_file(tokens_path, load_message=True):
     
     default_value_settings = {
         'SLIPPAGE': 49,
+        'BUYAMOUNTINTOKEN': 0,
         'MAXTOKENS': 0,
         'MOONBAG': 0,
         'SELLAMOUNTINTOKENS': 'all',
@@ -2631,6 +2633,8 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amount, gas, ga
     #
     printt_debug("ENTER make_the_buy_exact_tokens")
     
+    printt_warn("WARNING : BUYING EXACT AMOUNT IS EXPERIMENTAL")
+    printt_warn("It only works with LIQUIDITYINNATIVETOKEN = true and USECUSTOMBASEPAIR = false for now")
     # Choose proper wallet.
     if buynumber == 0:
         walletused = settings['WALLETADDRESS']
@@ -2656,8 +2660,9 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amount, gas, ga
         else:
             # LIQUIDITYINNATIVETOKEN = true
             # USECUSTOMBASEPAIR = false
-            amount_in = routerContract.functions.getAmountsIn(amount, [weth, outToken]).call()[-1]
+            amount_in = routerContract.functions.getAmountsIn(amount, [weth, outToken]).call()[0]
 
+            printt_debug("amount_in 0", amount_in)
             deadline = int(time() + + 60)
 
             # THIS SECTION IS FOR MODIFIED CONTRACTS : EACH EXCHANGE NEEDS TO BE SPECIFIED
@@ -2738,15 +2743,6 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amount, gas, ga
                     # for all the rest of exchanges with Modified = false
                     
                     logging.info("make_the_buy_exact_tokens condition 4")
-
-                    printt("------------------------------------------------------------------------", write_to_log=True)
-                    printt("temporary log write to make some investigations", write_to_log=True)
-                    printt("------------------------------------------------------------------------", write_to_log=True)
-                    printt("amount_in     :", amount_in, write_to_log=True)
-                    printt("amount        :", amount, write_to_log=True)
-                    printt("weth          :", weth, write_to_log=True)
-                    printt("outToken      :", outToken, write_to_log=True)
-                    printt("------------------------------------------------------------------------", write_to_log=True)
 
                     transaction = routerContract.functions.swapETHForExactTokens(
                         amount,
@@ -3126,15 +3122,15 @@ def buy(token_dict, inToken, outToken, pwd):
         buynumber = 0
 
         if multiplebuys.lower() == 'true':
-            printt_warn(
-                "WARNING - Multiple Buys is an experimental feature : controls are only made for the first wallet")
+            printt_warn("WARNING - Multiple Buys is an experimental feature : controls are only made for the first wallet")
             amount_of_buys = int(buycount)
             
             while True:
                 if buynumber < amount_of_buys:
                     printt("Placing New Buy Order for wallet number:", buynumber)
                     if token_dict['KIND_OF_SWAP'] == 'tokens':
-                        make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, DECIMALS)
+                        tokenamount = int(float(token_dict['BUYAMOUNTINTOKEN']) * DECIMALS)
+                        make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, tokenamount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, DECIMALS)
                     else:
                         make_the_buy(inToken, outToken, buynumber, pwd, amount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, DECIMALS)
                     buynumber += 1
@@ -3143,7 +3139,8 @@ def buy(token_dict, inToken, outToken, pwd):
                     sys.exit(0)
         else:
             if token_dict['KIND_OF_SWAP'] == 'tokens':
-                tx_hash = make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, DECIMALS)
+                tokenamount = int(float(token_dict['BUYAMOUNTINTOKEN']) * DECIMALS)
+                tx_hash = make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, tokenamount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, DECIMALS)
             else:
                 tx_hash = make_the_buy(inToken, outToken, buynumber, pwd, amount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, DECIMALS)
     
@@ -3847,7 +3844,8 @@ def run():
         # Check to see if the user wants to pre-approve token transactions. If they do, work through that approval process
         # UPDATE 01/01/2022 : removed here, to make the "instantafterbuy" default preapprove behaviour
         # UPDATE 01/04/2022 : after a bug report, I realized that you need to approve the Base pair, so as the bot is able to use it to buy token
-        preapprove_base(tokens)
+        # UPDATE 07/01 : removed as it seems buggy
+        # preapprove_base(tokens)
         
         # For each token check to see if the user wants to run a rugdoc check against them.
         #   then run the rugdoctor check and prompt the user if they want to continue trading
