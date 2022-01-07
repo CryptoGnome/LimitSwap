@@ -1723,34 +1723,26 @@ def check_approval(token, address, allowance_to_compare_with, condition):
     allowance_request = 115792089237316195423570985008687907853269984665640564039457584007913129639935
     
     if actual_allowance < allowance_to_compare_with or actual_allowance == 0:
-        if settings["EXCHANGE"] == 'quickswap':
-            
-            print("Revert to Zero To change approval")
-            tx = approve(address, 0)
-            wait_for_tx(token, tx, address)
-            tx = approve(address, allowance_request)
-            wait_for_tx(token, tx, address)
+        if condition == 'preapprove':
+            printt_info("-----------------------------------------------------------------------------")
+            printt_info("You have selected PREAPPROVE = true --> LimitSwap will now APPROVE this token")
+            printt_info("-----------------------------------------------------------------------------")
+        if condition == 'txfail':
+            printt_info("----------------------------------------------------------------------------------")
+            printt_info("You have failed to sell tokens --> LimitSwap will chack if it needs to be APPROVED")
+            printt_info("----------------------------------------------------------------------------------")
         else:
-            if condition == 'preapprove':
-                printt_info("-----------------------------------------------------------------------------")
-                printt_info("You have selected PREAPPROVE = true --> LimitSwap will now APPROVE this token")
-                printt_info("-----------------------------------------------------------------------------")
-            if condition == 'txfail':
-                printt_info("----------------------------------------------------------------------------------")
-                printt_info("You have failed to sell tokens --> LimitSwap will chack if it needs to be APPROVED")
-                printt_info("----------------------------------------------------------------------------------")
-            else:
-                printt_info("-------------------------------------")
-                printt_info("LimitSwap will now APPROVE this token")
-                printt_info("-------------------------------------")
+            printt_info("-------------------------------------")
+            printt_info("LimitSwap will now APPROVE this token")
+            printt_info("-------------------------------------")
 
-            tx = approve(address, allowance_request)
-            wait_for_tx(token, tx, address)
-            printt_ok("---------------------------------------------------------")
-            printt_ok("  Token is now approved : LimitSwap can sell this token", write_to_log=True)
-            printt_ok("---------------------------------------------------------")
-        
-        return allowance_request
+        tx = approve(address, allowance_request)
+        wait_for_tx(token, tx, address)
+        printt_ok("---------------------------------------------------------")
+        printt_ok("  Token is now approved : LimitSwap can sell this token", write_to_log=True)
+        printt_ok("---------------------------------------------------------")
+    
+    return allowance_request
     
     else:
         printt_ok("Token is already approved --> LimitSwap can sell this token ")
@@ -2656,11 +2648,7 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amount, gas, ga
         else:
             # LIQUIDITYINNATIVETOKEN = true
             # USECUSTOMBASEPAIR = false
-            amount_out = routerContract.functions.getAmountsIn(amount, [weth, outToken]).call()[-1]
-            if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
-                amountOutMin = 100
-            else:
-                amountOutMin = int(amount_out * (1 - (slippage / 100)))
+            amount_in = routerContract.functions.getAmountsIn(amount, [weth, outToken]).call()[-1]
 
             deadline = int(time() + + 60)
 
@@ -2746,16 +2734,10 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amount, gas, ga
                     printt("------------------------------------------------------------------------", write_to_log=True)
                     printt("temporary log write to make some investigations", write_to_log=True)
                     printt("------------------------------------------------------------------------", write_to_log=True)
-                    printt("amountOutMin  :", amountOutMin, write_to_log=True)
-                    printt("amount_out    :", amount_out, write_to_log=True)
+                    printt("amount_in     :", amount_in, write_to_log=True)
                     printt("amount        :", amount, write_to_log=True)
-                    printt("weth:", weth, write_to_log=True)
-                    printt("outToken:", outToken, write_to_log=True)
-                    printt("walletused:", walletused, write_to_log=True)
-                    printt("deadline:", deadline, write_to_log=True)
-                    printt("gas:", gas, write_to_log=True)
-                    printt("gaspriority:", gaspriority, write_to_log=True)
-                    printt("gaslimit:", gaslimit, write_to_log=True)
+                    printt("weth          :", weth, write_to_log=True)
+                    printt("outToken      :", outToken, write_to_log=True)
                     printt("------------------------------------------------------------------------", write_to_log=True)
 
                     transaction = routerContract.functions.swapETHForExactTokens(
@@ -2766,7 +2748,7 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amount, gas, ga
                     ).buildTransaction({
                         'gasPrice': Web3.toWei(gas, 'gwei'),
                         'gas': gaslimit,
-                        'value': amountOutMin,
+                        'value': amount_in,
                         'from': Web3.toChecksumAddress(walletused),
                         'nonce': client.eth.getTransactionCount(walletused)
                     })
@@ -3126,7 +3108,7 @@ def buy(token_dict, inToken, outToken, pwd):
 
     printt_debug("2470 balance:", balance)
     
-    if balance > Decimal(amount):
+    if balance > Decimal(amount) or token_dict['KIND_OF_SWAP'] == 'tokens':
         # Calculate how much gas we should use for this token
         calculate_gas(token_dict)
         printt_debug("_GAS_TO_USE is set to: ", token_dict['_GAS_TO_USE'])
