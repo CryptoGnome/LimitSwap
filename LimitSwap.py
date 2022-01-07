@@ -1817,10 +1817,10 @@ def sync(inToken, outToken):
 def check_pool(inToken, outToken, symbol, DECIMALS_IN, DECIMALS_OUT):
     # This function is made to calculate Liquidity of a token
     pair_address = fetch_pair(inToken, outToken,factoryContract)
-    pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
+    pair_contract = getContractLP(pair_address)
     reserves = pair_contract.functions.getReserves().call()
     printt_debug("ENTER check_pool")
-    
+
     # Tokens are ordered by the token contract address
     # The token contract address can be interpreted as a number
     # And the smallest one will be token0 internally
