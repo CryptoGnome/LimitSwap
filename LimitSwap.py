@@ -2634,7 +2634,6 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
     custom = token_dict['USECUSTOMBASEPAIR']
     routing = token_dict['LIQUIDITYINNATIVETOKEN']
     gaspriority = token_dict['GASPRIORITY_FOR_ETH_ONLY']
-    DECIMALS = token_dict['_CONTRACT_DECIMALS']
     token_symbol = token_dict['SYMBOL']
 
 
