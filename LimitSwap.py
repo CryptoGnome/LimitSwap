@@ -1680,7 +1680,7 @@ def approve(address, amount):
     if base_symbol == "ETH":
         minimumbalance = 0.05
     else:
-        minimumbalance = 0.01
+        minimumbalance = 0
     
     if eth_balance > minimumbalance:
         print("Estimating Gas Cost Using Web3")
@@ -1798,11 +1798,11 @@ def check_balance(address, symbol='UNKNOWN_TOKEN', display_quantity=True):
     return balance
 
 
-@lru_cache(maxsize=None)
+# @lru_cache(maxsize=None)
 def fetch_pair(inToken, outToken, contract):
-    printt_debug(timestamp(), "Fetching Pair Address")
+    printt_debug("Fetching Pair Address")
     pair = contract.functions.getPair(inToken, outToken).call()
-    printt_debug(timestamp(), "Pair Address = ", pair)
+    printt_debug("Pair Address = ", pair)
     return pair
 
 
@@ -1825,10 +1825,16 @@ def sync(inToken, outToken):
 
 def check_pool(inToken, outToken, symbol, DECIMALS_IN, DECIMALS_OUT):
     # This function is made to calculate Liquidity of a token
-    pair_address = fetch_pair(inToken, outToken,factoryContract)
-    pair_contract = getContractLP(pair_address)
-    reserves = pair_contract.functions.getReserves().call()
     printt_debug("ENTER check_pool")
+    # be careful, we cannot put cache and use fetch_pair, because we need to detect when pair_address != 0x0000000000000000000000000000000000000000
+    pair_address = factoryContract.functions.getPair(inToken, outToken).call()
+    printt_debug("pair_address:", pair_address)
+    if pair_address == '0x0000000000000000000000000000000000000000':
+        return 0
+
+    pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
+
+    reserves = pair_contract.functions.getReserves().call()
 
     # Tokens are ordered by the token contract address
     # The token contract address can be interpreted as a number
@@ -2201,7 +2207,7 @@ def calculate_base_balance(token):
     if base_symbol == "ETH":
         minimumbalance = 0.05
     else:
-        minimumbalance = 0.01
+        minimumbalance = 0
 
     try:
         eth_balance = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
@@ -3796,8 +3802,8 @@ def run():
                         outToken = weth
                     
                     #
-                    # CHECK LIQUIDITY ... if we haven't already checked liquidity
-                    #   Break out of the loop for this token if we haven't found liquidity yet
+                    # CHECK LIQUIDITY ... if liquidity has not been found yet (token['_LIQUIDITY_READY'] == False)
+                    #
                     #   There are 2 cases :
                     #       Case 1/ LIQUIDITYINNATIVETOKEN = true  --> we will snipe using ETH / BNB liquidity --> we use check_pool with weth
                     #       Case 2/ LIQUIDITYINNATIVETOKEN = false --> we will snipe using Custom Base Pair    --> we use check_pool with outToken
