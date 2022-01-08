@@ -481,7 +481,6 @@ def load_tokens_file(tokens_path, load_message=True):
     
     default_false_settings = [
         'ENABLED',
-        'LIQUIDITYCHECK',
         'LIQUIDITYINNATIVETOKEN',
         'USECUSTOMBASEPAIR',
         'HASFEES',
@@ -497,6 +496,7 @@ def load_tokens_file(tokens_path, load_message=True):
         'BUYAMOUNTINTOKEN': 0,
         'MAXTOKENS': 0,
         'MOONBAG': 0,
+        'MINIMUM_LIQUIDITY_IN_DOLLARS': 0,
         'MAX_BASE_AMOUNT_PER_EXACT_TOKENS_TRANSACTION': 0.5,
         'SELLAMOUNTINTOKENS': 'all',
         'GAS': 8,
@@ -533,6 +533,7 @@ def load_tokens_file(tokens_path, load_message=True):
     # _RUGDOC_DECISION      - decision of the user after RugDoc API check
     # _TOKEN_BALANCE        - the number of traded tokens the user has in her wallet
     # _BASE_BALANCE         - balance of Base token, calculated at bot launch and after a BUY/SELL
+    # _BASE_PRICE           - price of Base token, calculated at bot launch with calculate_base_price
     # _CUSTOM_BASE_BALANCE  - balance of Custom Base token, calculated at bot launch and after a BUY/SELL
     # _QUOTE                - holds the token's quote
     # _PREVIOUS_QUOTE       - holds the ask price for a token the last time a price was queried, this is used
@@ -564,6 +565,7 @@ def load_tokens_file(tokens_path, load_message=True):
         '_REACHED_MAX_SUCCESS_TX': False,
         '_TOKEN_BALANCE': 0,
         '_BASE_BALANCE': 0,
+        '_BASE_PRICE': 0,
         '_CUSTOM_BASE_BALANCE': 0,
         '_QUOTE': 0,
         '_PREVIOUS_QUOTE': 0,
@@ -660,7 +662,6 @@ def reload_tokens_file(tokens_path, load_message=True):
     
     default_false_settings = [
         'ENABLED',
-        'LIQUIDITYCHECK',
         'LIQUIDITYINNATIVETOKEN',
         'USECUSTOMBASEPAIR',
         'HASFEES',
@@ -676,6 +677,7 @@ def reload_tokens_file(tokens_path, load_message=True):
         'BUYAMOUNTINTOKEN': 0,
         'MAXTOKENS': 0,
         'MOONBAG': 0,
+        'MINIMUM_LIQUIDITY_IN_DOLLARS': 0,
         'MAX_BASE_AMOUNT_PER_EXACT_TOKENS_TRANSACTION': 0.5,
         'SELLAMOUNTINTOKENS': 'all',
         'GAS': 8,
@@ -712,6 +714,7 @@ def reload_tokens_file(tokens_path, load_message=True):
     # _RUGDOC_DECISION      - decision of the user after RugDoc API check
     # _TOKEN_BALANCE        - the number of traded tokens the user has in her wallet
     # _BASE_BALANCE         - balance of Base token, calculated at bot launch and after a BUY/SELL
+    # _BASE_PRICE           - price of Base token, calculated at bot launch with calculate_base_price
     # _CUSTOM_BASE_BALANCE' - balance of Custom Base token, calculated at bot launch and after a BUY/SELL
     # _QUOTE                - holds the token's quote
     # _PREVIOUS_QUOTE       - holds the ask price for a token the last time a price was queried, this is used
@@ -741,6 +744,7 @@ def reload_tokens_file(tokens_path, load_message=True):
         '_REACHED_MAX_SUCCESS_TX': False,
         '_TOKEN_BALANCE': 0,
         '_BASE_BALANCE': 0,
+        '_BASE_PRICE': 0,
         '_CUSTOM_BASE_BALANCE': 0,
         '_PREVIOUS_QUOTE': 0,
         '_QUOTE': 0,
@@ -1973,7 +1977,7 @@ def get_tokens_purchased(tx_hash):
     exit(0)
 
 
-def check_liquidity_amount(token):
+def check_liquidity_amount(token, DECIMALS_OUT, DECIMALS_weth):
     # Function: check_liquidity_amount
     # ----------------------------
     # Tells if the liquidity of tokens purchased is enough for trading or not
@@ -1993,45 +1997,70 @@ def check_liquidity_amount(token):
     
     inToken = Web3.toChecksumAddress(token['ADDRESS'])
     
-    if token['_LIQUIDITY_CHECKED'] == False:
-        # Cases 1 and 2 above : we always use weth as LP pair to check liquidity
-        if token["LIQUIDITYINNATIVETOKEN"] == 'true':
-            printt_debug("check_liquidity_amount case 1")
+    # Cases 1 and 2 above : we always use weth as LP pair to check liquidity
+    if token["LIQUIDITYINNATIVETOKEN"] == 'true':
+        printt_debug("check_liquidity_amount case 1")
 
-            pool = check_pool(inToken, weth, token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
-            printt("You have set LIQUIDITYCHECK = true.")
-            printt("Current", token['SYMBOL'], "Liquidity =", int(pool), base_symbol)
-            
-            if float(token['LIQUIDITYAMOUNT']) <= float(pool):
-                printt_ok("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']), " --> Enough liquidity detected : Buy Signal Found!")
-                return 1
-            
-            # This position isn't looking good. Inform the user, disable the token and break out of this loop
-            else:
-                printt_warn("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']), " : not enough liquidity, bot will not buy. Disabling the trade of this token.")
-                token['ENABLED'] = 'false'
-                token['_QUOTE'] = 0
-                return 0
+        liquidity_amount = check_pool(inToken, weth, token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
+        liquidity_amount_in_dollars = float(liquidity_amount) * float(token['_BASE_PRICE'])
+        printt("Current", token['SYMBOL'], "Liquidity =", "{:.6f}".format(liquidity_amount_in_dollars), "$")
         
-        # Case 3 above
-        if token["LIQUIDITYINNATIVETOKEN"] == 'false' and token["USECUSTOMBASEPAIR"] == 'true':
-            outToken = Web3.toChecksumAddress(token['BASEADDRESS'])
-            printt_debug("check_liquidity_amount case 1")
+        if float(token['MINIMUM_LIQUIDITY_IN_DOLLARS']) <= float(liquidity_amount_in_dollars):
+            printt_ok("MINIMUM_LIQUIDITY_IN_DOLLARS parameter =", int(token['MINIMUM_LIQUIDITY_IN_DOLLARS']), " --> Enough liquidity detected : Buy Signal Found!")
+            return 1
+        
+        # This position isn't looking good. Inform the user, disable the token and break out of this loop
+        else:
+            printt_warn("------------------------------------------------", write_to_log=True)
+            printt_warn("NOT ENOUGH LIQUIDITY", write_to_log=True)
+            printt_warn("", write_to_log=True)
+            printt_warn("- You have set MINIMUM_LIQUIDITY_IN_DOLLARS  =", token['MINIMUM_LIQUIDITY_IN_DOLLARS'], "$", write_to_log=True)
+            printt_warn("- Liquidity detected for", token['SYMBOL'], "=", "{:.6f}".format(liquidity_amount_in_dollars), "$", write_to_log=True)
+            printt_warn("--> Bot will not buy and disable token", write_to_log=True)
+            printt_warn("------------------------------------------------", write_to_log=True)
+            token['ENABLED'] = 'false'
+            token['_QUOTE'] = 0
+            return 0
+    
+    # Case 3 above
+    if token["LIQUIDITYINNATIVETOKEN"] == 'false' and token["USECUSTOMBASEPAIR"] == 'true':
+        # This case is a little bit more complicated. We need to:
+        # 1/ calculate Custom Base token price in ETH/BNB...
+        # 2/ convert this Custom Base token price in $
+        
+        outToken = Web3.toChecksumAddress(token['BASEADDRESS'])
+        printt_debug("check_liquidity_amount case 1")
 
-            pool = check_pool(inToken, outToken, token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
-            printt("You have set LIQUIDITYCHECK = true.")
-            printt("Current", token['SYMBOL'], "Liquidity =", int(pool), token['BASESYMBOL'])
-            
-            if float(token['LIQUIDITYAMOUNT']) <= float(pool):
-                printt_ok("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']), " --> Enough liquidity detected : Buy Signal Found!")
-                return 1
-            
-            # This position isn't looking good. Inform the user, disable the token and break out of this loop
-            else:
-                printt_warn("LIQUIDITYAMOUNT parameter =", int(token['LIQUIDITYAMOUNT']), " : not enough liquidity, bot will not buy. Disabling the trade of this token.")
-                token['ENABLED'] = 'false'
-                token['_QUOTE'] = 0
-                return 0
+        liquidity_amount = check_pool(inToken, outToken, token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
+        
+        # 1/ calculate Custom Base token price in ETH/BNB...
+        # We could have used this also :
+        #   custom_base_price_in_base = check_precise_price(outToken, weth, token['_WETH_DECIMALS'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
+
+        custom_base_price_in_base = calculate_custom_base_price(outToken, DECIMALS_OUT, DECIMALS_weth)
+
+        # 2/ convert this Custom Base token price in $
+        custom_base_price_in_dollars = float(custom_base_price_in_base) * float(token['_BASE_PRICE'])
+        liquidity_amount_in_dollars = float(liquidity_amount) * float(custom_base_price_in_dollars)
+
+        printt("Current", token['SYMBOL'], "Liquidity =", "{:.6f}".format(liquidity_amount_in_dollars), "$")
+        
+        if float(token['MINIMUM_LIQUIDITY_IN_DOLLARS']) <= float(liquidity_amount_in_dollars):
+            printt_ok("MINIMUM_LIQUIDITY_IN_DOLLARS parameter =", int(token['MINIMUM_LIQUIDITY_IN_DOLLARS']), " --> Enough liquidity detected : Buy Signal Found!")
+            return 1
+        
+        # This position isn't looking good. Inform the user, disable the token and break out of this loop
+        else:
+            printt_warn("------------------------------------------------", write_to_log=True)
+            printt_warn("NOT ENOUGH LIQUIDITY", write_to_log=True)
+            printt_warn("", write_to_log=True)
+            printt_warn("- You have set MINIMUM_LIQUIDITY_IN_DOLLARS  =", token['MINIMUM_LIQUIDITY_IN_DOLLARS'], "$", write_to_log=True)
+            printt_warn("- Liquidity detected for", token['SYMBOL'], "=", "{:.6f}".format(liquidity_amount_in_dollars), "$", write_to_log=True)
+            printt_warn("--> Bot will not buy and disable token", write_to_log=True)
+            printt_warn("------------------------------------------------", write_to_log=True)
+            token['ENABLED'] = 'false'
+            token['_QUOTE'] = 0
+            return 0
 
 
 def check_price(inToken, outToken, custom, routing, DECIMALS_IN, DECIMALS_OUT):
@@ -2149,10 +2178,94 @@ def check_precise_price(inToken, outToken, DECIMALS_weth, DECIMALS_IN, DECIMALS_
     return tokenPrice
 
 
-def calculate_base_price():
-    # This function is made to calculate price of base token (ETH / BNB / AVAX...)
+def check_precise_price_new(inToken, outToken, DECIMALS_weth, DECIMALS_IN, DECIMALS_OUT):
+    # This function is currently being reviewed and improved
     
-    printt_debug("ENTER calculate_base_price")
+    printt_debug("ENTER check_precise_price")
+    pair_address = fetch_pair(inToken, outToken, factoryContract)
+    if pair_address != '0x0000000000000000000000000000000000000000':
+        printt_debug("ENTER check_precise_price condition 0 direct pool LP")
+        # First step : calculates the price of token in ETH/BNB
+        
+        pair_contract = getContractLP(pair_address)
+        reserves = pair_contract.functions.getReserves().call()
+        
+        if ORDER_HASH.get(pair_address) is None:
+            #value0 = pair_contract.functions.token0().call()
+            ORDER_HASH[pair_address] = (inToken.lower() < outToken.lower())
+        if not ORDER_HASH[pair_address]:
+            tokenPrice1 = Decimal((reserves[0] / DECIMALS_OUT) / (reserves[1] / DECIMALS_IN))
+        else:
+            tokenPrice1 = Decimal((reserves[1] / DECIMALS_OUT) / (reserves[0] / DECIMALS_IN))
+        return tokenPrice1
+    
+    if outToken != weth:
+        printt_debug("ENTER check_precise_price condition 1")
+        # First step : calculates the price of token in ETH/BNB
+        
+        pair_address = fetch_pair(inToken, weth, factoryContract)
+        pair_contract = getContractLP(pair_address)
+        reserves = pair_contract.functions.getReserves().call()
+        
+        if ORDER_HASH.get(pair_address) is None:
+            #value0 = pair_contract.functions.token0().call()
+            ORDER_HASH[pair_address] = (inToken.lower() < weth.lower())
+        if not ORDER_HASH[pair_address]:
+            tokenPrice1 = Decimal((reserves[0] / DECIMALS_weth) / (reserves[1] / DECIMALS_IN))
+        else:
+            tokenPrice1 = Decimal((reserves[1] / DECIMALS_weth) / (reserves[0] / DECIMALS_IN))
+        printt_debug("tokenPrice1: ", tokenPrice1)
+        
+        # ------------------------------------------------------------------------
+        # Second step : calculates the price of Custom Base pair in ETH/BNB
+        pair_address = fetch_pair(outToken, weth, factoryContract)
+        pair_contract = getContractLP(pair_address)
+        reserves = pair_contract.functions.getReserves().call()
+
+        if ORDER_HASH.get(pair_address) is None:
+            #value0 = pair_contract.functions.token0().call()
+            ORDER_HASH[pair_address] = (outToken.lower() < weth.lower())
+        if not ORDER_HASH[pair_address]:
+            tokenPrice2 = Decimal((reserves[0] / DECIMALS_weth) / (reserves[1] / DECIMALS_OUT))
+        else:
+            tokenPrice2 = Decimal((reserves[1] / DECIMALS_weth) / (reserves[0] / DECIMALS_OUT))
+        printt_debug("tokenPrice2: ", tokenPrice2)
+        
+        # ------------------------------------------------------------------------
+        # Third step : division
+        # Example with BUSD pair :
+        #  - First step : token price = 0.000005 BNB
+        #  - Second step : BUSD price = 1/500 BUSD
+        #  --> Token price in BUSD = 0.00005 / (1/500) = 0.00005 * 500 = 0.00250 BUSD
+        tokenPrice = tokenPrice1 / tokenPrice2
+    
+    else:
+        printt_debug("ENTER check_precise_price condition 2")
+        # USECUSTOMBASEPAIR = true and token put in BASEADDRESS is WBNB / WETH (because outToken == weth)
+        # or USECUSTOMBASEPAIR = false
+        pair_address = fetch_pair(inToken, weth, factoryContract)
+        pair_contract = getContractLP(pair_address)
+        reserves = pair_contract.functions.getReserves().call()
+        
+        if ORDER_HASH.get(pair_address) is None:
+            value0 = pair_contract.functions.token0().call()
+            ORDER_HASH[pair_address] = (value0 == inToken)
+        if not ORDER_HASH[pair_address]:
+            tokenPrice = Decimal((reserves[0] / DECIMALS_OUT) / (reserves[1] / DECIMALS_IN))
+        else:
+            tokenPrice = Decimal((reserves[1] / DECIMALS_OUT) / (reserves[0] / DECIMALS_IN))
+        printt_debug("tokenPrice2: ", tokenPrice)
+    
+    return tokenPrice
+
+
+
+@cached(cache=TTLCache(maxsize=128, ttl=30))
+def calculate_base_price():
+    # This function is made to calculate price of base token (ETH / BNB / AVAX / FTM / KCS...)
+    # Price will be updated every 30s
+
+    printt_debug("ENTER: calculate_base_price")
 
     if base_symbol == "BNB":
         DECIMALS_STABLES = 1000000000000000000
@@ -2163,9 +2276,9 @@ def calculate_base_price():
         pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
         reserves = pair_contract.functions.getReserves().call()
         basePrice = Decimal((reserves[1] / DECIMALS_STABLES) / (reserves[0] / DECIMALS_BNB))
-        printt_debug("BNB PRICE: ", basePrice)
+        printt_debug("BNB PRICE: ", "{:.6f}".format(basePrice))
 
-    if base_symbol == "ETH":
+    elif base_symbol == "ETH":
         DECIMALS_STABLES = 1000000
         DECIMALS_ETH = 1000000000000000000
 
@@ -2175,9 +2288,9 @@ def calculate_base_price():
         pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
         reserves = pair_contract.functions.getReserves().call()
         basePrice = Decimal((reserves[1] / DECIMALS_STABLES) / (reserves[0] / DECIMALS_ETH))
-        printt_debug("ETH PRICE: ", basePrice)
+        printt_debug("ETH PRICE: ", "{:.6f}".format(basePrice))
     
-    if base_symbol == "AVAX":
+    elif base_symbol == "AVAX":
         DECIMALS_STABLES = 1000000
         DECIMALS_ETH = 1000000000000000000
     
@@ -2187,10 +2300,70 @@ def calculate_base_price():
         pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
         reserves = pair_contract.functions.getReserves().call()
         basePrice = Decimal((reserves[1] / DECIMALS_STABLES) / (reserves[0] / DECIMALS_ETH))
-        printt_debug("AVAX PRICE: ", basePrice)
+        printt_debug("AVAX PRICE: ", "{:.6f}".format(basePrice))
 
+    elif base_symbol == "FTM":
+        DECIMALS_STABLES = 1000000
+        DECIMALS_ETH = 1000000000000000000
+    
+        # USDC 0x04068da6c83afcfa0e13ba15a6696662335d5b75
+        pair_address = '0x2b4C76d0dc16BE1C31D4C1DC53bF9B45987Fc75c'
+
+        printt_debug("pair_address:", pair_address)
+        pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
+        reserves = pair_contract.functions.getReserves().call()
+        basePrice = Decimal((reserves[0] / DECIMALS_STABLES) / (reserves[1] / DECIMALS_ETH))
+        printt_debug("FTM PRICE: ", "{:.6f}".format(basePrice))
+
+    elif base_symbol == "KCS":
+        DECIMALS_STABLES = 1000000000000000000
+        DECIMALS_ETH = 1000000000000000000
+    
+        # USD 0x0039f574ee5cc39bdd162e9a88e3eb1f111baf48
+    
+        #address = Web3.toChecksumAddress('0x0039f574ee5cc39bdd162e9a88e3eb1f111baf48')
+        #pair_address = fetch_pair(address, weth, factoryContract)
+    
+        pair_address = '0x6c31e0F5c07b81A87120cc58c4dcc3fbafb00367'
+
+        printt_debug("pair_address:", pair_address)
+        pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
+        reserves = pair_contract.functions.getReserves().call()
+        basePrice = Decimal((reserves[0] / DECIMALS_STABLES) / (reserves[1] / DECIMALS_ETH))
+        printt_debug("KCS PRICE: ", "{:.6f}".format(basePrice))
+    
+    else:
+        printt_err("Unknown chain... please add it to calculate_base_price")
+        basePrice = 0
+        
     return basePrice
 
+
+@cached(cache=TTLCache(maxsize=128, ttl=30))
+def calculate_custom_base_price(outToken, DECIMALS_OUT, DECIMALS_weth):
+    # This function is made to calculate price of custom base token in ETH/BNB...
+    
+    printt_debug("ENTER: calculate_custom_base_price")
+
+    pair_address = fetch_pair(outToken, weth, factoryContract)
+    # pair_address = factoryContract.functions.getPair(outToken, weth).call()
+    pair_contract = getContractLP(pair_address)
+    # pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
+    
+    # We use cache to check price of Custom Base pair for price calculation. Price will be updated every 30s (ttl = 30)
+    reserves = getReserves_with_cache(pair_contract)
+
+    if ORDER_HASH.get(pair_address) is None:
+        value0 = pair_contract.functions.token0().call()
+        ORDER_HASH[pair_address] = (value0 == outToken)
+    if not ORDER_HASH[pair_address]:
+        custombasePrice = Decimal((reserves[0] / DECIMALS_weth) / (reserves[1] / DECIMALS_OUT))
+    else:
+        custombasePrice = Decimal((reserves[1] / DECIMALS_weth) / (reserves[0] / DECIMALS_OUT))
+    
+    printt_debug("custombasePrice: ", custombasePrice)
+
+    return custombasePrice
 
 
 def calculate_base_balance(token):
@@ -3750,6 +3923,10 @@ def run():
                     token['_REACHED_MAX_TOKENS'] = True
                     printt_warn("You have reached MAXTOKENS for token ", token['SYMBOL'], "--> bot stops to buy", write_to_log=True)
 
+            # Calculate base price
+            if settings['EXCHANGE'].lower() != 'pancakeswaptestnet' and settings['EXCHANGE'].lower() != 'uniswaptestnet':
+                token['_BASE_PRICE'] = calculate_base_price()
+                printt(base_symbol, "price:", "{:.6f}".format(token['_BASE_PRICE']), "$")
             
             # Calculate balances prior to buy() to accelerate buy()
             calculate_base_balance(token)
@@ -3845,7 +4022,8 @@ def run():
                     if token['LIQUIDITYINNATIVETOKEN'] == 'true':
                         token['_QUOTE'] = check_precise_price(inToken, outToken, token['_WETH_DECIMALS'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
                     else:
-                        # if token['LIQUIDITYINNATIVETOKEN'] == 'false', we need to use check_price, because check_precise_price do not work for now --> need to improve it
+                        # if token['LIQUIDITYINNATIVETOKEN'] == 'false', we need to use check_price, because check_precise_price do not work for now
+                        # TODO : improve check_precise_price
                         token['_QUOTE'] = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
                     
                     if token['_ALL_TIME_HIGH'] == 0 and token['_ALL_TIME_LOW'] == 0:
@@ -3932,8 +4110,8 @@ def run():
                         #   If the option is selected
                         #
                         
-                        if token["LIQUIDITYCHECK"] == 'true':
-                            liquidity_result = check_liquidity_amount(token)
+                        if token["MINIMUM_LIQUIDITY_IN_DOLLARS"] != 0:
+                            liquidity_result = check_liquidity_amount(token, token['_BASE_DECIMALS'], token['_WETH_DECIMALS'])
                             if liquidity_result == 0:
                                 continue
                             else:
@@ -4083,6 +4261,7 @@ def run():
                                 # transaction is a SUCCESS
                                 printt_ok("----------------------------------", write_to_log=True)
                                 printt_ok("SUCCESS : your Tx is confirmed    ", write_to_log=True)
+                                
                                 # Re-calculate balances after buy()
                                 calculate_base_balance(token)
 
