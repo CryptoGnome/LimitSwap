@@ -1680,7 +1680,7 @@ def approve(address, amount):
     if base_symbol == "ETH":
         minimumbalance = 0.05
     else:
-        minimumbalance = 0
+        minimumbalance = 0.01
     
     if eth_balance > minimumbalance:
         print("Estimating Gas Cost Using Web3")
@@ -2208,7 +2208,7 @@ def calculate_base_balance(token):
     if base_symbol == "ETH":
         minimumbalance = 0.05
     else:
-        minimumbalance = 0
+        minimumbalance = 0.01
 
     try:
         eth_balance = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
