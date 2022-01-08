@@ -1798,9 +1798,9 @@ def check_balance(address, symbol='UNKNOWN_TOKEN', display_quantity=True):
     return balance
 
 
-# @lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def fetch_pair(inToken, outToken, contract):
-    printt_debug("Fetching Pair Address")
+    printt_debug("ENTER fetch_pair")
     pair = contract.functions.getPair(inToken, outToken).call()
     printt_debug("Pair Address = ", pair)
     return pair
@@ -1808,6 +1808,7 @@ def fetch_pair(inToken, outToken, contract):
 
 @lru_cache(maxsize=None)
 def getContractLP(pair_address):
+    printt_debug("ENTER getContractLP")
     return client.eth.contract(address=pair_address, abi=lpAbi)
 
 
@@ -1823,24 +1824,24 @@ def sync(inToken, outToken):
     sync = syncContract.functions.sync().call()
 
 
-def check_pool(inToken, outToken, symbol, DECIMALS_IN, DECIMALS_OUT):
+def check_pool(inToken, outToken, DECIMALS_IN, DECIMALS_OUT):
     # This function is made to calculate Liquidity of a token
     printt_debug("ENTER check_pool")
     # be careful, we cannot put cache and use fetch_pair, because we need to detect when pair_address != 0x0000000000000000000000000000000000000000
     pair_address = factoryContract.functions.getPair(inToken, outToken).call()
-    printt_debug("pair_address:", pair_address)
+    printt_debug("check_pool pair_address:", pair_address)
+    
     if pair_address == '0x0000000000000000000000000000000000000000':
+        printt_debug("check_pool condition 1 quick exit")
         return 0
-
+    
     pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
-
+    
     reserves = pair_contract.functions.getReserves().call()
 
     # Tokens are ordered by the token contract address
     # The token contract address can be interpreted as a number
     # And the smallest one will be token0 internally
-    
-    # print("----------------------------------------------------------------------")
     
     ctnb1 = int(inToken, 16)
     ctnb2 = int(outToken, 16)
@@ -1854,7 +1855,7 @@ def check_pool(inToken, outToken, symbol, DECIMALS_IN, DECIMALS_OUT):
     
     printt_debug("Debug reserves[0] :", reserves[0] / DECIMALS_IN)
     printt_debug("Debug reserves[1] :", reserves[1] / DECIMALS_OUT)
-    printt_debug("Debug LIQUIDITYAMOUNT :", pooled, "in token:", outToken)
+    printt_debug("Debug check_pool pooled :", pooled, "in token:", outToken)
     
     return pooled
 
@@ -1997,7 +1998,7 @@ def check_liquidity_amount(token):
         if token["LIQUIDITYINNATIVETOKEN"] == 'true':
             printt_debug("check_liquidity_amount case 1")
 
-            pool = check_pool(inToken, weth, base_symbol, token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
+            pool = check_pool(inToken, weth, token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
             printt("You have set LIQUIDITYCHECK = true.")
             printt("Current", token['SYMBOL'], "Liquidity =", int(pool), base_symbol)
             
@@ -2017,7 +2018,7 @@ def check_liquidity_amount(token):
             outToken = Web3.toChecksumAddress(token['BASEADDRESS'])
             printt_debug("check_liquidity_amount case 1")
 
-            pool = check_pool(inToken, outToken, token['BASESYMBOL'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
+            pool = check_pool(inToken, outToken, token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
             printt("You have set LIQUIDITYCHECK = true.")
             printt("Current", token['SYMBOL'], "Liquidity =", int(pool), token['BASESYMBOL'])
             
@@ -3649,6 +3650,7 @@ def sell(token_dict, inToken, outToken):
 def benchmark():
     printt_ok('*** Start Benchmark Mode ***', write_to_log=True)
     printt('This benchmark will use your tokens.json: ADDRESS / LIQUIDITYINNATIVETOKEN / USECUSTOMBASEPAIR / BASEADDRESS')
+    printt('If there is no liquidity it will end in ERROR.')
     rounds = 60
     printt("Benchmark running, we will do", rounds,"tests. Please wait a few seconds...")
 
@@ -3694,7 +3696,7 @@ def benchmark():
     i = 0
     start_time = time()
     for i in range(rounds):
-        check_pool(inToken, weth, base_symbol, token[0]['_CONTRACT_DECIMALS'], token[0]['_BASE_DECIMALS'])
+        check_pool(inToken, weth, token[0]['_CONTRACT_DECIMALS'], token[0]['_BASE_DECIMALS'])
     end_time = time()
     printt('Check_pool function      :', round((rounds/(end_time - start_time)), 2), 'query/s Total:', round((end_time - start_time), 2), "s", write_to_log=True)
 
@@ -3802,11 +3804,14 @@ def run():
                         outToken = weth
                     
                     #
-                    # CHECK LIQUIDITY ... if liquidity has not been found yet (token['_LIQUIDITY_READY'] == False)
+                    # CHECK LIQUIDITY
                     #
-                    #   There are 2 cases :
-                    #       Case 1/ LIQUIDITYINNATIVETOKEN = true  --> we will snipe using ETH / BNB liquidity --> we use check_pool with weth
-                    #       Case 2/ LIQUIDITYINNATIVETOKEN = false --> we will snipe using Custom Base Pair    --> we use check_pool with outToken
+                    # If liquidity has not been found yet (token['_LIQUIDITY_READY'] == False)
+                    # Bot will display "Not Listed For Trade Yet... waiting for liquidity to be added on exchange"
+                    #
+                    # There are 2 cases :
+                    # - Case 1: LIQUIDITYINNATIVETOKEN = true  --> we will snipe using ETH / BNB liquidity --> we use check_pool with weth
+                    # - Case 2: LIQUIDITYINNATIVETOKEN = false --> we will snipe using Custom Base Pair    --> we use check_pool with outToken
                     #
                     printt_debug("token['_LIQUIDITY_READY']:", token['_LIQUIDITY_READY'], "for token :", token['SYMBOL'])
                     
@@ -3814,10 +3819,10 @@ def run():
                         try:
                             if token['LIQUIDITYINNATIVETOKEN'] == 'true':
                                 #       Case 1/ LIQUIDITYINNATIVETOKEN = true  --> we will snipe using ETH / BNB liquidity --> we use check_pool with weth
-                                pool = check_pool(inToken, weth, token['BASESYMBOL'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
+                                pool = check_pool(inToken, weth, token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
                             else:
                                 #       Case 2/ LIQUIDITYINNATIVETOKEN = false --> we will snipe using Custom Base Pair    --> we use check_pool with outToken
-                                pool = check_pool(inToken, outToken, token['BASESYMBOL'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
+                                pool = check_pool(inToken, outToken, token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
         
                             if pool != 0:
                                 token['_LIQUIDITY_READY'] = True
