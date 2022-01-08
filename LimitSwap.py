@@ -497,6 +497,7 @@ def load_tokens_file(tokens_path, load_message=True):
         'BUYAMOUNTINTOKEN': 0,
         'MAXTOKENS': 0,
         'MOONBAG': 0,
+        'MAX_BASE_AMOUNT_PER_EXACT_TOKENS_TRANSACTION': 0.5,
         'SELLAMOUNTINTOKENS': 'all',
         'GAS': 8,
         'BOOSTPERCENT': 50,
@@ -675,6 +676,7 @@ def reload_tokens_file(tokens_path, load_message=True):
         'BUYAMOUNTINTOKEN': 0,
         'MAXTOKENS': 0,
         'MOONBAG': 0,
+        'MAX_BASE_AMOUNT_PER_EXACT_TOKENS_TRANSACTION': 0.5,
         'SELLAMOUNTINTOKENS': 'all',
         'GAS': 8,
         'BOOSTPERCENT': 50,
@@ -2217,7 +2219,7 @@ def calculate_base_balance(token):
     # STEP 2 - update token['_BASE_BALANCE'] or token['_CUSTOM_BASE_BALANCE']
     if token['USECUSTOMBASEPAIR'].lower() == 'false':
         token['_BASE_BALANCE'] = Web3.fromWei(check_bnb_balance(), 'ether')
-        printt_debug("balance 2951 case1:", token['_BASE_BALANCE'])
+        printt_debug("token['_BASE_BALANCE'] in calculate_base_balance:", token['_BASE_BALANCE'])
     else:
         address = Web3.toChecksumAddress(token['BASEADDRESS'])
         DECIMALS = decimals(address)
@@ -2269,7 +2271,11 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
     # returns - nothing
     #
     printt_debug("ENTER make_the_buy")
-    
+
+    printt_ok("-----------------------------------------------------------")
+    printt_ok("KIND_OF_SWAP = base  --> bot will use BUYAMOUNTINBASE")
+    printt_ok("-----------------------------------------------------------")
+
     # Choose proper wallet.
     if buynumber == 0:
         walletused = settings['WALLETADDRESS']
@@ -2612,7 +2618,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
         return tx_hash
 
 
-def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspriority, routing, custom, slippage, DECIMALS):
+def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gaslimit, routing, custom, slippage, DECIMALS, basebalance):
     # Function: make_the_buy_exact_tokens
     # --------------------
     # creates BUY order with the good condition
@@ -2620,8 +2626,18 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amount, gas, ga
     # returns - nothing
     #
     printt_debug("ENTER make_the_buy_exact_tokens")
-    
-    printt_warn("WARNING : BUYING EXACT AMOUNT only works with LIQUIDITYINNATIVETOKEN = true and USECUSTOMBASEPAIR = false")
+
+    amount = int(float(token_dict['BUYAMOUNTINTOKEN']) * DECIMALS)
+
+    gas = token_dict['_GAS_TO_USE']
+    gaslimit = token_dict['GASLIMIT']
+    custom = token_dict['USECUSTOMBASEPAIR']
+    routing = token_dict['LIQUIDITYINNATIVETOKEN']
+    gaspriority = token_dict['GASPRIORITY_FOR_ETH_ONLY']
+    DECIMALS = token_dict['_CONTRACT_DECIMALS']
+    token_symbol = token_dict['SYMBOL']
+
+
     # Choose proper wallet.
     if buynumber == 0:
         walletused = settings['WALLETADDRESS']
@@ -2633,6 +2649,11 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amount, gas, ga
         walletused = settings['WALLETADDRESS4']
     if buynumber == 4:
         walletused = settings['WALLETADDRESS5']
+    
+    
+    # We calculate Base Balance, to compare it with amount_in and display an error if user does not have enough balance
+
+    base_balance_before_buy = basebalance * DECIMALS
     
     if custom.lower() == 'false':
         # if USECUSTOMBASEPAIR = false
@@ -2648,9 +2669,36 @@ def make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, amount, gas, ga
             # LIQUIDITYINNATIVETOKEN = true
             # USECUSTOMBASEPAIR = false
             amount_in = routerContract.functions.getAmountsIn(amount, [weth, outToken]).call()[0]
+            
+            # Check if you have enough Base tokens in you wallet to make this order
+            if amount_in > base_balance_before_buy:
+                printt_err("- You have          ", base_balance_before_buy / DECIMALS, base_symbol, "in your wallet ")
+                printt_err("- But you would need", amount_in / DECIMALS, base_symbol, "to buy this amount of tokens ")
+                printt_err("--> buy cancelled ")
+                sleep(10)
+                sys.exit()
+            
+            # Check if the amount of Base tokens is not superior to MAX_BASE_AMOUNT_PER_EXACT_TOKENS_TRANSACTION
+            if (amount_in / DECIMALS) > token_dict['MAX_BASE_AMOUNT_PER_EXACT_TOKENS_TRANSACTION']:
+                printt_err("- This transaction would need", "{:.6f}".format(amount_in / DECIMALS), base_symbol, "to be done")
+                printt_err("- And you asked the bot not to use more than", token_dict['MAX_BASE_AMOUNT_PER_EXACT_TOKENS_TRANSACTION'], base_symbol)
+                printt_err("--> buy cancelled ")
+                sleep(10)
+                sys.exit()
 
             deadline = int(time() + + 60)
 
+            printt_ok("-----------------------------------------------------------", write_to_log=True)
+            printt_ok("KIND_OF_SWAP = tokens  --> bot will use BUYAMOUNTINTOKEN")
+            printt_ok("")
+            printt_warn("WARNING : buying exact amount of tokens only works with LIQUIDITYINNATIVETOKEN = true and USECUSTOMBASEPAIR = false")
+            printt_ok("")
+            printt_ok("Amount of tokens to buy        :", amount / DECIMALS, token_symbol, write_to_log=True)
+            printt_ok("Amount of base token to be used:", amount_in / DECIMALS, base_symbol, write_to_log=True)
+            printt_ok("Current Base token balance     :", base_balance_before_buy / DECIMALS, base_symbol, write_to_log=True)
+            printt_ok("(be careful you must have enough to pay fees in addition to this)", write_to_log=True)
+            printt_ok("-----------------------------------------------------------", write_to_log=True)
+            
             # THIS SECTION IS FOR MODIFIED CONTRACTS : EACH EXCHANGE NEEDS TO BE SPECIFIED
             # USECUSTOMBASEPAIR = false
             if modified == True:
@@ -2929,7 +2977,7 @@ def buy(token_dict, inToken, outToken, pwd):
     else:
         balance = token_dict['_CUSTOM_BASE_BALANCE']
 
-    printt_debug("2470 balance:", balance)
+    printt_debug("Check balance:", balance)
     
     if balance > Decimal(amount) or token_dict['KIND_OF_SWAP'] == 'tokens':
         # Calculate how much gas we should use for this token
@@ -2948,8 +2996,7 @@ def buy(token_dict, inToken, outToken, pwd):
                 if buynumber < amount_of_buys:
                     printt("Placing New Buy Order for wallet number:", buynumber)
                     if token_dict['KIND_OF_SWAP'] == 'tokens':
-                        tokenamount = int(float(token_dict['BUYAMOUNTINTOKEN']) * DECIMALS)
-                        make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, tokenamount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, DECIMALS)
+                        make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gaslimit, routing, custom, slippage, DECIMALS, balance)
                     else:
                         make_the_buy(inToken, outToken, buynumber, pwd, amount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, DECIMALS)
                     buynumber += 1
@@ -2958,8 +3005,7 @@ def buy(token_dict, inToken, outToken, pwd):
                     sys.exit(0)
         else:
             if token_dict['KIND_OF_SWAP'] == 'tokens':
-                tokenamount = int(float(token_dict['BUYAMOUNTINTOKEN']) * DECIMALS)
-                tx_hash = make_the_buy_exact_tokens(inToken, outToken, buynumber, pwd, tokenamount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, DECIMALS)
+                tx_hash = make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gaslimit, routing, custom, slippage, DECIMALS, balance)
             else:
                 tx_hash = make_the_buy(inToken, outToken, buynumber, pwd, amount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, DECIMALS)
     
@@ -4091,7 +4137,7 @@ try:
     true_balance = auth()
     # Check for version
     #
-    version = '4.0.4'
+    version = '4.0.4.1'
     printt("YOUR BOT IS CURRENTLY RUNNING VERSION ", version, write_to_log=True)
     check_release()
     
