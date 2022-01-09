@@ -3822,7 +3822,6 @@ def sell(token_dict, inToken, outToken):
 def benchmark():
     printt_ok('*** Start Benchmark Mode ***', write_to_log=True)
     printt('This benchmark will use your tokens.json: ADDRESS / LIQUIDITYINNATIVETOKEN / USECUSTOMBASEPAIR / BASEADDRESS')
-    printt('If there is no liquidity it will end in ERROR.')
     rounds = 60
     printt("Benchmark running, we will do", rounds,"tests. Please wait a few seconds...")
 
@@ -3849,10 +3848,14 @@ def benchmark():
     else:
         token[0]['_BASE_DECIMALS'] = int(decimals(weth))
         outToken = weth
-
+        
     start_time = time()
     for i in range(rounds):
-        tmp = check_price(inToken, outToken, token[0]['USECUSTOMBASEPAIR'], token[0]['LIQUIDITYINNATIVETOKEN'], token[0]['_CONTRACT_DECIMALS'], token[0]['_BASE_DECIMALS'])
+        try:
+            tmp = check_price(inToken, outToken, token[0]['USECUSTOMBASEPAIR'], token[0]['LIQUIDITYINNATIVETOKEN'], token[0]['_CONTRACT_DECIMALS'], token[0]['_BASE_DECIMALS'])
+        except Exception:
+            pass
+
     end_time = time()
     printt('Check_price function     :', round((rounds/(end_time - start_time)), 2), 'query/s Total:', round((end_time - start_time), 2), "s", write_to_log=True)
 
@@ -3860,7 +3863,10 @@ def benchmark():
     i = 0
     start_time = time()
     for i in range(rounds):
-        tmp = check_precise_price(inToken, outToken, token[0]['_WETH_DECIMALS'], token[0]['_CONTRACT_DECIMALS'], token[0]['_BASE_DECIMALS'])
+        try:
+            tmp = check_precise_price(inToken, outToken, token[0]['_WETH_DECIMALS'], token[0]['_CONTRACT_DECIMALS'], token[0]['_BASE_DECIMALS'])
+        except Exception:
+            pass
     end_time = time()
     printt('Check_precise_price func :', round((rounds/(end_time - start_time)), 2), 'query/s Total:', round((end_time - start_time), 2), "s", write_to_log=True)
 
@@ -3868,7 +3874,10 @@ def benchmark():
     i = 0
     start_time = time()
     for i in range(rounds):
-        check_pool(inToken, weth, token[0]['_CONTRACT_DECIMALS'], token[0]['_BASE_DECIMALS'])
+        try:
+            check_pool(inToken, weth, token[0]['_CONTRACT_DECIMALS'], token[0]['_BASE_DECIMALS'])
+        except Exception:
+            pass
     end_time = time()
     printt('Check_pool function      :', round((rounds/(end_time - start_time)), 2), 'query/s Total:', round((end_time - start_time), 2), "s", write_to_log=True)
 
