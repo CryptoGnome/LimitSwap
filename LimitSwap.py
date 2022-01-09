@@ -254,10 +254,9 @@ def printt_repeating(token_dict, message, print_frequency=500):
     #     returns: nothing
     
     global repeated_message_quantity
-    
-    if message == token_dict['_LAST_MESSAGE'] and bot_settings['VERBOSE_PRICING'] == 'false' and print_frequency >= repeated_message_quantity:
-        print(".", end='', flush=True)
-        bot_settings['_NEED_NEW_LINE'] = True
+
+    if message == token_dict['_LAST_MESSAGE'] and settings['VERBOSE_PRICING'] == 'false' and print_frequency >= repeated_message_quantity:
+        bot_settings['_NEED_NEW_LINE'] = False
         repeated_message_quantity += 1
     else:
         printt_err(message, write_to_log=False)
@@ -290,10 +289,9 @@ def printt_sell_price(token_dict, token_price):
         token_dict['STOPLOSSPRICEINBASE'])
     price_message = price_message + " ATH:" + "{0:.24f}".format(
         token_dict['_ALL_TIME_HIGH']) + " ATL:" + "{0:.24f}".format(token_dict['_ALL_TIME_LOW'])
-    
-    if price_message == token_dict['_LAST_PRICE_MESSAGE'] and bot_settings['VERBOSE_PRICING'] == 'false':
-        print(".", end='', flush=True)
-        bot_settings['_NEED_NEW_LINE'] = True
+
+    if price_message == token_dict['_LAST_PRICE_MESSAGE'] and settings['VERBOSE_PRICING'] == 'false':
+        bot_settings['_NEED_NEW_LINE'] = False
     elif token_price > token_dict['_PREVIOUS_QUOTE']:
         printt_ok(price_message)
         token_dict['_TRADING_IS_ON'] = True
@@ -356,7 +354,6 @@ def load_settings_file(settings_path, load_message=True):
     # _NEED_NEW_LINE - set to true when the next printt statement will need to print a new line before data
     
     default_true_settings = [
-        'VERBOSE_PRICING',
     ]
     
     program_defined_values = {
@@ -366,7 +363,7 @@ def load_settings_file(settings_path, load_message=True):
     for default_true in default_true_settings:
         if default_true not in settings:
             print(timestamp(), default_true,
-                  "not found in settings configuration file, settings a default value of false.")
+                  "not found in settings.json, settings a default value of false.")
             bot_settings[default_true] = "true"
         else:
             bot_settings[default_true] = bot_settings[default_true].lower()
@@ -388,7 +385,8 @@ def load_settings_file(settings_path, load_message=True):
     ]
     
     default_true_settings = [
-        'PREAPPROVE'
+        'PREAPPROVE',
+        'VERBOSE_PRICING'
     ]
     
     # These settings must be defined by the user and we will lower() them
@@ -398,14 +396,14 @@ def load_settings_file(settings_path, load_message=True):
     
     for default_false in default_false_settings:
         if default_false not in settings:
-            print(timestamp(), default_false, "not found in settings configuration file, settings a default value of false.")
+            print(timestamp(), default_false, "not found in settings.json, settings a default value of false.")
             settings[default_false] = "false"
         else:
             settings[default_false] = settings[default_false].lower()
     
     for default_true in default_true_settings:
         if default_true not in settings:
-            print(timestamp(), default_true, "not found in settings configuration file, settings a default value of true.")
+            print(timestamp(), default_true, "not found in settings.json, settings a default value of true.")
             settings[default_true] = "true"
         else:
             settings[default_true] = settings[default_true].lower()
@@ -413,7 +411,7 @@ def load_settings_file(settings_path, load_message=True):
     # Keys that must be set
     for required_setting in required_user_settings:
         if required_setting not in settings:
-            print(timestamp(), "ERROR:", required_setting, "not found in settings configuration file.")
+            print(timestamp(), "ERROR:", required_setting, "not found in settings.json")
             exit(-1)
         else:
             settings[required_setting] = settings[required_setting].lower()
