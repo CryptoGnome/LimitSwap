@@ -1590,6 +1590,7 @@ def parse_wallet_settings(settings, pwd):
     
     if settings_changed == True:
         save_settings(settings, pwd)
+    print(style.RESET + " ")
 
 
 @lru_cache(maxsize=None)
@@ -1641,7 +1642,7 @@ def decode_key():
 def check_release():
     try:
         url = 'https://api.github.com/repos/tsarbuig/LimitSwap/releases/latest'
-        r = requests.get(url).json()['tag_name']
+        r = (requests.get(url).json()['tag_name'] + '\n')
         printt("Checking Latest Release Version on Github, Please Make Sure You are Staying Updated = ", r,
                write_to_log=True)
     except Exception:
