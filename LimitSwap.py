@@ -1820,11 +1820,8 @@ def fetch_pair2(inToken, outToken, contract):
         pair = contract.functions.getPair(inToken, outToken).call()
         if pair != '0x0000000000000000000000000000000000000000':
             PAIR_HASH[(inToken,outToken)] = pair
-        printt_debug("Pair Address = ", pair)
-        return pair
     printt_debug("Pair Address = ", pair)
     return pair
-
 
 @lru_cache(maxsize=None)
 def getContractLP(pair_address):
