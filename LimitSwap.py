@@ -1912,10 +1912,65 @@ def check_rugdoc_api(token):
         token['_QUOTE'] = 0
 
 
-def wait_for_open_trade(token):
+def wait_for_open_trade_price_movement(token):
+    printt_debug("ENTER wait_for_open_trade_price_movement")
+
+    printt("-----------------------------------------------------------------------------------------------------------------------------")
+    printt("WAIT_FOR_OPEN_TRADE = true --> Bot will wait for price to move before making a BUY order")
+    printt(" ")
+    printt_err("BE CAREFUL:")
+    printt_err("to make WAIT_FOR_OPEN_TRADE work, you need to snipe on the same liquidity pair that liquidity added by the team:")
+    printt(" ")
+    printt("Example : If you try to snipe in BUSD and liquidity is in BNB, price will move because of price movement between BUSD and BNB")
+    printt("--> if liquidity is in BNB or ETH, use LIQUIDITYINNATIVETOKEN = true and USECUSTOMBASEPAIR = false")
+    printt(" ")
+    printt("------------------------------------------------------------------------------------------------------------------------------")
+    
+    token['_PREVIOUS_QUOTE'] = token['_QUOTE']
+    
+    inToken = Web3.toChecksumAddress(token['ADDRESS'])
+    
+    if token['USECUSTOMBASEPAIR'] == 'true':
+        outToken = Web3.toChecksumAddress(['BASEADDRESS'])
+    else:
+        outToken = weth
+    
+    while token['_TRADING_IS_ON'] == False:
+        printt_debug("wait_for_open_trade_price_movement enter WHILE")
+        printt_buy_price(token, token['_QUOTE'])
+        token['_QUOTE'] = check_precise_price(inToken, outToken, token['_WETH_DECIMALS'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
+        
+        try:
+            
+            if token['WAIT_FOR_OPEN_TRADE'].lower() == 'true' and token['_TRADING_IS_ON'] == True:
+                printt_info("PRICE HAS MOVED --> trading is enabled --> Bot will buy")
+                break
+            
+            elif token['WAIT_FOR_OPEN_TRADE'].lower() == 'true' and token['_TRADING_IS_ON'] == False:
+                printt("Waiting for price to move for token:", token['SYMBOL'])
+        
+        except Exception as e:
+            printt_err("wait_for_open_trade_price_movement finished in Error. Please report it to LimitSwap team")
+            logger1.exception(e)
+            sys.exit()
+
+
+def wait_for_open_trade_mempool(token):
     printt_debug("ENTER wait_for_open_trade")
+
+    printt("-----------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
+    printt("WAIT_FOR_OPEN_TRADE = mempool --> Bot will scan mempool to detect Open Trade functions called", write_to_log=True)
+    printt(" ")
+    printt_err("WE NEED YOUR HELP FOR THAT:")
+    printt_err("To make WAIT_FOR_OPEN_TRADE work, we need to enter in the code the functions used by the teams to make trading open:")
+    printt(" ")
+    printt("Please give us some examples of function used here:", write_to_log=True)
+    printt("https://github.com/tsarbuig/LimitSwap/issues/1", write_to_log=True)
+    printt(" ")
+    printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
+    
     openTrade = False
-    token = Web3.toChecksumAddress(token)
+    token = Web3.toChecksumAddress(token['ADDRESS'])
 
     tx_filter = client.eth.filter({"filter_params": "pending", "address": token})
     list_of_methodId = ["0xc9567bf9", "0x8a8c523c", "0x0d295980", "0xbccce037", "0x4efac329", "0x7b9e987a", "0x6533e038", "0x8f70ccf7", "0xa6334231"]
@@ -4091,46 +4146,18 @@ def run():
                     #
                     
                     if token['_QUOTE'] != 0 and token['_QUOTE'] < Decimal(token['BUYPRICEINBASE']) and token['_REACHED_MAX_SUCCESS_TX'] == False and token['_REACHED_MAX_TOKENS'] == False:
-                        
+    
                         #
                         # OPEN TRADE CHECK
                         #   If the option is selected, bot wait for trading_is_on == True to create a BUY order
                         #
-                        
-                        if token['WAIT_FOR_OPEN_TRADE'].lower() == 'mempool':
-                            printt("-----------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
-                            printt("WAIT_FOR_OPEN_TRADE = mempool --> Bot will scan mempool to detect Open Trade functions called", write_to_log=True)
-                            printt(" ")
-                            printt_err("WE NEED YOUR HELP FOR THAT:")
-                            printt_err("To make WAIT_FOR_OPEN_TRADE work, we need to enter in the code the functions used by the teams to make trading open:")
-                            printt(" ")
-                            printt("Please give us some examples of function used here:", write_to_log=True)
-                            printt("https://github.com/tsarbuig/LimitSwap/issues/1", write_to_log=True)
-                            printt(" ")
-                            printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
     
-                            wait_for_open_trade(token['ADDRESS'])
-
+                        if token['WAIT_FOR_OPEN_TRADE'].lower() == 'mempool':
+                            wait_for_open_trade_mempool(token)
+    
                         if token['WAIT_FOR_OPEN_TRADE'].lower() == 'true':
-                            printt("-----------------------------------------------------------------------------------------------------------------------------")
-                            printt("WAIT_FOR_OPEN_TRADE = true --> Bot will wait for price to move before making a BUY order")
-                            printt(" ")
-                            printt_err("BE CAREFUL:")
-                            printt_err("to make WAIT_FOR_OPEN_TRADE work, you need to snipe on the same liquidity pair that liquidity added by the team:")
-                            printt(" ")
-                            printt("Example : If you try to snipe in BUSD and liquidity is in BNB, price will move because of price movement between BUSD and BNB")
-                            printt("--> if liquidity is in BNB or ETH, use LIQUIDITYINNATIVETOKEN = true and USECUSTOMBASEPAIR = false")
-                            printt(" ")
-                            printt("------------------------------------------------------------------------------------------------------------------------------")
-
-                            if token['WAIT_FOR_OPEN_TRADE'].lower() == 'true' and token['_TRADING_IS_ON'] == True:
-                                printt_info("PRICE HAS MOVED --> trading is enabled --> Bot will buy")
-                                pass
-
-                            if token['WAIT_FOR_OPEN_TRADE'].lower() == 'true' and token['_TRADING_IS_ON'] == False:
-                                printt("Waiting for price to move for token:", token['SYMBOL'])
-                                continue
-                                
+                            wait_for_open_trade_price_movement(token)
+    
                         #
                         # PURCHASE POSITION
                         #   If we've passed all checks, attempt to purchase the token
