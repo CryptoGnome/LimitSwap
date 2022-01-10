@@ -15,10 +15,15 @@ There are 3 ways to install LimitSwap :
 
 ### 1. Run The Python Code Locally [*this is most ideal and can work on any OS*]
 Here is a tutorial step-by-step: 
-- [x] Download last LimitSwap code on the "Code" page https://github.com/tsarbuig/LimitSwap by clicking on Code > Download Zip : 
-<img src="https://user-images.githubusercontent.com/70858574/148130738-ef447465-511a-41b8-bcf2-6766a41fdbb8.png" width="300">
 
-- [x] Unzip file
+&nbsp;
+
+----------------------------------------
+
+**FIRST PART : PRE-REQUISITES** 
+
+----------------------------------------
+
 - [x] Install Python on your computer : https://www.python.org/downloads/ 
 
 **PLEASE ADD IT TO PATH BY CHECKING THIS OPTION:**
@@ -30,34 +35,45 @@ Here is a tutorial step-by-step:
 Please install the default package and all those options :
 ![image](https://user-images.githubusercontent.com/70858574/145580447-bd648d6d-c3ce-4dd9-8527-84ecfb5f30cc.png)
 
-- [x] Follow this tutorial to activate colors on your Windows Command : 
+- [x] NEW : LimitSwap now has colors to better display errors / success / etc. 
 
-- [X] Run this command to go to root folder : 
+Follow this tutorial to activate colors on your Windows Command :
+  - 1/ Launch "Regedit"
+  - 2/ Go to [HKEY_CURRENT_USER \ Console]
+  - 3/ Right click on white space / create new DWORD 32 bit key called `VirtualTerminalLevel` and set it to 1
 
-`cd /`
+<img src="https://user-images.githubusercontent.com/70858574/148842282-285a4c22-a569-44f3-9b93-ee7ff951c6ff.png" width="500">
 
-- [X] Run this command to locate LimitSwap folder : 
+&nbsp;
 
-`Get-ChildItem -Filter LimitSwap.py -Recurse -ErrorAction SilentlyContinue -Force`
+----------------------------------------
 
-- [x] It should look like this:
+**SECOND PART : DOWNLOAD BOT AND INSTALL DEPENDENCIES** 
 
-<img src="https://user-images.githubusercontent.com/70858574/145693132-509cb684-8fd8-45d3-8ecf-0e90a5c7e513.png" width="700">
+----------------------------------------
 
-- [X] Copy the Directory 
-
-(on my computer it's : `C:\Users\Administrator\Desktop\LimitSwap-master`  but adapt it to your own result obtained above !!)
-
-- [X] Paste the Directory after the "cd" command to navigate through the bot folder 
-
-(on my computer it's : `cd C:\Users\Administrator\Desktop\LimitSwap-master`  but adapt it to your own result obtained above !!)
-
-<img src="https://user-images.githubusercontent.com/70858574/145731606-9a990d30-737a-444e-98e9-cd93f169315d.png" width="700">
+- [x] Download last LimitSwap code on the "Code" page https://github.com/tsarbuig/LimitSwap by clicking on Code > Download Zip : 
+<img src="https://user-images.githubusercontent.com/70858574/148130738-ef447465-511a-41b8-bcf2-6766a41fdbb8.png" width="300">
 
 
-- [x] Run command: `pip install -r requirements.txt`  --> this will install all the packages needed to run LimitSwap
+- [x] Unzip file
+  - [X] Go into the unzipped folder
+  - [X] In the folder, push "Shift" on your keyboard, then do a right-click
+  - [X] Click on "Open command windows here" or "Open Powershell windows here"
+  
+<img src="https://user-images.githubusercontent.com/70858574/148840931-ed9ae3d8-e045-43a8-a000-2a52e6f2b4c5.png" width="700">
 
-(if you have an error here, double check you have selected "Add Python to PATH" on the Python step. If you did not, uninstall Python and reinstall it checking the option "Add Python to PATH")
+
+- [x] It will open Windows command (or Powershell) in the right place, where all the files are located:
+
+![image](https://user-images.githubusercontent.com/70858574/148841299-bfa53046-a8c5-4dd9-9fbe-dddc8f76877e.png)
+
+
+- [x] Run command: `pip install -r requirements.txt`  
+--> this will install all the packages needed to run LimitSwap
+
+
+(🔥 if you have an error here, double check you have selected "Add Python to PATH" on the Python step. If you did not, uninstall Python and reinstall it checking the option "Add Python to PATH")
 
 &nbsp;
 
@@ -65,7 +81,24 @@ Please install the default package and all those options :
 
 &nbsp;
 
+----------------------------------------
+
+**LAST PART : RUN THE BOT** 
+
+----------------------------------------
+There are 2 ways to do that : 
+
 - [x] Simply **double-click on "LimitSwap.py"** and it will run, since you've installed Python 👍👍
+
+- [x] Or, in the Windows Command, run command: `python LimitSwap.py`  
+
+This second option allows you to use parameters. For example, if you have several .json files and you want to choose which one to use :
+
+`python LimitSwap.py -s settingsBSC.json -t tokensBSC.json`  
+
+or
+
+`python LimitSwap.py --benchmark`  
 
 &nbsp;
 &nbsp;
