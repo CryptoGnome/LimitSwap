@@ -1503,7 +1503,7 @@ def parse_wallet_settings(settings, pwd):
     
     # If the trading wallet private key is already set and encrypted, decrypt it
     elif settings['PRIVATEKEY'].startswith('aes:'):
-        print(timestamp(), "Decrypting limit wallet private key.")
+        print(timestamp(), "Decrypting trading wallet private key.")
         settings['PRIVATEKEY'] = settings['PRIVATEKEY'].replace('aes:', "", 1)
         settings['PRIVATEKEY'] = cryptocode.decrypt(settings['PRIVATEKEY'], pwd)
     
