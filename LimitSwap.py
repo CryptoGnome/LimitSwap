@@ -1903,7 +1903,7 @@ def wait_for_open_trade(token):
     token = Web3.toChecksumAddress(token)
 
     tx_filter = client.eth.filter({"filter_params": "pending", "address": token})
-    list_of_methodId = ["0x0d295980", "0xbccce037", "0x8a8c523c", "0x4efac329", "0x0d295980", "0x7b9e987a"]
+    list_of_methodId = ["0x0d295980", "0xbccce037", "0x8a8c523c", "0x4efac329", "0x0d295980", "0x7b9e987a", "0x6533e038", "0x8f70ccf7", "0xc9567bf9"]
 
     # Examples of tokens and functions used
     #
@@ -1935,6 +1935,17 @@ def wait_for_open_trade(token):
     # Function: SetupEnableTrading
     # MethodID: 0x7b9e987a
 
+    # https://bscscan.com/tx/0x5b2c05e60789350c578ab2d01d3963266dba47aed8e9750c7d2dc78660438091
+    # Function: enabledTradingOnly
+    # MethodID: 0x6533e038
+    
+    # https://etherscan.io/tx/0xb78202678abf65936f9a4a2be8ee267dbefe28d5df49d1390c4dc55a09c206b0
+    # Function: setTrading(bool _tradingOpen)
+    # MethodID: 0x8f70ccf7
+
+    # https://bscscan.com/tx/0x468008dd3439b1802784f11a29dd82f195a2a239e381fa83c29dcc39b85024fb
+    # Function: openTrading()
+    # MethodID: 0xc9567bf9
 
     while openTrade == False:
         try:
