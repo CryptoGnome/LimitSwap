@@ -18,6 +18,7 @@
 	"EXCHANGEVERSION": "2",
 "PREAPPROVE": "true",
 "UNLIMITEDSLIPPAGE": "false",
-"PASSWORD_ON_CHANGE": "false"
+"PASSWORD_ON_CHANGE": "false",
+"VERBOSE_PRICING": "true"
 }
 ]

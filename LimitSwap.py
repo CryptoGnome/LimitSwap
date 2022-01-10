@@ -282,13 +282,16 @@ def printt_sell_price(token_dict, token_price):
         price_message = token_dict['SYMBOL'] + " Price: " + "{0:.24f}".format(token_price) + " " + base_symbol + " - Buy:" + str(token_dict['BUYPRICEINBASE'])
     
     else:
-        price_message = token_dict['SYMBOL'] + " Price:" + "{0:.24f}".format(token_price) + " " + token_dict[
-            'BASESYMBOL'] + " - Buy:" + str(token_dict['BUYPRICEINBASE'])
+        price_message = token_dict['SYMBOL'] + " Price:" + "{0:.24f}".format(token_price) + " " + token_dict['BASESYMBOL'] + " - Buy:" + str(token_dict['BUYPRICEINBASE'])
     
-    price_message = price_message + " Sell:" + str(token_dict['SELLPRICEINBASE']) + " Stop:" + str(
-        token_dict['STOPLOSSPRICEINBASE'])
-    price_message = price_message + " ATH:" + "{0:.24f}".format(
-        token_dict['_ALL_TIME_HIGH']) + " ATL:" + "{0:.24f}".format(token_dict['_ALL_TIME_LOW'])
+    price_message = price_message + " Sell:" + str(token_dict['SELLPRICEINBASE']) + " Stop:" + str(token_dict['STOPLOSSPRICEINBASE'])
+    # price_message = price_message + " ATH:" + "{0:.24f}".format(token_dict['_ALL_TIME_HIGH']) + " ATL:" + "{0:.24f}".format(token_dict['_ALL_TIME_LOW'])
+
+    if token_dict['USECUSTOMBASEPAIR'] == 'false':
+        price_message = price_message + " - Token balance : " + str("{0:.2f}".format(token_dict['_TOKEN_BALANCE'])) + " (= " + "{0:.2f}".format(float(token_price) * float(token_dict['_BASE_PRICE']) * float(token_dict['_TOKEN_BALANCE'])) + " $)"
+    else:
+        price_message = price_message + " - Token balance : " + str("{0:.2f}".format(token_dict['_TOKEN_BALANCE'])) + " (= " + "{0:.2f}".format(float(token_price) * float(token_dict['_TOKEN_BALANCE'])) + " " + token_dict['BASESYMBOL'] + ")"
+
 
     if price_message == token_dict['_LAST_PRICE_MESSAGE'] and settings['VERBOSE_PRICING'] == 'false':
         bot_settings['_NEED_NEW_LINE'] = False
@@ -1809,6 +1812,20 @@ def fetch_pair(inToken, outToken, contract):
     return pair
 
 
+PAIR_HASH={}
+def fetch_pair2(inToken, outToken, contract):
+    printt_debug("ENTER fetch_pair2")
+    pair=PAIR_HASH.get((inToken,outToken))
+    if pair is None:
+        pair = contract.functions.getPair(inToken, outToken).call()
+        if pair != '0x0000000000000000000000000000000000000000':
+            PAIR_HASH[(inToken,outToken)] = pair
+        printt_debug("Pair Address = ", pair)
+        return pair
+    printt_debug("Pair Address = ", pair)
+    return pair
+
+
 @lru_cache(maxsize=None)
 def getContractLP(pair_address):
     printt_debug("ENTER getContractLP")
@@ -1822,7 +1839,7 @@ def getReserves_with_cache(pair_contract):
 
 
 def sync(inToken, outToken):
-    pair = fetch_pair(inToken, outToken,factoryContract)
+    pair = fetch_pair2(inToken, outToken, factoryContract)
     syncContract = client.eth.contract(address=Web3.toChecksumAddress(pair), abi=lpAbi)
     sync = syncContract.functions.sync().call()
 
@@ -1831,9 +1848,10 @@ def check_pool(inToken, outToken, DECIMALS_IN, DECIMALS_OUT):
     # This function is made to calculate Liquidity of a token
     printt_debug("ENTER check_pool")
     # be careful, we cannot put cache and use fetch_pair, because we need to detect when pair_address != 0x0000000000000000000000000000000000000000
+    # pair_address = fetch_pair2(inToken, outToken, factoryContract) --> we don't do that until we're sure
+
     pair_address = factoryContract.functions.getPair(inToken, outToken).call()
-    printt_debug("check_pool pair_address:", pair_address)
-    
+
     if pair_address == '0x0000000000000000000000000000000000000000':
         printt_debug("check_pool condition 1 quick exit")
         return 0
@@ -1903,13 +1921,28 @@ def wait_for_open_trade(token):
     token = Web3.toChecksumAddress(token)
 
     tx_filter = client.eth.filter({"filter_params": "pending", "address": token})
-    list_of_methodId = ["0x0d295980", "0xbccce037", "0x8a8c523c", "0x4efac329", "0x0d295980", "0x7b9e987a", "0x6533e038", "0x8f70ccf7", "0xc9567bf9"]
+    list_of_methodId = ["0xc9567bf9", "0x8a8c523c", "0x0d295980", "0xbccce037", "0x4efac329", "0x7b9e987a", "0x6533e038", "0x8f70ccf7", "0xa6334231"]
 
     # Examples of tokens and functions used
     #
+
+    # https://bscscan.com/tx/0x468008dd3439b1802784f11a29dd82f195a2a239e381fa83c29dcc39b85024fb
+    # https://etherscan.io/tx/0xfe242a303b80301d8b173b1c54fa80de222263252682b9507d3cba79342f2e19
+    # https://etherscan.io/tx/0x80ce8f1f2be8c40db151d40d8571ec42dcb550f088abdfed5dce7bfc67d8a935
+    # https://etherscan.io/tx/0xffcb84f9519c2d598f1121a6e84cf7c3f4271c4e3514552858be796518ed7e95
+    # https://etherscan.io/tx/0x6938ea87626efbef08c542d72a166192baaf1f1c112001fdb9a107520b140a9f
+    # Function: openTrading()
+    # MethodID: 0xc9567bf9
+
+    # https://etherscan.io/tx/0x303143b2015a398050a50e4dc2ef16668b974c06db2fd4c4e4abbe64f0c2d592
+    # https://etherscan.io/tx/0x9fbec460367b783afee66446eacf45a1159c9bdfaccb414eca7fb5716bee230b
+    # https://etherscan.io/tx/0xa2b0a8ae04254befd4c463f4abacc50ebe0e3c99b829e95f6e2a9353aab959cf
+    # https://etherscan.io/tx/0x5ef0fe0ffb7a6f12c0cdfa4e57f9e951b0577a90611008d864e72fdcde057fac
+    # Function: enableTrading()
+    # MethodID: 0x8a8c523c
     
-    # New Years Moon (NYMOON) - 0xa2e0f8882b85f02d04eb509a7688d569614c3771
     # https://bscscan.com/tx/0x19cac49bf8319689a7620935bf9466e469317992b994ec9692697a9ef71e3ace
+    # https://bscscan.com/tx/0xa98ae84de5aee32d216d734b790131a845548c7e5013085688dccd58c9b5b277
     # Function: tradingStatus
     # methodId = "0x0d295980"
 
@@ -1918,19 +1951,10 @@ def wait_for_open_trade(token):
     # Function: preSaleAfter()
     # methodId = "0xbccce037"
 
-    # VatoInu (VatoInu)
-    # https://etherscan.io/tx/0x303143b2015a398050a50e4dc2ef16668b974c06db2fd4c4e4abbe64f0c2d592
-    # Function: enableTrading()
-    # MethodID: 0x8a8c523c
-
     # https://bscscan.com/tx/0x5b8d8d70b6d1e591d0620a50247deef38bb924de0c38307cc9c5b77839f68bcc
     # Function: snipeListing() ** *
     # MethodID: 0x4efac329
     
-    # https://bscscan.com/tx/0xa98ae84de5aee32d216d734b790131a845548c7e5013085688dccd58c9b5b277
-    # Function: tradingStatus
-    # MethodID: 0x0d295980
-
     # https://bscscan.com/tx/0x0c528819b84a7336c3ff1cc72290ba8ca48555b932383fcbe6722a703a6b72a4
     # Function: SetupEnableTrading
     # MethodID: 0x7b9e987a
@@ -1942,10 +1966,12 @@ def wait_for_open_trade(token):
     # https://etherscan.io/tx/0xb78202678abf65936f9a4a2be8ee267dbefe28d5df49d1390c4dc55a09c206b0
     # Function: setTrading(bool _tradingOpen)
     # MethodID: 0x8f70ccf7
+    
+    # https://etherscan.io/tx/0xd4a9333c99f3f2b5f09afe80f9b63061e1bc0e4feb9a563a833fe94c7ee096c0
+    # Function: allowtrading()
+    # MethodID: 0xa6334231
 
-    # https://bscscan.com/tx/0x468008dd3439b1802784f11a29dd82f195a2a239e381fa83c29dcc39b85024fb
-    # Function: openTrading()
-    # MethodID: 0xc9567bf9
+
 
     while openTrade == False:
         try:
@@ -2128,7 +2154,7 @@ def check_precise_price(inToken, outToken, DECIMALS_weth, DECIMALS_IN, DECIMALS_
     if outToken != weth:
         printt_debug("ENTER check_precise_price condition 1")
         # First step : calculates the price of token in ETH/BNB
-        pair_address = fetch_pair(inToken, weth, factoryContract)
+        pair_address = fetch_pair2(inToken, weth, factoryContract)
         pair_contract = getContractLP(pair_address)
         reserves = pair_contract.functions.getReserves().call()
 
@@ -2143,7 +2169,7 @@ def check_precise_price(inToken, outToken, DECIMALS_weth, DECIMALS_IN, DECIMALS_
         
         # ------------------------------------------------------------------------
         # Second step : calculates the price of Custom Base pair in ETH/BNB
-        pair_address = fetch_pair(outToken, weth, factoryContract)
+        pair_address = fetch_pair2(outToken, weth, factoryContract)
         pair_contract = getContractLP(pair_address)
         # We use cache to check price of Custom Base pair for price calculation. Price will be updated every 30s (ttl = 30)
         reserves = getReserves_with_cache(pair_contract)
@@ -2172,7 +2198,8 @@ def check_precise_price(inToken, outToken, DECIMALS_weth, DECIMALS_IN, DECIMALS_
         printt_debug("ENTER check_precise_price condition 2")
         # USECUSTOMBASEPAIR = true and token put in BASEADDRESS is WBNB / WETH (because outToken == weth)
         # or USECUSTOMBASEPAIR = false
-        pair_address = fetch_pair(inToken, weth,factoryContract)
+        pair_address = fetch_pair2(inToken, weth,factoryContract)
+        printt_debug("check_precise_price pair_address:", pair_address)
         pair_contract = getContractLP(pair_address)
         reserves = pair_contract.functions.getReserves().call()
         
@@ -2191,10 +2218,10 @@ def check_precise_price(inToken, outToken, DECIMALS_weth, DECIMALS_IN, DECIMALS_
 def check_precise_price_new(inToken, outToken, DECIMALS_weth, DECIMALS_IN, DECIMALS_OUT):
     # This function is currently being reviewed and improved
     
-    printt_debug("ENTER check_precise_price")
-    pair_address = fetch_pair(inToken, outToken, factoryContract)
+    printt_debug("ENTER check_precise_price_new")
+    pair_address = fetch_pair2(inToken, outToken, factoryContract)
     if pair_address != '0x0000000000000000000000000000000000000000':
-        printt_debug("ENTER check_precise_price condition 0 direct pool LP")
+        printt_debug("ENTER check_precise_price_new condition 0 direct pool LP")
         # First step : calculates the price of token in ETH/BNB
         
         pair_contract = getContractLP(pair_address)
@@ -2210,10 +2237,10 @@ def check_precise_price_new(inToken, outToken, DECIMALS_weth, DECIMALS_IN, DECIM
         return tokenPrice1
     
     if outToken != weth:
-        printt_debug("ENTER check_precise_price condition 1")
+        printt_debug("ENTER check_precise_price_new condition 1")
         # First step : calculates the price of token in ETH/BNB
         
-        pair_address = fetch_pair(inToken, weth, factoryContract)
+        pair_address = fetch_pair2(inToken, weth, factoryContract)
         pair_contract = getContractLP(pair_address)
         reserves = pair_contract.functions.getReserves().call()
         
@@ -2228,7 +2255,7 @@ def check_precise_price_new(inToken, outToken, DECIMALS_weth, DECIMALS_IN, DECIM
         
         # ------------------------------------------------------------------------
         # Second step : calculates the price of Custom Base pair in ETH/BNB
-        pair_address = fetch_pair(outToken, weth, factoryContract)
+        pair_address = fetch_pair2(outToken, weth, factoryContract)
         pair_contract = getContractLP(pair_address)
         reserves = pair_contract.functions.getReserves().call()
 
@@ -2250,10 +2277,10 @@ def check_precise_price_new(inToken, outToken, DECIMALS_weth, DECIMALS_IN, DECIM
         tokenPrice = tokenPrice1 / tokenPrice2
     
     else:
-        printt_debug("ENTER check_precise_price condition 2")
+        printt_debug("ENTER check_precise_price_new condition 2")
         # USECUSTOMBASEPAIR = true and token put in BASEADDRESS is WBNB / WETH (because outToken == weth)
         # or USECUSTOMBASEPAIR = false
-        pair_address = fetch_pair(inToken, weth, factoryContract)
+        pair_address = fetch_pair2(inToken, weth, factoryContract)
         pair_contract = getContractLP(pair_address)
         reserves = pair_contract.functions.getReserves().call()
         
@@ -2332,7 +2359,7 @@ def calculate_base_price():
         # USD 0x0039f574ee5cc39bdd162e9a88e3eb1f111baf48
     
         #address = Web3.toChecksumAddress('0x0039f574ee5cc39bdd162e9a88e3eb1f111baf48')
-        #pair_address = fetch_pair(address, weth, factoryContract)
+        #pair_address = fetch_pair2(address, weth, factoryContract)
     
         pair_address = '0x6c31e0F5c07b81A87120cc58c4dcc3fbafb00367'
 
@@ -2355,7 +2382,7 @@ def calculate_custom_base_price(outToken, DECIMALS_OUT, DECIMALS_weth):
     
     printt_debug("ENTER: calculate_custom_base_price")
 
-    pair_address = fetch_pair(outToken, weth, factoryContract)
+    pair_address = fetch_pair2(outToken, weth, factoryContract)
     # pair_address = factoryContract.functions.getPair(outToken, weth).call()
     pair_contract = getContractLP(pair_address)
     # pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
@@ -4165,7 +4192,7 @@ def run():
                             else:
                                 # transaction is a SUCCESS
                                 printt_ok("----------------------------------", write_to_log=True)
-                                printt_ok("SUCCESS : your Tx is confirmed    ", write_to_log=True)
+                                printt_ok("SUCCESS : your buy Tx is confirmed    ", write_to_log=True)
                                 # Re-calculate balances after buy()
                                 calculate_base_balance(token)
                                 
@@ -4281,7 +4308,7 @@ def run():
                             else:
                                 # transaction is a SUCCESS
                                 printt_ok("----------------------------------", write_to_log=True)
-                                printt_ok("SUCCESS : your Tx is confirmed    ", write_to_log=True)
+                                printt_ok("SUCCESS : your sell Tx is confirmed    ", write_to_log=True)
                                 
                                 # Re-calculate balances after buy()
                                 calculate_base_balance(token)
