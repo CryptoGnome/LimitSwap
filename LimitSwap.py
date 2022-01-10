@@ -4144,7 +4144,8 @@ def run():
                                 printt_err("- INSUFFICIENT_OUTPUT_AMOUNT   --> SLIPPAGE too low")
                                 printt_err("- TRANSFER_FAILED              --> Trading is not enabled. Use WAIT_FOR_OPEN_TRADE parameter after reading wiki")
                                 printt_err("- TRANSFER_FAILED              --> There is a whitelist")
-                                printt_err("- Your node is not working well")
+                                printt_err("- Sorry, We are unable to locate this TxnHash --> You don't have enough funds on your wallet to cover fees")
+                                printt_err("- ... or your node is not working well")
                                 printt_err("-------------------------------")
 
                                 # increment _FAILED_TRANSACTIONS amount
@@ -4255,7 +4256,8 @@ def run():
                                 printt_err("- INSUFFICIENT_OUTPUT_AMOUNT   --> SLIPPAGE too low")
                                 printt_err("- TRANSFER_FAILED              --> Trading is not enabled. Use WAIT_FOR_OPEN_TRADE parameter after reading wiki")
                                 printt_err("- TRANSFER_FAILED              --> There is a whitelist")
-                                printt_err("- Your node is not working well")
+                                printt_err("- Sorry, We are unable to locate this TxnHash --> You don't have enough funds on your wallet to cover fees")
+                                printt_err("- ... or your node is not working well")
                                 printt_err("-------------------------------")
                                 
                                 # increment _FAILED_TRANSACTIONS amount
