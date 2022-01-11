@@ -812,6 +812,17 @@ def token_list_report(tokens, all_pairs=False):
         printt("Quantity of tokens attempting to trade:", len(tokens), "(", token_list, ")")
 
 
+def check_release():
+    try:
+        url = 'https://api.github.com/repos/tsarbuig/LimitSwap/releases/latest'
+        r = (requests.get(url).json()['tag_name'] + '\n')
+        printt("Checking Latest Release Version on Github, Please Make Sure You are Staying Updated = ", r, write_to_log=True)
+    except Exception:
+        r = "github api down, please ignore"
+    
+    return r
+
+
 """""""""""""""""""""""""""
 //PRELOAD
 """""""""""""""""""""""""""
@@ -896,6 +907,13 @@ logger1.addHandler(logging.FileHandler(file_name2))
 printt("**********************************************************************************************************************", write_to_log=True)
 printt("For Help & To Learn More About how the bot works please visit our wiki here: https://cryptognome.gitbook.io/limitswap/", write_to_log=False)
 printt("**********************************************************************************************************************", write_to_log=False)
+
+# Check for version
+#
+version = '4.1.0.1'
+printt("YOUR BOT IS CURRENTLY RUNNING VERSION ", version, write_to_log=True)
+check_release()
+
 
 """""""""""""""""""""""""""
 //NETWORKS SELECT
@@ -1631,18 +1649,6 @@ def decode_key():
     acct = client.eth.account.privateKeyToAccount(private_key)
     addr = acct.address
     return addr
-
-
-def check_release():
-    try:
-        url = 'https://api.github.com/repos/tsarbuig/LimitSwap/releases/latest'
-        r = (requests.get(url).json()['tag_name'] + '\n')
-        printt("Checking Latest Release Version on Github, Please Make Sure You are Staying Updated = ", r,
-               write_to_log=True)
-    except Exception:
-        r = "github api down, please ignore"
-    
-    return r
 
 
 def auth():
@@ -4385,11 +4391,6 @@ try:
     
     # The LIMIT balance of the user.
     true_balance = auth()
-    # Check for version
-    #
-    version = '4.1.0.1'
-    printt("YOUR BOT IS CURRENTLY RUNNING VERSION ", version, write_to_log=True)
-    check_release()
     
     if true_balance >= 50:
         print(timestamp(), "Professional Subscriptions Active")
