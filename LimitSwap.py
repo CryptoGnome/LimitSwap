@@ -4387,7 +4387,7 @@ try:
     true_balance = auth()
     # Check for version
     #
-    version = '4.0.5'
+    version = '4.1.0'
     printt("YOUR BOT IS CURRENTLY RUNNING VERSION ", version, write_to_log=True)
     check_release()
     
