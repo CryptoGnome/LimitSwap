@@ -503,7 +503,7 @@ elif settings["EXCHANGE"].lower() == 'uniswap':
     if settings['USECUSTOMNODE'].lower() == 'true':
         my_provider = settings['CUSTOMNODE']
     else:
-        my_provider = "https://pedantic-montalcini:lair-essay-ranger-rigid-hardy-petted@nd-857-678-344.p2pify.com"
+        my_provider = "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"
 
     client = Web3(Web3.HTTPProvider(my_provider))
     print(timestamp(), "Uniswap Chain Connected =", client.isConnected())
