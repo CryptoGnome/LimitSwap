@@ -228,21 +228,6 @@ def printt_debug(*print_args, write_to_log=False):
         logging.info(' '.join(map(str, print_args)))
 
 
-# def printt_buyprice(token_dict, token_price):
-#     Function: printt_buyprice
-#     --------------------
-#     Formatted buying information
-
-#     token_dict - one element of the tokens{} dictionary
-#     token_price - the current price of the token we want to buy
-
-#     returns: nothing
-
-#     print(timestamp(),
-#             style.BLUE, token_dict['SYMBOL'], " Price ", token_Price, token.[],
-#              "//// your buyprice =", buypriceinbase, base,
-#                   "//// your sellprice =", sellpriceinbase, base, "//// your stoplossprice =", stoplosspriceinbase, base)
-
 def printt_repeating(token_dict, message, print_frequency=500):
     #     Function: printt_r
     #     --------------------
@@ -1746,11 +1731,15 @@ def check_approval(token, address, allowance_to_compare_with, condition):
                 wait_for_tx(token, tx, address)
 
         else:
-            if condition == 'preapprove':
+            if condition == 'base_approve':
+                printt_info("---------------------------------------------------------------------------------------------")
+                printt_info("Your base token is not approved --> LimitSwap will now APPROVE it, or it won't be able to buy")
+                printt_info("---------------------------------------------------------------------------------------------")
+            elif condition == 'preapprove':
                 printt_info("-----------------------------------------------------------------------------")
                 printt_info("You have selected PREAPPROVE = true --> LimitSwap will now APPROVE this token")
                 printt_info("-----------------------------------------------------------------------------")
-            if condition == 'txfail':
+            elif condition == 'txfail':
                 printt_info("----------------------------------------------------------------------------------")
                 printt_info("You have failed to sell tokens --> LimitSwap will chack if it needs to be APPROVED")
                 printt_info("----------------------------------------------------------------------------------")
@@ -2541,9 +2530,11 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
     #
     printt_debug("ENTER make_the_buy")
 
-    printt_ok("-----------------------------------------------------------")
+    printt_ok("--------------------------------------------------------------------------------")
     printt_ok("KIND_OF_SWAP = base  --> bot will use BUYAMOUNTINBASE")
-    printt_ok("-----------------------------------------------------------")
+    printt_ok(" ")
+    printt_ok("Did you know? You can now swap exact amount of tokens with KIND_OF_SWAP = tokens ")
+    printt_ok("--------------------------------------------------------------------------------")
 
     # Choose proper wallet.
     if buynumber == 0:
@@ -3157,20 +3148,19 @@ def wait_for_tx(token_dict, tx_hash, address, max_wait_time=60):
     return return_value
 
 
-def preapprove_base(tokens):
+def preapprove_base(token):
     # we approve the base pair, so as the bot is able to use it to buy token
     
     printt_debug("ENTER - preapprove_base()")
     
-    printt("LimitSwap will now check approval of your Base or Custom Base pair for all tokens, to ensure you can buy them")
+    printt("LimitSwap will now check approval of your Base or Custom Base for", token['SYMBOL'], ", to ensure you can use it")
     
-    for token in tokens:
-        if token['USECUSTOMBASEPAIR'].lower() == 'false':
-            balanceweth = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
-            check_approval(token, weth, balanceweth * decimals(weth), 'preapprove')
-        else:
-            balancebase = Web3.fromWei(check_balance(token['BASEADDRESS'], token['BASESYMBOL'], display_quantity=False), 'ether')
-            check_approval(token, token['BASEADDRESS'], balancebase * decimals(token['BASEADDRESS']), 'preapprove')
+    if token['USECUSTOMBASEPAIR'].lower() == 'false':
+        balanceweth = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
+        check_approval(token, weth, balanceweth * decimals(weth), 'base_approve')
+    else:
+        balancebase = Web3.fromWei(check_balance(token['BASEADDRESS'], token['BASESYMBOL'], display_quantity=False), 'ether')
+        check_approval(token, token['BASEADDRESS'], balancebase * decimals(token['BASEADDRESS']), 'base_approve')
  
     printt_debug("EXIT - preapprove_base()")
 
@@ -4213,6 +4203,10 @@ def run():
                                 # increment _FAILED_TRANSACTIONS amount
                                 token['_FAILED_TRANSACTIONS'] += 1
                                 printt_debug("3813 _FAILED_TRANSACTIONS:", token['_FAILED_TRANSACTIONS'])
+                                
+                                # Check if Base pair is approved, in case of TRANSFER_FROM_FAILED
+                                preapprove_base(token)
+                                
                             else:
                                 # transaction is a SUCCESS
                                 printt_ok("----------------------------------", write_to_log=True)
@@ -4253,7 +4247,6 @@ def run():
                                 printt_debug(token['SYMBOL'], " cost per token was: ", token['_COST_PER_TOKEN'])
                     
                         else:
-                            printt_err("You don't have enough in your wallet to make the BUY order of", token['SYMBOL'], "--> bot do not buy",write_to_log=False)
                             continue
 
                     #
