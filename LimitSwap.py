@@ -288,9 +288,9 @@ def printt_sell_price(token_dict, token_price):
     # price_message = price_message + " ATH:" + "{0:.24f}".format(token_dict['_ALL_TIME_HIGH']) + " ATL:" + "{0:.24f}".format(token_dict['_ALL_TIME_LOW'])
 
     if token_dict['USECUSTOMBASEPAIR'] == 'false':
-        price_message = price_message + " - Token balance : " + str("{0:.2f}".format(token_dict['_TOKEN_BALANCE'])) + " (= " + "{0:.2f}".format(float(token_price) * float(token_dict['_BASE_PRICE']) * float(token_dict['_TOKEN_BALANCE'])) + " $)"
+        price_message = price_message + " - Token balance : " + str("{0:.4f}".format(token_dict['_TOKEN_BALANCE'])) + " (= " + "{0:.2f}".format(float(token_price) * float(token_dict['_BASE_PRICE']) * float(token_dict['_TOKEN_BALANCE'])) + " $)"
     else:
-        price_message = price_message + " - Token balance : " + str("{0:.2f}".format(token_dict['_TOKEN_BALANCE'])) + " (= " + "{0:.2f}".format(float(token_price) * float(token_dict['_TOKEN_BALANCE'])) + " " + token_dict['BASESYMBOL'] + ")"
+        price_message = price_message + " - Token balance : " + str("{0:.4f}".format(token_dict['_TOKEN_BALANCE'])) + " (= " + "{0:.2f}".format(float(token_price) * float(token_dict['_TOKEN_BALANCE'])) + " " + token_dict['BASESYMBOL'] + ")"
 
 
     if price_message == token_dict['_LAST_PRICE_MESSAGE'] and settings['VERBOSE_PRICING'] == 'false':
