@@ -19,6 +19,7 @@
 "PREAPPROVE": "true",
 "UNLIMITEDSLIPPAGE": "false",
 "PASSWORD_ON_CHANGE": "false",
-"VERBOSE_PRICING": "true"
+"VERBOSE_PRICING": "true",
+"SLOW_MODE": "false"
 }
 ]
