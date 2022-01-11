@@ -1162,7 +1162,7 @@ elif settings["EXCHANGE"] == 'uniswap':
     if settings['USECUSTOMNODE'] == 'true':
         my_provider = settings['CUSTOMNODE']
     else:
-        my_provider = "https://pedantic-montalcini:lair-essay-ranger-rigid-hardy-petted@nd-857-678-344.p2pify.com"
+        my_provider = "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"
     
     client = Web3(Web3.HTTPProvider(my_provider))
     print(timestamp(), "Uniswap Chain Connected =", client.isConnected())
@@ -1642,7 +1642,7 @@ def check_release():
 
 
 def auth():
-    my_provider2 = 'https://reverent-raman:photo-hamlet-ankle-saved-scared-bobbed@nd-539-402-515.p2pify.com'
+    my_provider2 = 'https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161'
     client2 = Web3(Web3.HTTPProvider(my_provider2))
     print(timestamp(), "Connected to Ethereum BlockChain =", client2.isConnected())
     # Insert LIMITSWAP Token Contract Here To Calculate Staked Verification
@@ -1946,7 +1946,7 @@ def wait_for_open_trade_price_movement(token):
             sys.exit()
 
 
-def wait_for_open_trade_mempool(token):
+def wait_for_open_trade_mempool(token, inToken, outToken):
     printt_debug("ENTER wait_for_open_trade")
 
     printt("-----------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
@@ -1961,9 +1961,9 @@ def wait_for_open_trade_mempool(token):
     printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
     
     openTrade = False
-    token = Web3.toChecksumAddress(token['ADDRESS'])
+    token_to_check = Web3.toChecksumAddress(token['ADDRESS'])
 
-    tx_filter = client.eth.filter({"filter_params": "pending", "address": token})
+    tx_filter = client.eth.filter({"filter_params": "pending", "address": token_to_check})
     list_of_methodId = ["0xc9567bf9", "0x8a8c523c", "0x0d295980", "0xbccce037", "0x4efac329", "0x7b9e987a", "0x6533e038", "0x8f70ccf7", "0xa6334231"]
 
     # Examples of tokens and functions used
@@ -2017,12 +2017,23 @@ def wait_for_open_trade_mempool(token):
 
 
     while openTrade == False:
+        # printt_debug("inToken                         :", inToken)
+        # printt_debug("outToken                        :", outToken)
+        # printt_debug("token['USECUSTOMBASEPAIR']      :", token['USECUSTOMBASEPAIR'])
+        # printt_debug("token['LIQUIDITYINNATIVETOKEN'] :", token['LIQUIDITYINNATIVETOKEN'])
+        # printt_debug("int(token['_CONTRACT_DECIMALS']):", int(token['_CONTRACT_DECIMALS']))
+        # printt_debug("int(token['_BASE_DECIMALS'])    :", int(token['_BASE_DECIMALS']))
+        
+        
+        
+        # pprice = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], int(token['_CONTRACT_DECIMALS']), int(token['_BASE_DECIMALS']))
+        # printt(pprice)
         try:
             for tx_event in tx_filter.get_new_entries():
 
                 txHash = tx_event['transactionHash']
                 txHashDetails = client.eth.get_transaction(txHash)
-                printt_debug(txHashDetails)
+                # printt_debug(txHashDetails)
                 txFunction = txHashDetails.input[:10]
                 if txFunction.lower() in list_of_methodId:
                     openTrade = True
@@ -4145,7 +4156,7 @@ def run():
                         #
     
                         if token['WAIT_FOR_OPEN_TRADE'].lower() == 'mempool':
-                            wait_for_open_trade_mempool(token)
+                            wait_for_open_trade_mempool(token, inToken, outToken)
     
                         if token['WAIT_FOR_OPEN_TRADE'].lower() == 'true':
                             wait_for_open_trade_price_movement(token)
@@ -4420,6 +4431,8 @@ try:
         runLoop()
     else:
         printt_err("10 - 50 LIMIT tokens needed to use this bot, please visit the LimitSwap.com for more info or buy more tokens on Uniswap to use!")
+        sleep(10)
+        sys.exit()
 
 except Exception as e:
     printt_err("ERROR SETTINGS . Please go to /log folder and open your logs: you will find more details.")
