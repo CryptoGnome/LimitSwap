@@ -96,6 +96,7 @@ parser.add_argument("-s", "--settings", type=str, help="Specify the file to user
 parser.add_argument("-t", "--tokens", type=str, help="Specify the file to use for tokens to trade (default: tokens.json)", default="./tokens.json")
 parser.add_argument("-v", "--verbose", action='store_true', help="Print detailed messages to stdout")
 parser.add_argument("-pc", "--password_on_change", action='store_true', help="Ask user password again if you change tokens.json")
+parser.add_argument("-sm", "--slow_mode", action='store_true', help="Bot will only check price 2 times/s. Use it if you're on a RPC with rate limit")
 
 
 # DEVELOPER COMMAND LINE ARGUMENTS
@@ -369,7 +370,8 @@ def load_settings_file(settings_path, load_message=True):
     default_false_settings = [
         'UNLIMITEDSLIPPAGE',
         'USECUSTOMNODE',
-        'PASSWORD_ON_CHANGE'
+        'PASSWORD_ON_CHANGE',
+        'SLOW_MODE'
     ]
     
     default_true_settings = [
@@ -4401,7 +4403,11 @@ try:
     
     if true_balance >= 50:
         print(timestamp(), "Professional Subscriptions Active")
-        cooldown = 0.01
+        if command_line_args.slow_mode or settings['SLOW_MODE'] == 'true':
+            printt_info("RUNNING IN SLOW MODE = price check every 0.5s")
+            cooldown = 0.50
+        else:
+            cooldown = 0.01
         runLoop()
     
     elif true_balance >= 25 and true_balance < 50:
