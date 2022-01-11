@@ -539,7 +539,8 @@ def load_tokens_file(tokens_path, load_message=True):
     #                         should be printed again, or just a dot
     # _LAST_MESSAGE         - a place to store a copy of the last message printed to conside, use to avoid
     #                         repeated liquidity messages
-    
+    # _GAS_IS_CALCULATED    - if gas needs to be calculated by wait_for_open_trade, this parameter is set to true
+
     program_defined_values = {
         '_LIQUIDITY_READY': False,
         '_LIQUIDITY_CHECKED': False,
@@ -548,6 +549,7 @@ def load_tokens_file(tokens_path, load_message=True):
         '_TRADING_IS_ON': False,
         '_RUGDOC_DECISION': "",
         '_GAS_TO_USE': 0,
+        '_GAS_IS_CALCULATED': False,
         '_FAILED_TRANSACTIONS': 0,
         '_SUCCESS_TRANSACTIONS': 0,
         '_REACHED_MAX_SUCCESS_TX': False,
@@ -718,6 +720,7 @@ def reload_tokens_file(tokens_path, load_message=True):
     #                         instead of querying the contract for the same information repeatedly.
     # _LAST_PRICE_MESSAGE   - a copy of the last pricing message printed to console, used to determine the price
     #                         should be printed again, or just a dot
+    # _GAS_IS_CALCULATED    - if gas needs to be calculated by wait_for_open_trade, this parameter is set to true
     
     program_defined_values = {
         '_LIQUIDITY_READY': False,
@@ -727,6 +730,7 @@ def reload_tokens_file(tokens_path, load_message=True):
         '_TRADING_IS_ON': False,
         '_RUGDOC_DECISION': "",
         '_GAS_TO_USE': 0,
+        '_GAS_IS_CALCULATED': False,
         '_FAILED_TRANSACTIONS': 0,
         '_SUCCESS_TRANSACTIONS': 0,
         '_REACHED_MAX_SUCCESS_TX': False,
@@ -1942,21 +1946,13 @@ def wait_for_open_trade(token, inToken, outToken):
     while openTrade == False:
         
         pprice = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], int(token['_CONTRACT_DECIMALS']), int(token['_BASE_DECIMALS']))
-        
-        printt_debug("inToken                         :", inToken)
-        printt_debug("outToken                        :", outToken)
-        printt_debug("token['USECUSTOMBASEPAIR']      :", token['USECUSTOMBASEPAIR'])
-        printt_debug("token['_PREVIOUS_QUOTE']        :", token['_PREVIOUS_QUOTE'])
-        printt_debug("token['_QUOTE']                 :", token['_QUOTE'])
-        printt_debug("pprice                          :", pprice)
 
-        
         if pprice != float(token['_PREVIOUS_QUOTE']):
             token['_TRADING_IS_ON'] = True
             printt_ok("Token price:", pprice, "--> IT HAS MOVED :)")
             printt_ok("PRICE HAS MOVED --> trading is enabled --> Bot will buy")
             break
-            
+
         printt("Token price:", pprice)
         
         
@@ -1969,13 +1965,16 @@ def wait_for_open_trade(token, inToken, outToken):
                 txFunction = txHashDetails.input[:10]
                 if txFunction.lower() in list_of_methodId:
                     openTrade = True
+                    token['_GAS_IS_CALCULATED'] = True
+                    token['_GAS_TO_USE'] = int(txHashDetails.gasPrice) / 1000000000
                     printt_ok("OPEN TRADE FUNCTION DETECTED --> Trading is enabled --> Bot will buy")
                     printt_ok("MethodID: ", txFunction, " Block: ", tx_event['blockNumber'], " Found Signal", "in txHash:", txHash.hex())
+                    printt_ok("GAS will be the same as liquidity adding event. GAS=", token['_GAS_TO_USE'])
                     break
                 else:
                     printt("Found something in mempool - MethodID: ", txFunction, " Block: ", tx_event['blockNumber'])
         except Exception as e:
-            printt_err("wait_for_open_trade finished in Error. Please report it to LimitSwap team")
+            printt_err("Wait_for_open_trade Error. Please report it to the team.")
             logger1.exception(e)
             sys.exit()
 
@@ -3170,14 +3169,11 @@ def buy(token_dict, inToken, outToken, pwd):
     #
     # returns: transaction hash
     #
-    # WARNING: BALANCE CHECK HAS BEEN REMOVED FROM buy() - THIS SHOULD BE IMPLEMENTED IN ANOTHER FUCTION
-    #
     
     printt_debug("ENTER buy()")
     
     # Map variables until all code is cleaned up.
     amount = token_dict['BUYAMOUNTINBASE']
-    gas = token_dict['GAS']
     slippage = token_dict['SLIPPAGE']
     gaslimit = token_dict['GASLIMIT']
     boost = token_dict['BOOSTPERCENT']
@@ -3232,9 +3228,14 @@ def buy(token_dict, inToken, outToken, pwd):
     printt_debug("Check balance:", balance)
     
     if balance > Decimal(amount) or token_dict['KIND_OF_SWAP'] == 'tokens':
-        # Calculate how much gas we should use for this token
-        calculate_gas(token_dict)
+        
+        if token_dict['_GAS_IS_CALCULATED'] != True:
+            # If WAIT_FOR_OPEN_TRADE = true, token['_GAS_TO_USE'] was calculated by wait_for_open_trade
+            # If it was not used, let's calculate now how much gas we should use for this token
+            calculate_gas(token_dict)
+            
         printt_debug("_GAS_TO_USE is set to: ", token_dict['_GAS_TO_USE'])
+        
         gaslimit = int(gaslimit)
         slippage = int(slippage)
         amount = int(float(amount) * CONTRACT_DECIMALS)
