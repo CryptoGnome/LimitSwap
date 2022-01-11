@@ -1931,7 +1931,6 @@ def wait_for_open_trade(token, inToken, outToken):
     printt(" ", write_to_log=True)
     printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
 
-    sleep(5)
     openTrade = False
     
     token['_PREVIOUS_QUOTE'] = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], int(token['_CONTRACT_DECIMALS']), int(token['_BASE_DECIMALS']))
