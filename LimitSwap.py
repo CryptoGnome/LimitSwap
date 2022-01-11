@@ -2680,6 +2680,13 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
                 amountOutMin = 100
             else:
                 amountOutMin = int(amount_out * (1 - (slippage / 100)))
+            
+            # implementing an ugly fix for those shitty tokens with decimals = 9 to solve https://github.com/CryptoGnome/LimitSwap/issues/401
+            if DECIMALS == 1000000000:
+                amountOutMin = 1000000000 * amountOutMin
+                printt_debug("amountOutMin after fix applied for those shitty tokens with decimals = 9:", amountOutMin)
+
+            
             deadline = int(time() + + 60)
             
             if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
@@ -2735,7 +2742,12 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
                 else:
                     amountOutMin = int(amount_out * (1 - (slippage / 100)))
                 deadline = int(time() + + 60)
-                
+
+                # implementing an ugly fix for those shitty tokens with decimals = 9 to solve https://github.com/CryptoGnome/LimitSwap/issues/401
+                if DECIMALS == 1000000000:
+                    amountOutMin = 1000000000 * amountOutMin
+                    printt_debug("amountOutMin after fix applied for those shitty tokens with decimals = 9:", amountOutMin)
+
                 if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
                     # USECUSTOMBASEPAIR = true
                     # Base Pair different from weth
@@ -2798,6 +2810,12 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
                     amountOutMin = 100
                 else:
                     amountOutMin = int(amount_out * (1 - (slippage / 100)))
+
+                # implementing an ugly fix for those shitty tokens with decimals = 9 to solve https://github.com/CryptoGnome/LimitSwap/issues/401
+                if DECIMALS == 1000000000:
+                    amountOutMin = 1000000000 * amountOutMin
+                    printt_debug("amountOutMin after fix applied for those shitty tokens with decimals = 9:", amountOutMin)
+
                 deadline = int(time() + + 60)
                 
                 if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
@@ -3271,7 +3289,7 @@ def buy(token_dict, inToken, outToken, pwd):
             return tx_hash
     
     else:
-        printt_debug("2498 You don't have enough in your wallet to make the BUY order of", token_dict['SYMBOL'], "--> bot do not buy", )
+        printt_err("You don't have enough in your wallet to make the BUY order of", token_dict['SYMBOL'], "--> bot do not buy", )
         calculate_base_balance(token_dict)
         return False
 
