@@ -1903,68 +1903,82 @@ def check_rugdoc_api(token):
         token['_QUOTE'] = 0
 
 
-def wait_for_open_trade_price_movement(token):
-    printt_debug("ENTER wait_for_open_trade_price_movement")
-
-    printt("-----------------------------------------------------------------------------------------------------------------------------")
-    printt("WAIT_FOR_OPEN_TRADE = true --> Bot will wait for price to move before making a BUY order")
-    printt(" ")
-    printt_err("BE CAREFUL:")
-    printt_err("to make WAIT_FOR_OPEN_TRADE work, you need to snipe on the same liquidity pair that liquidity added by the team:")
-    printt(" ")
-    printt("Example : If you try to snipe in BUSD and liquidity is in BNB, price will move because of price movement between BUSD and BNB")
-    printt("--> if liquidity is in BNB or ETH, use LIQUIDITYINNATIVETOKEN = true and USECUSTOMBASEPAIR = false")
-    printt(" ")
-    printt("------------------------------------------------------------------------------------------------------------------------------")
-    
-    token['_PREVIOUS_QUOTE'] = token['_QUOTE']
-    
-    inToken = Web3.toChecksumAddress(token['ADDRESS'])
-    
-    if token['USECUSTOMBASEPAIR'] == 'true':
-        outToken = Web3.toChecksumAddress(['BASEADDRESS'])
-    else:
-        outToken = weth
-    
-    while token['_TRADING_IS_ON'] == False:
-        printt_debug("wait_for_open_trade_price_movement enter WHILE")
-        printt_buy_price(token, token['_QUOTE'])
-        token['_QUOTE'] = check_precise_price(inToken, outToken, token['_WETH_DECIMALS'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
-        
-        try:
-            
-            if token['WAIT_FOR_OPEN_TRADE'].lower() == 'true' and token['_TRADING_IS_ON'] == True:
-                printt_info("PRICE HAS MOVED --> trading is enabled --> Bot will buy")
-                break
-            
-            elif token['WAIT_FOR_OPEN_TRADE'].lower() == 'true' and token['_TRADING_IS_ON'] == False:
-                printt("Waiting for price to move for token:", token['SYMBOL'])
-        
-        except Exception as e:
-            printt_err("wait_for_open_trade_price_movement finished in Error. Please report it to LimitSwap team")
-            logger1.exception(e)
-            sys.exit()
-
-
-def wait_for_open_trade_mempool(token, inToken, outToken):
+def wait_for_open_trade(token, inToken, outToken):
     printt_debug("ENTER wait_for_open_trade")
 
     printt("-----------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
-    printt("WAIT_FOR_OPEN_TRADE = mempool --> Bot will scan mempool to detect Open Trade functions called", write_to_log=True)
-    printt(" ")
-    printt_err("WE NEED YOUR HELP FOR THAT:")
-    printt_err("To make WAIT_FOR_OPEN_TRADE work, we need to enter in the code the functions used by the teams to make trading open:")
-    printt(" ")
-    printt("Please give us some examples of function used here:", write_to_log=True)
-    printt("https://github.com/tsarbuig/LimitSwap/issues/1", write_to_log=True)
-    printt(" ")
+    printt("WAIT_FOR_OPEN_TRADE is enabled. It works with 2 ways:", write_to_log=True)
+    printt("1/ Bot will scan mempool to detect Enable Trading functions", write_to_log=True)
+    printt("2/ Bot will wait for price to move before making a BUY order", write_to_log=True)
+    printt(" ", write_to_log=True)
+    printt("---- Why those 2 ways ? ----", write_to_log=True)
+    printt("Because we need to enter in the code the functions used by the teams to make trading open", write_to_log=True)
+    printt("And there is a LOT of ways to do that, so we cannot be 100% to detect i in the mempool", write_to_log=True)
+    printt(" ", write_to_log=True)
+    printt_err("---- WE NEED YOUR HELP FOR THAT ----", write_to_log=True)
+    printt_err("To detect Enable Trading in mempool, we need to enter in the code the functions used by the teams to make trading open:", write_to_log=True)
+    printt(" ", write_to_log=True)
+    printt("Please give us some examples of function used here: https://github.com/tsarbuig/LimitSwap/issues/1", write_to_log=True)
+    printt(" ", write_to_log=True)
+    printt(" ", write_to_log=True)
+    printt_err("---- BE CAREFUL ----", write_to_log=True)
+    printt_err("to make WAIT_FOR_OPEN_TRADE work, you need to SNIPE ON THE SAME LIQUIDITY PAIR that liquidity added by the team:", write_to_log=True)
+    printt(" ", write_to_log=True)
+    printt("Explanation : if you try to snipe in BUSD and liquidity is in BNB, price will move because of price movement between BUSD and BNB", write_to_log=True)
+    printt("--> if liquidity is in BNB or ETH, use LIQUIDITYINNATIVETOKEN = true and USECUSTOMBASEPAIR = false", write_to_log=True)
+    printt(" ", write_to_log=True)
+    printt("When you will have read all this message and understood how it works, enter the value 'true_no_message' in your WAIT_FOR_OPEN_TRADE setting", write_to_log=True)
+    printt(" ", write_to_log=True)
     printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
-    
-    openTrade = False
-    token_to_check = Web3.toChecksumAddress(token['ADDRESS'])
 
-    tx_filter = client.eth.filter({"filter_params": "pending", "address": token_to_check})
+    sleep(5)
+    openTrade = False
+    
+    token['_PREVIOUS_QUOTE'] = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], int(token['_CONTRACT_DECIMALS']), int(token['_BASE_DECIMALS']))
+
+    tx_filter = client.eth.filter({"filter_params": "pending", "address": inToken})
+    
     list_of_methodId = ["0xc9567bf9", "0x8a8c523c", "0x0d295980", "0xbccce037", "0x4efac329", "0x7b9e987a", "0x6533e038", "0x8f70ccf7", "0xa6334231"]
+
+    while openTrade == False:
+        
+        pprice = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], int(token['_CONTRACT_DECIMALS']), int(token['_BASE_DECIMALS']))
+        
+        printt_debug("inToken                         :", inToken)
+        printt_debug("outToken                        :", outToken)
+        printt_debug("token['USECUSTOMBASEPAIR']      :", token['USECUSTOMBASEPAIR'])
+        printt_debug("token['_PREVIOUS_QUOTE']        :", token['_PREVIOUS_QUOTE'])
+        printt_debug("token['_QUOTE']                 :", token['_QUOTE'])
+        printt_debug("pprice                          :", pprice)
+
+        
+        if pprice != float(token['_PREVIOUS_QUOTE']):
+            token['_TRADING_IS_ON'] = True
+            printt_ok("Token price:", pprice, "--> IT HAS MOVED :)")
+            printt_ok("PRICE HAS MOVED --> trading is enabled --> Bot will buy")
+            break
+            
+        printt("Token price:", pprice)
+        
+        
+        try:
+            for tx_event in tx_filter.get_new_entries():
+
+                txHash = tx_event['transactionHash']
+                txHashDetails = client.eth.get_transaction(txHash)
+                # printt_debug(txHashDetails)
+                txFunction = txHashDetails.input[:10]
+                if txFunction.lower() in list_of_methodId:
+                    openTrade = True
+                    printt_ok("OPEN TRADE FUNCTION DETECTED --> Trading is enabled --> Bot will buy")
+                    printt_ok("MethodID: ", txFunction, " Block: ", tx_event['blockNumber'], " Found Signal", "in txHash:", txHash.hex())
+                    break
+                else:
+                    printt("Found something in mempool - MethodID: ", txFunction, " Block: ", tx_event['blockNumber'])
+        except Exception as e:
+            printt_err("wait_for_open_trade finished in Error. Please report it to LimitSwap team")
+            logger1.exception(e)
+            sys.exit()
 
     # Examples of tokens and functions used
     #
@@ -1983,7 +1997,7 @@ def wait_for_open_trade_mempool(token, inToken, outToken):
     # https://etherscan.io/tx/0x5ef0fe0ffb7a6f12c0cdfa4e57f9e951b0577a90611008d864e72fdcde057fac
     # Function: enableTrading()
     # MethodID: 0x8a8c523c
-    
+
     # https://bscscan.com/tx/0x19cac49bf8319689a7620935bf9466e469317992b994ec9692697a9ef71e3ace
     # https://bscscan.com/tx/0xa98ae84de5aee32d216d734b790131a845548c7e5013085688dccd58c9b5b277
     # Function: tradingStatus
@@ -1997,7 +2011,7 @@ def wait_for_open_trade_mempool(token, inToken, outToken):
     # https://bscscan.com/tx/0x5b8d8d70b6d1e591d0620a50247deef38bb924de0c38307cc9c5b77839f68bcc
     # Function: snipeListing() ** *
     # MethodID: 0x4efac329
-    
+
     # https://bscscan.com/tx/0x0c528819b84a7336c3ff1cc72290ba8ca48555b932383fcbe6722a703a6b72a4
     # Function: SetupEnableTrading
     # MethodID: 0x7b9e987a
@@ -2005,47 +2019,14 @@ def wait_for_open_trade_mempool(token, inToken, outToken):
     # https://bscscan.com/tx/0x5b2c05e60789350c578ab2d01d3963266dba47aed8e9750c7d2dc78660438091
     # Function: enabledTradingOnly
     # MethodID: 0x6533e038
-    
+
     # https://etherscan.io/tx/0xb78202678abf65936f9a4a2be8ee267dbefe28d5df49d1390c4dc55a09c206b0
     # Function: setTrading(bool _tradingOpen)
     # MethodID: 0x8f70ccf7
-    
+
     # https://etherscan.io/tx/0xd4a9333c99f3f2b5f09afe80f9b63061e1bc0e4feb9a563a833fe94c7ee096c0
     # Function: allowtrading()
     # MethodID: 0xa6334231
-
-
-
-    while openTrade == False:
-        # printt_debug("inToken                         :", inToken)
-        # printt_debug("outToken                        :", outToken)
-        # printt_debug("token['USECUSTOMBASEPAIR']      :", token['USECUSTOMBASEPAIR'])
-        # printt_debug("token['LIQUIDITYINNATIVETOKEN'] :", token['LIQUIDITYINNATIVETOKEN'])
-        # printt_debug("int(token['_CONTRACT_DECIMALS']):", int(token['_CONTRACT_DECIMALS']))
-        # printt_debug("int(token['_BASE_DECIMALS'])    :", int(token['_BASE_DECIMALS']))
-        
-        
-        
-        # pprice = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], int(token['_CONTRACT_DECIMALS']), int(token['_BASE_DECIMALS']))
-        # printt(pprice)
-        try:
-            for tx_event in tx_filter.get_new_entries():
-
-                txHash = tx_event['transactionHash']
-                txHashDetails = client.eth.get_transaction(txHash)
-                # printt_debug(txHashDetails)
-                txFunction = txHashDetails.input[:10]
-                if txFunction.lower() in list_of_methodId:
-                    openTrade = True
-                    printt_ok("OPEN TRADE FUNCTION DETECTED --> Trading is enabled --> Bot will buy")
-                    printt_ok("MethodID: ", txFunction, " Block: ", tx_event['blockNumber'], " Found Signal", "in txHash:", txHash.hex())
-                    break
-                else:
-                    printt(" MethodID: ", txFunction, " Block: ", tx_event['blockNumber'])
-        except Exception as e:
-            printt_err("wait_for_open_trade finished in Error. Please report it to LimitSwap team")
-            logger1.exception(e)
-            sys.exit()
 
 
 def get_tokens_purchased(tx_hash):
@@ -2566,8 +2547,9 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
     amount = amount_to_buy
     # implementing an ugly fix for those shitty tokens with decimals = 9 to solve https://github.com/CryptoGnome/LimitSwap/issues/401
     if DECIMALS == 1000000000:
-        printt_debug("Fix applied for those shitty tokens with decimals = 9")
         amount = 1000000000 * amount
+        printt_debug("Amount after fix applied for those shitty tokens with decimals = 9:", amount)
+
 
     if custom.lower() == 'false':
         # if USECUSTOMBASEPAIR = false
@@ -3208,7 +3190,7 @@ def buy(token_dict, inToken, outToken, pwd):
     gaspriority = token_dict['GASPRIORITY_FOR_ETH_ONLY']
     multiplebuys = token_dict['MULTIPLEBUYS']
     buycount = token_dict['BUYCOUNT']
-    DECIMALS = token_dict['_CONTRACT_DECIMALS']
+    CONTRACT_DECIMALS = token_dict['_CONTRACT_DECIMALS']
 
     # Check for amount of failed transactions before buy (MAX_FAILED_TRANSACTIONS_IN_A_ROW parameter)
     printt_debug("debug _FAILED_TRANSACTIONS:", token_dict['_FAILED_TRANSACTIONS'])
@@ -3256,7 +3238,7 @@ def buy(token_dict, inToken, outToken, pwd):
         printt_debug("_GAS_TO_USE is set to: ", token_dict['_GAS_TO_USE'])
         gaslimit = int(gaslimit)
         slippage = int(slippage)
-        amount = int(float(amount) * DECIMALS)
+        amount = int(float(amount) * CONTRACT_DECIMALS)
         buynumber = 0
 
         if multiplebuys.lower() == 'true':
@@ -3267,18 +3249,18 @@ def buy(token_dict, inToken, outToken, pwd):
                 if buynumber < amount_of_buys:
                     printt("Placing New Buy Order for wallet number:", buynumber)
                     if token_dict['KIND_OF_SWAP'] == 'tokens':
-                        make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gaslimit, routing, custom, slippage, DECIMALS, balance)
+                        make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gaslimit, routing, custom, slippage, CONTRACT_DECIMALS, balance)
                     else:
-                        make_the_buy(inToken, outToken, buynumber, pwd, amount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, DECIMALS)
+                        make_the_buy(inToken, outToken, buynumber, pwd, amount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, CONTRACT_DECIMALS)
                     buynumber += 1
                 else:
                     printt_ok("All BUYS orders have been sent - Stopping Bot")
                     sys.exit(0)
         else:
             if token_dict['KIND_OF_SWAP'] == 'tokens':
-                tx_hash = make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gaslimit, routing, custom, slippage, DECIMALS, balance)
+                tx_hash = make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gaslimit, routing, custom, slippage, CONTRACT_DECIMALS, balance)
             else:
-                tx_hash = make_the_buy(inToken, outToken, buynumber, pwd, amount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, DECIMALS)
+                tx_hash = make_the_buy(inToken, outToken, buynumber, pwd, amount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, CONTRACT_DECIMALS)
     
             return tx_hash
     
@@ -4155,11 +4137,8 @@ def run():
                         #   If the option is selected, bot wait for trading_is_on == True to create a BUY order
                         #
     
-                        if token['WAIT_FOR_OPEN_TRADE'].lower() == 'mempool':
-                            wait_for_open_trade_mempool(token, inToken, outToken)
-    
                         if token['WAIT_FOR_OPEN_TRADE'].lower() == 'true':
-                            wait_for_open_trade_price_movement(token)
+                            wait_for_open_trade(token, inToken, outToken)
     
                         #
                         # PURCHASE POSITION
@@ -4290,7 +4269,7 @@ def run():
                         
                         printt_sell_price(token, token['_QUOTE'])
                         
-                        minimum_price = token['_ALL_TIME_HIGH'] - (command_line_args.pump * 0.01 * token['_ALL_TIME_HIGH'])
+                        minimum_price = token['_ALL_TIME_HIGH'] - (Decimal(command_line_args.pump) * Decimal(0.01) * token['_ALL_TIME_HIGH'])
                         
                         if token['_QUOTE'] < minimum_price and token['_TOKEN_BALANCE'] > 0:
                             printt_err(token['SYMBOL'], "has dropped", command_line_args.pump, "% from it's ATH - SELLING POSITION")
