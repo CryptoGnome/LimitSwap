@@ -2047,29 +2047,43 @@ def wait_for_open_trade(token, inToken, outToken):
     printt_debug("ENTER wait_for_open_trade")
 
     printt("-----------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
-    printt("WAIT_FOR_OPEN_TRADE is enabled. It works with 2 ways:", write_to_log=True)
-    printt("1/ Bot will scan mempool to detect Enable Trading functions", write_to_log=True)
-    printt("2/ Bot will wait for price to move before making a BUY order", write_to_log=True)
-    printt(" ", write_to_log=True)
-    printt("---- Why those 2 ways ? ----", write_to_log=True)
-    printt("Because we need to enter in the code the functions used by the teams to make trading open", write_to_log=True)
-    printt("And there is a LOT of ways to do that, so we cannot be 100% to detect i in the mempool", write_to_log=True)
-    printt(" ", write_to_log=True)
-    printt_err("---- WE NEED YOUR HELP FOR THAT ----", write_to_log=True)
-    printt_err("To detect Enable Trading in mempool, we need to enter in the code the functions used by the teams to make trading open:", write_to_log=True)
-    printt(" ", write_to_log=True)
-    printt("Please give us some examples of function used here: https://github.com/tsarbuig/LimitSwap/issues/1", write_to_log=True)
-    printt(" ", write_to_log=True)
-    printt(" ", write_to_log=True)
-    printt_err("---- BE CAREFUL ----", write_to_log=True)
-    printt_err("to make WAIT_FOR_OPEN_TRADE work, you need to SNIPE ON THE SAME LIQUIDITY PAIR that liquidity added by the team:", write_to_log=True)
-    printt(" ", write_to_log=True)
-    printt("Explanation : if you try to snipe in BUSD and liquidity is in BNB, price will move because of price movement between BUSD and BNB", write_to_log=True)
-    printt("--> if liquidity is in BNB or ETH, use LIQUIDITYINNATIVETOKEN = true and USECUSTOMBASEPAIR = false", write_to_log=True)
-    printt(" ", write_to_log=True)
-    printt("When you will have read all this message and understood how it works, enter the value 'true_no_message' in your WAIT_FOR_OPEN_TRADE setting", write_to_log=True)
-    printt(" ", write_to_log=True)
-    printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
+    printt("WAIT_FOR_OPEN_TRADE is enabled", write_to_log=True)
+    printt("", write_to_log=True)
+
+    if token['WAIT_FOR_OPEN_TRADE'] == 'true':
+        printt("It works with 2 ways:", write_to_log=True)
+        printt("1/ Bot will scan mempool to detect Enable Trading functions", write_to_log=True)
+        printt("2/ Bot will wait for price to move before making a BUY order", write_to_log=True)
+        printt(" ", write_to_log=True)
+        printt("---- Why those 2 ways ? ----", write_to_log=True)
+        printt("Because we need to enter in the code the functions used by the teams to make trading open", write_to_log=True)
+        printt("And there is a LOT of ways to do that, so we cannot be 100% to detect i in the mempool", write_to_log=True)
+        printt(" ", write_to_log=True)
+        printt_err("---- WE NEED YOUR HELP FOR THAT ----", write_to_log=True)
+        printt_err("To detect Enable Trading in mempool, we need to enter in the code the functions used by the teams to make trading open:", write_to_log=True)
+        printt(" ", write_to_log=True)
+        printt("Please give us some examples of function used here: https://github.com/tsarbuig/LimitSwap/issues/1", write_to_log=True)
+        printt(" ", write_to_log=True)
+        printt(" ", write_to_log=True)
+        printt_err("---- BE CAREFUL ----", write_to_log=True)
+        printt_err("to make WAIT_FOR_OPEN_TRADE work, you need to SNIPE ON THE SAME LIQUIDITY PAIR that liquidity added by the team:", write_to_log=True)
+        printt(" ", write_to_log=True)
+        printt("Explanation : if you try to snipe in BUSD and liquidity is in BNB, price will move because of price movement between BUSD and BNB", write_to_log=True)
+        printt("--> if liquidity is in BNB or ETH, use LIQUIDITYINNATIVETOKEN = true and USECUSTOMBASEPAIR = false", write_to_log=True)
+        printt(" ", write_to_log=True)
+        printt("When you will have read all this message and understood how it works, enter the value 'true_no_message' in your WAIT_FOR_OPEN_TRADE setting", write_to_log=True)
+        printt(" ", write_to_log=True)
+        printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
+
+    if token['WAIT_FOR_OPEN_TRADE'] == 'mempool':
+        printt("It will scan mempool to detect Enable Trading functions", write_to_log=True)
+        printt(" ", write_to_log=True)
+        printt_err("---- WE NEED YOUR HELP FOR THAT ----", write_to_log=True)
+        printt_err("To detect Enable Trading in mempool, we need to enter in the code the functions used by the teams to make trading open:", write_to_log=True)
+        printt(" ", write_to_log=True)
+        printt("Please give us some examples of function used here: https://github.com/tsarbuig/LimitSwap/issues/1", write_to_log=True)
+        printt(" ", write_to_log=True)
+        printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
 
     openTrade = False
     
@@ -2080,16 +2094,17 @@ def wait_for_open_trade(token, inToken, outToken):
     list_of_methodId = ["0xc9567bf9", "0x8a8c523c", "0x0d295980", "0xbccce037", "0x4efac329", "0x7b9e987a", "0x6533e038", "0x8f70ccf7", "0xa6334231", "0x48dfea0a", "0xc818c280"]
 
     while openTrade == False:
-        
-        pprice = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], int(token['_CONTRACT_DECIMALS']), int(token['_BASE_DECIMALS']))
+    
+        if token['WAIT_FOR_OPEN_TRADE'] == 'true' or token['WAIT_FOR_OPEN_TRADE'] == 'true_no_message':
+            pprice = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], int(token['_CONTRACT_DECIMALS']), int(token['_BASE_DECIMALS']))
+    
+            if pprice != float(token['_PREVIOUS_QUOTE']):
+                token['_TRADING_IS_ON'] = True
+                printt_ok("Token price:", pprice, "--> IT HAS MOVED :)")
+                printt_ok("PRICE HAS MOVED --> trading is enabled --> Bot will buy")
+                break
 
-        if pprice != float(token['_PREVIOUS_QUOTE']):
-            token['_TRADING_IS_ON'] = True
-            printt_ok("Token price:", pprice, "--> IT HAS MOVED :)")
-            printt_ok("PRICE HAS MOVED --> trading is enabled --> Bot will buy")
-            break
-
-        printt("Token price:", pprice)
+            printt("Token price:", pprice)
         
         
         try:
@@ -2110,10 +2125,9 @@ def wait_for_open_trade(token, inToken, outToken):
                 else:
                     printt("Found something in mempool - MethodID: ", txFunction, " Block: ", tx_event['blockNumber'])
         except Exception as e:
-            printt_err("Wait_for_open_trade Error. Please report it to the team.")
-            logger1.exception(e)
-            sys.exit()
-
+            printt_err("Wait_for_open_trade Error. It can happen with Public node : private node is recommended. Still, let's continue.")
+            continue
+            
     # Examples of tokens and functions used
     #
 
@@ -4319,7 +4333,7 @@ def run():
                         #   If the option is selected, bot wait for trading_is_on == True to create a BUY order
                         #
     
-                        if token['WAIT_FOR_OPEN_TRADE'].lower() == 'true':
+                        if token['WAIT_FOR_OPEN_TRADE'].lower() == 'true' or token['WAIT_FOR_OPEN_TRADE'].lower() == 'true_no_message' or token['WAIT_FOR_OPEN_TRADE'] == 'mempool':
                             wait_for_open_trade(token, inToken, outToken)
     
                         #
