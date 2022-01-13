@@ -3095,7 +3095,7 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
 
     else:
         # USECUSTOMBASEPAIR = true
-        printt_err("Swap for exact tokens is only available for USECUSTOMBASEPAIR = false")
+        printt_err("Sorry, swap for exact tokens is only available for USECUSTOMBASEPAIR = false. Exiting.")
         sys.exit()
 
     
