@@ -1962,7 +1962,7 @@ def wait_for_open_trade(token, inToken, outToken):
 
     tx_filter = client.eth.filter({"filter_params": "pending", "address": inToken})
     
-    list_of_methodId = ["0xc9567bf9", "0x8a8c523c", "0x0d295980", "0xbccce037", "0x4efac329", "0x7b9e987a", "0x6533e038", "0x8f70ccf7", "0xa6334231"]
+    list_of_methodId = ["0xc9567bf9", "0x8a8c523c", "0x0d295980", "0xbccce037", "0x4efac329", "0x7b9e987a", "0x6533e038", "0x8f70ccf7", "0xa6334231", "0x48dfea0a"]
 
     while openTrade == False:
         
@@ -2007,6 +2007,7 @@ def wait_for_open_trade(token, inToken, outToken):
     # https://etherscan.io/tx/0x80ce8f1f2be8c40db151d40d8571ec42dcb550f088abdfed5dce7bfc67d8a935
     # https://etherscan.io/tx/0xffcb84f9519c2d598f1121a6e84cf7c3f4271c4e3514552858be796518ed7e95
     # https://etherscan.io/tx/0x6938ea87626efbef08c542d72a166192baaf1f1c112001fdb9a107520b140a9f
+    # https://etherscan.io/tx/0xa95d6013647b5e0efc6f7b4920d891dfa162447a0dbb0ea6ac5b252ecb8946ae
     # Function: openTrading()
     # MethodID: 0xc9567bf9
 
@@ -2014,6 +2015,8 @@ def wait_for_open_trade(token, inToken, outToken):
     # https://etherscan.io/tx/0x9fbec460367b783afee66446eacf45a1159c9bdfaccb414eca7fb5716bee230b
     # https://etherscan.io/tx/0xa2b0a8ae04254befd4c463f4abacc50ebe0e3c99b829e95f6e2a9353aab959cf
     # https://etherscan.io/tx/0x5ef0fe0ffb7a6f12c0cdfa4e57f9e951b0577a90611008d864e72fdcde057fac
+    # https://etherscan.io/tx/0xa2b0a8ae04254befd4c463f4abacc50ebe0e3c99b829e95f6e2a9353aab959cf
+    # https://etherscan.io/tx/0x8a7e1fbcebb948307c726ba6a6d519c2b423ab62f6490ce451d54aa21152138b
     # Function: enableTrading()
     # MethodID: 0x8a8c523c
 
@@ -2048,6 +2051,9 @@ def wait_for_open_trade(token, inToken, outToken):
     # Function: allowtrading()
     # MethodID: 0xa6334231
 
+    # https://etherscan.io/tx/0x7c5c49ec152783dcb6e2c7602154c2cd80542d27ff11587db46df18ec3c6994c
+    # Function: openTrading(address[] lockSells, uint256 duration)
+    # MethodID: 0x48dfea0a
 
 def get_tokens_purchased(tx_hash):
     # Function: get_tokens_purchased
