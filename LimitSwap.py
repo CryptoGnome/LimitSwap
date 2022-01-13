@@ -17,7 +17,6 @@ import requests
 import cryptocode, re, pwinput
 import argparse
 import signal
-from pathlib import Path
 
 
 # DEVELOPER CONSIDERATIONS
@@ -93,8 +92,8 @@ parser = argparse.ArgumentParser()
 # USER COMMAND LINE ARGUMENTS
 parser.add_argument("--pump", type=int,  help="Holds the position as long as the price is going up. Sells when the price has gone down PUMP percent")
 parser.add_argument("-p", "--password", type=str, help="Password to decrypt private keys (WARNING: your password could be saved in your command prompt history)")
-parser.add_argument("-s", "--settings", type=str, help="Specify the file to user for settings (default: settings.json)",default="settings.json")
-parser.add_argument("-t", "--tokens", type=str, help="Specify the file to use for tokens to trade (default: tokens.json)", default="tokens.json")
+parser.add_argument("-s", "--settings", type=str, help="Specify the file to user for settings (default: settings.json)",default="./settings.json")
+parser.add_argument("-t", "--tokens", type=str, help="Specify the file to use for tokens to trade (default: tokens.json)", default="./tokens.json")
 parser.add_argument("-v", "--verbose", action='store_true', help="Print detailed messages to stdout")
 parser.add_argument("-pc", "--password_on_change", action='store_true', help="Ask user password again if you change tokens.json")
 parser.add_argument("-sm", "--slow_mode", action='store_true', help="Bot will only check price 2 times/s. Use it if you're on a RPC with rate limit")
@@ -320,10 +319,7 @@ def load_settings_file(settings_path, load_message=True):
     if load_message == True:
         print(timestamp(), "Loading settings from", settings_path)
 
-    script_location = Path(__file__).absolute().parent
-    file_location = script_location / settings_path
-    f = file_location.open()
-
+    f = open(settings_path, )
     all_settings = json.load(f)
     f.close()
     
@@ -457,11 +453,7 @@ def load_tokens_file(tokens_path, load_message=True):
     if load_message == True:
         print(timestamp(), "Loading tokens from", tokens_path)
 
-    script_location = Path(__file__).absolute().parent
-    file_location = script_location / tokens_path
-    
-    s = file_location.open()
-
+    s = open(tokens_path, )
     tokens = json.load(s)
     s.close()
     
@@ -836,53 +828,51 @@ def check_release():
 //PRELOAD
 """""""""""""""""""""""""""
 print(timestamp(), "Preloading Data")
-file_location = Path(__file__).absolute().parent / command_line_args.settings
-bot_settings, settings = load_settings_file(file_location)
+bot_settings, settings = load_settings_file(command_line_args.settings)
 
-
-directory = Path(__file__).absolute().parent / 'abi'
+directory = './abi/'
 filename = "standard.json"
 file_path = os.path.join(directory, filename)
 with open(file_path) as json_file:
     standardAbi = json.load(json_file)
 
-directory = Path(__file__).absolute().parent / 'abi'
+directory = './abi/'
 filename = "lp.json"
 file_path = os.path.join(directory, filename)
 with open(file_path) as json_file:
     lpAbi = json.load(json_file)
 
-directory = Path(__file__).absolute().parent / 'abi'
+directory = './abi/'
 filename = "router.json"
 file_path = os.path.join(directory, filename)
 with open(file_path) as json_file:
     routerAbi = json.load(json_file)
 
-directory = Path(__file__).absolute().parent / 'abi'
+directory = './abi/'
 filename = "factory2.json"
 file_path = os.path.join(directory, filename)
 with open(file_path) as json_file:
     factoryAbi = json.load(json_file)
 
-directory = Path(__file__).absolute().parent / 'abi'
+directory = './abi/'
 filename = "koffee.json"
 file_path = os.path.join(directory, filename)
 with open(file_path) as json_file:
     koffeeAbi = json.load(json_file)
 
-directory = Path(__file__).absolute().parent / 'abi'
+directory = './abi/'
 filename = "pangolin.json"
 file_path = os.path.join(directory, filename)
 with open(file_path) as json_file:
     pangolinAbi = json.load(json_file)
 
-directory = Path(__file__).absolute().parent / 'abi'
+directory = './abi/'
 filename = "joeRouter.json"
 file_path = os.path.join(directory, filename)
 with open(file_path) as json_file:
     joeRouter = json.load(json_file)
 
-directory = Path(__file__).absolute().parent / 'abi'
+directory = './abi/'
 filename = "bakeryRouter.json"
 file_path = os.path.join(directory, filename)
 with open(file_path) as json_file:
@@ -891,33 +881,29 @@ with open(file_path) as json_file:
 """""""""""""""""""""""""""
 // LOGGING
 """""""""""""""""""""""""""
-logs_directory = Path(__file__).absolute().parent / 'logs'
+os.makedirs('./logs', exist_ok=True)
 
 # define dd/mm/YY date to create  logging files with date of the day
 # get current date and time
 current_datetime = datetime.today().strftime("%Y-%m-%d")
 str_current_datetime = str(current_datetime)
 # create an LOGS file object along with extension
-file_name = "logs-" + str_current_datetime + ".log"
-file_path_and_name = os.path.join(logs_directory, file_name)
-if not os.path.exists(file_path_and_name):
-    open(file_path_and_name, 'w').close()
-
+file_name = "./logs/logs-" + str_current_datetime + ".log"
+if not os.path.exists(file_name):
+    open(file_name, 'w').close()
+    
 # create an EXCEPTIONS file object along with extension
-file_name2 = "exceptions-" + str_current_datetime + ".log"
-file_path_and_name2 = os.path.join(logs_directory, file_name2)
-
-if not os.path.exists(file_path_and_name2):
-    open(file_path_and_name2, 'w').close()
-
-printt("file_name", file_name)
+file_name2 = "./logs/exceptions-" + str_current_datetime + ".log"
+if not os.path.exists(file_name2):
+    open(file_name2, 'w').close()
+    
 log_format = '%(levelname)s: %(asctime)s %(message)s'
 logging.basicConfig(filename=file_name,
                     level=logging.INFO,
                     format=log_format)
 
 logger1 = logging.getLogger('1')
-logger1.addHandler(logging.FileHandler(file_path_and_name2))
+logger1.addHandler(logging.FileHandler(file_name2))
 
 printt("**********************************************************************************************************************", write_to_log=True)
 printt("For Help & To Learn More About how the bot works please visit our wiki here: https://cryptognome.gitbook.io/limitswap/", write_to_log=False)
@@ -2932,6 +2918,7 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
 
     amount = int(float(token_dict['BUYAMOUNTINTOKEN']) * DECIMALS)
 
+    printt_debug("make_the_buy_exact_tokens amount:", amount)
     gas = token_dict['_GAS_TO_USE']
     gaslimit = token_dict['GASLIMIT']
     custom = token_dict['USECUSTOMBASEPAIR']
@@ -3961,8 +3948,7 @@ def benchmark():
         printt('RPC Node average latency :', str(int((k/5)*1000)), 'ms', write_to_log=True)
 
 # Check 'check_price' function speed
-    tokens_location = Path(__file__).absolute().parent / command_line_args.tokens
-    token = load_tokens_file(tokens_location, False)
+    token = load_tokens_file(command_line_args.tokens, False)
     token[0]['_WETH_DECIMALS'] = int(decimals(weth))
     token[0]['_CONTRACT_DECIMALS'] = int(decimals(token[0]['ADDRESS']))
     inToken = Web3.toChecksumAddress(token[0]['ADDRESS'])
@@ -4013,10 +3999,9 @@ def benchmark():
     
 def run():
     reload_tokens_file = False
-    tokens_location = Path(__file__).absolute().parent / command_line_args.tokens
 
     try:
-        tokens = load_tokens_file(tokens_location, True)
+        tokens = load_tokens_file(command_line_args.tokens, True)
         
         # Display the number of token pairs we're attempting to trade
         token_list_report(tokens)
@@ -4074,15 +4059,14 @@ def run():
                 check_rugdoc_api(token)
                 
         load_token_file_increment = 0
-
-        tokens_file_modified_time = os.path.getmtime(tokens_location)
+        tokens_file_modified_time = os.path.getmtime(command_line_args.tokens)
         
         while True:
             
             # Check to see if the tokens file has changed every 10 iterations
             if load_token_file_increment > 1:
                 modification_check = tokens_file_modified_time
-                tokens_file_modified_time = os.path.getmtime(tokens_location)
+                tokens_file_modified_time = os.path.getmtime(command_line_args.tokens)
                 if (modification_check != tokens_file_modified_time):
                     #ask for user password to change tokens.json, if --password_on_change or PASSWORD_ON_CHANGE option is used
                     if command_line_args.password_on_change or settings['PASSWORD_ON_CHANGE'] == 'true':
