@@ -3487,7 +3487,7 @@ def sell(token_dict, inToken, outToken):
                     # HASFEES = true
                     
                     if settings["EXCHANGE"].lower() == 'koffeeswap':
-                        printt_debug("sell condition 1")
+                        printt_debug("sell condition 1", write_to_log=True)
                         transaction = routerContract.functions.swapExactTokensForKCSSupportingFeeOnTransferTokens(
                             amount,
                             amountOutMin,
@@ -3502,7 +3502,7 @@ def sell(token_dict, inToken, outToken):
                         })
                     
                     if settings["EXCHANGE"].lower() == 'pangolin' or settings["EXCHANGE"].lower() == 'traderjoe':
-                        printt_debug("sell condition 2")
+                        printt_debug("sell condition 2", write_to_log=True)
                         transaction = routerContract.functions.swapExactTokensForAVAXSupportingFeeOnTransferTokens(
                             amount,
                             amountOutMin,
@@ -3517,7 +3517,7 @@ def sell(token_dict, inToken, outToken):
                         })
 
                     if settings["EXCHANGE"].lower() == 'bakeryswap':
-                        printt_debug("sell condition 20")
+                        printt_debug("sell condition 20", write_to_log=True)
                         transaction = routerContract.functions.swapExactTokensForBNBSupportingFeeOnTransferTokens(
                             amount,
                             amountOutMin,
@@ -3535,7 +3535,7 @@ def sell(token_dict, inToken, outToken):
                     # This section is for exchange with Modified = false --> uniswap / pancakeswap / apeswap, etc.
                     # USECUSTOMBASEPAIR = false
                     # HASFEES = true
-                    printt_debug("sell condition 3")
+                    printt_debug("sell condition 3", write_to_log=True)
                     transaction = routerContract.functions.swapExactTokensForETHSupportingFeeOnTransferTokens(
                         amount,
                         amountOutMin,
@@ -3559,7 +3559,7 @@ def sell(token_dict, inToken, outToken):
                     # Modified = true
                     
                     if settings["EXCHANGE"].lower() == 'koffeeswap':
-                        printt_debug("sell condition 4")
+                        printt_debug("sell condition 4", write_to_log=True)
                         transaction = routerContract.functions.swapExactTokensForKCS(
                             amount,
                             amountOutMin,
@@ -3573,7 +3573,7 @@ def sell(token_dict, inToken, outToken):
                             'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
                         })
                     elif settings["EXCHANGE"].lower() == 'pangolin' or settings["EXCHANGE"].lower() == 'traderjoe':
-                        printt_debug("sell condition 5")
+                        printt_debug("sell condition 5", write_to_log=True)
                         transaction = routerContract.functions.swapExactTokensForAVAX(
                             amount,
                             amountOutMin,
@@ -3588,7 +3588,7 @@ def sell(token_dict, inToken, outToken):
                         })
                         
                     elif settings["EXCHANGE"].lower() == 'bakeryswap':
-                        printt_debug("sell condition 21")
+                        printt_debug("sell condition 21", write_to_log=True)
                         transaction = routerContract.functions.swapExactTokensForBNB(
                             amount,
                             amountOutMin,
@@ -3609,7 +3609,7 @@ def sell(token_dict, inToken, outToken):
                     
                     if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
                         # Special condition on Uniswap, to implement EIP-1559
-                        printt_debug("sell condition 6")
+                        printt_debug("sell condition 6", write_to_log=True)
                         transaction = routerContract.functions.swapExactTokensForETH(
                             amount,
                             amountOutMin,
@@ -3628,7 +3628,7 @@ def sell(token_dict, inToken, outToken):
                     
                     else:
                         # for all the rest of exchanges with Modified = false
-                        printt_debug("sell condition 7")
+                        printt_debug("sell condition 7", write_to_log=True)
                         transaction = routerContract.functions.swapExactTokensForETH(
                             amount,
                             amountOutMin,
@@ -3665,7 +3665,7 @@ def sell(token_dict, inToken, outToken):
                         # Modified = true
                         
                         if settings["EXCHANGE"].lower() == 'koffeeswap':
-                            printt_debug("sell condition 8")
+                            printt_debug("sell condition 8", write_to_log=True)
                             transaction = routerContract.functions.swapExactTokensForKCSSupportingFeeOnTransferTokens(
                                 amount,
                                 amountOutMin,
@@ -3680,7 +3680,7 @@ def sell(token_dict, inToken, outToken):
                             })
                         
                         elif settings["EXCHANGE"].lower() == 'pangolin' or settings["EXCHANGE"].lower() == 'traderjoe':
-                            printt_debug("sell condition 9")
+                            printt_debug("sell condition 9", write_to_log=True)
                             transaction = routerContract.functions.swapExactTokensForAVAXSupportingFeeOnTransferTokens(
                                 amount,
                                 amountOutMin,
@@ -3695,7 +3695,7 @@ def sell(token_dict, inToken, outToken):
                             })
                             
                         elif settings["EXCHANGE"].lower() == 'bakeryswap':
-                            printt_debug("sell condition 22")
+                            printt_debug("sell condition 22", write_to_log=True)
                             transaction = routerContract.functions.swapExactTokensForBNBSupportingFeeOnTransferTokens(
                                 amount,
                                 amountOutMin,
@@ -3713,7 +3713,7 @@ def sell(token_dict, inToken, outToken):
                         # USECUSTOMBASEPAIR = true
                         # HASFEES = true
                         # Modified = false
-                        printt_debug("sell condition 10")
+                        printt_debug("sell condition 10", write_to_log=True)
                         transaction = routerContract.functions.swapExactTokensForETHSupportingFeeOnTransferTokens(
                             amount,
                             amountOutMin,
@@ -3729,7 +3729,7 @@ def sell(token_dict, inToken, outToken):
                 else:
                     # USECUSTOMBASEPAIR = true
                     # HASFEES = false
-                    printt_debug("sell condition 11")
+                    printt_debug("sell condition 11", write_to_log=True)
                     transaction = routerContract.functions.swapExactTokensForTokens(
                         amount,
                         amountOutMin,
@@ -3761,7 +3761,7 @@ def sell(token_dict, inToken, outToken):
                         if settings["EXCHANGE"].lower() == 'uniswap' or settings[
                             "EXCHANGE"].lower() == 'uniswaptestnet':
                             # Special condition on Uniswap, to implement EIP-1559
-                            printt_debug("sell condition 12")
+                            printt_debug("sell condition 12", write_to_log=True)
                             transaction = routerContract.functions.swapExactTokensForTokensSupportingFeeOnTransferTokens(
                                 amount,
                                 amountOutMin,
@@ -3780,7 +3780,7 @@ def sell(token_dict, inToken, outToken):
                         
                         else:
                             # for all the rest of exchanges
-                            printt_debug("sell condition 13")
+                            printt_debug("sell condition 13", write_to_log=True)
                             transaction = routerContract.functions.swapExactTokensForTokensSupportingFeeOnTransferTokens(
                                 amount,
                                 amountOutMin,
@@ -3801,7 +3801,7 @@ def sell(token_dict, inToken, outToken):
                         if settings["EXCHANGE"].lower() == 'uniswap' or settings[
                             "EXCHANGE"].lower() == 'uniswaptestnet':
                             # Special condition on Uniswap, to implement EIP-1559
-                            printt_debug("sell condition 14")
+                            printt_debug("sell condition 14", write_to_log=True)
                             transaction = routerContract.functions.swapExactTokensForTokens(
                                 amount,
                                 amountOutMin,
@@ -3820,7 +3820,7 @@ def sell(token_dict, inToken, outToken):
                         
                         else:
                             # for all the rest of exchanges
-                            printt_debug("sell condition 15")
+                            printt_debug("sell condition 15", write_to_log=True)
                             transaction = routerContract.functions.swapExactTokensForTokens(
                                 amount,
                                 amountOutMin,
@@ -3852,7 +3852,7 @@ def sell(token_dict, inToken, outToken):
                         if settings["EXCHANGE"].lower() == 'uniswap' or settings[
                             "EXCHANGE"].lower() == 'uniswaptestnet':
                             # Special condition on Uniswap, to implement EIP-1559
-                            printt_debug("sell condition 16")
+                            printt_debug("sell condition 16", write_to_log=True)
                             transaction = routerContract.functions.swapExactTokensForTokensSupportingFeeOnTransferTokens(
                                 amount,
                                 amountOutMin,
@@ -3870,7 +3870,7 @@ def sell(token_dict, inToken, outToken):
                             })
                         
                         else:
-                            printt_debug("sell condition 17")
+                            printt_debug("sell condition 17", write_to_log=True)
                             transaction = routerContract.functions.swapExactTokensForTokensSupportingFeeOnTransferTokens(
                                 amount,
                                 amountOutMin,
@@ -3889,7 +3889,7 @@ def sell(token_dict, inToken, outToken):
                         if settings["EXCHANGE"].lower() == 'uniswap' or settings[
                             "EXCHANGE"].lower() == 'uniswaptestnet':
                             # Special condition on Uniswap, to implement EIP-1559
-                            printt_debug("sell condition 18")
+                            printt_debug("sell condition 18", write_to_log=True)
                             transaction = routerContract.functions.swapExactTokensForTokens(
                                 amount,
                                 amountOutMin,
@@ -3906,7 +3906,7 @@ def sell(token_dict, inToken, outToken):
                                 'type': "0x02"
                             })
                         else:
-                            printt_debug("sell condition 19")
+                            printt_debug("sell condition 19", write_to_log=True)
                             transaction = routerContract.functions.swapExactTokensForTokens(
                                 amount,
                                 amountOutMin,
