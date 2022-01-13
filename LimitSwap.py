@@ -1962,7 +1962,7 @@ def wait_for_open_trade(token, inToken, outToken):
 
     tx_filter = client.eth.filter({"filter_params": "pending", "address": inToken})
     
-    list_of_methodId = ["0xc9567bf9", "0x8a8c523c", "0x0d295980", "0xbccce037", "0x4efac329", "0x7b9e987a", "0x6533e038", "0x8f70ccf7", "0xa6334231", "0x48dfea0a"]
+    list_of_methodId = ["0xc9567bf9", "0x8a8c523c", "0x0d295980", "0xbccce037", "0x4efac329", "0x7b9e987a", "0x6533e038", "0x8f70ccf7", "0xa6334231", "0x48dfea0a", "0xc818c280"]
 
     while openTrade == False:
         
@@ -2054,6 +2054,10 @@ def wait_for_open_trade(token, inToken, outToken):
     # https://etherscan.io/tx/0x7c5c49ec152783dcb6e2c7602154c2cd80542d27ff11587db46df18ec3c6994c
     # Function: openTrading(address[] lockSells, uint256 duration)
     # MethodID: 0x48dfea0a
+    
+    # https://bscscan.com/tx/0x037c3c2f37e5ba0cda7eb877799900ec2ab6d07969b4cbec6d1e6c89412c84db
+    # Function: setBotProtectionDisableForever()
+    # MethodID: 0xc818c280
 
 def get_tokens_purchased(tx_hash):
     # Function: get_tokens_purchased
