@@ -2927,6 +2927,19 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
     token_symbol = token_dict['SYMBOL']
 
 
+    # I'm working on it to understand what happen, but with tokens with decimals = 9:
+    #   - amount does not need to be changed
+    #   - but DECIMALS need to be changed to display amount_in properly
+    # --> so for now I need to create 2 different decimals. Working on it to get something cleaner.
+    
+    DECIMALS_FOR_AMOUNT_TO_BUY_DISPLAY = DECIMALS
+    
+    # implementing an ugly fix for those shitty tokens with decimals = 9 to solve https://github.com/CryptoGnome/LimitSwap/issues/401
+    if DECIMALS == 1000000000:
+        DECIMALS = 1000000000 * DECIMALS
+        printt_debug("DECIMALS after fix applied for those shitty tokens with decimals = 9:", DECIMALS)
+
+
     # Choose proper wallet.
     if buynumber == 0:
         walletused = settings['WALLETADDRESS']
@@ -2982,7 +2995,7 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
             printt_ok("")
             printt_warn("WARNING : buying exact amount of tokens only works with LIQUIDITYINNATIVETOKEN = true and USECUSTOMBASEPAIR = false")
             printt_ok("")
-            printt_ok("Amount of tokens to buy        :", amount / DECIMALS, token_symbol, write_to_log=True)
+            printt_ok("Amount of tokens to buy        :", amount / DECIMALS_FOR_AMOUNT_TO_BUY_DISPLAY, token_symbol, write_to_log=True)
             printt_ok("Amount of base token to be used:", amount_in / DECIMALS, base_symbol, write_to_log=True)
             printt_ok("Current Base token balance     :", base_balance_before_buy / DECIMALS, base_symbol, write_to_log=True)
             printt_ok("(be careful you must have enough to pay fees in addition to this)", write_to_log=True)
