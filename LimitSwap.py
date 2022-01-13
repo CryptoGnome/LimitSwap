@@ -1003,8 +1003,21 @@ if settings['EXCHANGE'].lower() == 'traderjoe':
         my_provider = settings['CUSTOMNODE']
     else:
         my_provider = "https://api.avax.network/ext/bc/C/rpc"
-    
-    client = Web3(Web3.HTTPProvider(my_provider))
+
+    if not my_provider:
+        printt_err('Custom node empty. Exiting')
+        exit(1)
+
+    if my_provider[0].lower() == 'h':
+        print(timestamp(), 'Using HTTPProvider')
+        client = Web3(Web3.HTTPProvider(my_provider))
+    elif my_provider[0].lower() == 'w':
+        print(timestamp(), 'Using WebsocketProvider')
+        client = Web3(Web3.WebsocketProvider(my_provider))
+    else:
+        print(timestamp(), 'Using IPCProvider')
+        client = Web3(Web3.IPCProvider(my_provider))
+
     print(timestamp(), "AVAX Smart Chain Connected =", client.isConnected())
     print(timestamp(), "Loading Smart Contracts...")
     
@@ -1163,9 +1176,21 @@ elif settings['EXCHANGE'] == 'apeswap':
         my_provider = settings['CUSTOMNODE']
     else:
         my_provider = "https://bsc-dataseed4.defibit.io"
-    
-    client = Web3(Web3.HTTPProvider(my_provider))
-    
+
+    if not my_provider:
+        printt_err('Custom node empty. Exiting')
+        exit(1)
+
+    if my_provider[0].lower() == 'h':
+        print(timestamp(), 'Using HTTPProvider')
+        client = Web3(Web3.HTTPProvider(my_provider))
+    elif my_provider[0].lower() == 'w':
+        print(timestamp(), 'Using WebsocketProvider')
+        client = Web3(Web3.WebsocketProvider(my_provider))
+    else:
+        print(timestamp(), 'Using IPCProvider')
+        client = Web3(Web3.IPCProvider(my_provider))
+
     print(timestamp(), "Binance Smart Chain Connected =", client.isConnected())
     print(timestamp(), "Loading ApeSwap Smart Contracts...")
     
@@ -1186,8 +1211,21 @@ elif settings["EXCHANGE"] == 'uniswap':
         my_provider = settings['CUSTOMNODE']
     else:
         my_provider = "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"
-    
-    client = Web3(Web3.HTTPProvider(my_provider))
+
+    if not my_provider:
+        printt_err('Custom node empty. Exiting')
+        exit(1)
+
+    if my_provider[0].lower() == 'h':
+        print(timestamp(), 'Using HTTPProvider')
+        client = Web3(Web3.HTTPProvider(my_provider))
+    elif my_provider[0].lower() == 'w':
+        print(timestamp(), 'Using WebsocketProvider')
+        client = Web3(Web3.WebsocketProvider(my_provider))
+    else:
+        print(timestamp(), 'Using IPCProvider')
+        client = Web3(Web3.IPCProvider(my_provider))
+
     print(timestamp(), "Uniswap Chain Connected =", client.isConnected())
     print(timestamp(), "Loading Smart Contracts...")
     routerAddress = Web3.toChecksumAddress("0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D")
@@ -1204,8 +1242,21 @@ elif settings["EXCHANGE"] == 'uniswaptestnet':
         my_provider = settings['CUSTOMNODE']
     else:
         my_provider = "https://rinkeby-light.eth.linkpool.io/"
-    
-    client = Web3(Web3.HTTPProvider(my_provider))
+
+    if not my_provider:
+        printt_err('Custom node empty. Exiting')
+        exit(1)
+
+    if my_provider[0].lower() == 'h':
+        print(timestamp(), 'Using HTTPProvider')
+        client = Web3(Web3.HTTPProvider(my_provider))
+    elif my_provider[0].lower() == 'w':
+        print(timestamp(), 'Using WebsocketProvider')
+        client = Web3(Web3.WebsocketProvider(my_provider))
+    else:
+        print(timestamp(), 'Using IPCProvider')
+        client = Web3(Web3.IPCProvider(my_provider))
+
     print(timestamp(), "Uniswap Chain Connected =", client.isConnected())
     print(timestamp(), "Loading Smart Contracts...")
     routerAddress = Web3.toChecksumAddress("0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D")
@@ -1222,8 +1273,21 @@ elif settings["EXCHANGE"] == 'kuswap':
         my_provider = settings['CUSTOMNODE']
     else:
         my_provider = "https://rpc-mainnet.kcc.network"
-    
-    client = Web3(Web3.HTTPProvider(my_provider))
+
+    if not my_provider:
+        printt_err('Custom node empty. Exiting')
+        exit(1)
+
+    if my_provider[0].lower() == 'h':
+        print(timestamp(), 'Using HTTPProvider')
+        client = Web3(Web3.HTTPProvider(my_provider))
+    elif my_provider[0].lower() == 'w':
+        print(timestamp(), 'Using WebsocketProvider')
+        client = Web3(Web3.WebsocketProvider(my_provider))
+    else:
+        print(timestamp(), 'Using IPCProvider')
+        client = Web3(Web3.IPCProvider(my_provider))
+
     print(timestamp(), "Kucoin Chain Connected =", client.isConnected())
     print(timestamp(), "Loading KuSwap Smart Contracts...")
     routerAddress = Web3.toChecksumAddress("0xa58350d6dee8441aa42754346860e3545cc83cda")
@@ -1240,8 +1304,21 @@ elif settings["EXCHANGE"] == 'koffeeswap':
         my_provider = settings['CUSTOMNODE']
     else:
         my_provider = "https://rpc-mainnet.kcc.network"
-    
-    client = Web3(Web3.HTTPProvider(my_provider))
+
+    if not my_provider:
+        printt_err('Custom node empty. Exiting')
+        exit(1)
+
+    if my_provider[0].lower() == 'h':
+        print(timestamp(), 'Using HTTPProvider')
+        client = Web3(Web3.HTTPProvider(my_provider))
+    elif my_provider[0].lower() == 'w':
+        print(timestamp(), 'Using WebsocketProvider')
+        client = Web3(Web3.WebsocketProvider(my_provider))
+    else:
+        print(timestamp(), 'Using IPCProvider')
+        client = Web3(Web3.IPCProvider(my_provider))
+
     print(timestamp(), "Kucoin Chain Connected =", client.isConnected())
     print(timestamp(), "Loading KoffeeSwap Smart Contracts...")
     routerAddress = Web3.toChecksumAddress("0xc0fFee0000C824D24E0F280f1e4D21152625742b")
@@ -1258,8 +1335,21 @@ elif settings["EXCHANGE"] == 'spookyswap':
         my_provider = settings['CUSTOMNODE']
     else:
         my_provider = "https://rpcapi.fantom.network"
-    
-    client = Web3(Web3.HTTPProvider(my_provider))
+
+    if not my_provider:
+        printt_err('Custom node empty. Exiting')
+        exit(1)
+
+    if my_provider[0].lower() == 'h':
+        print(timestamp(), 'Using HTTPProvider')
+        client = Web3(Web3.HTTPProvider(my_provider))
+    elif my_provider[0].lower() == 'w':
+        print(timestamp(), 'Using WebsocketProvider')
+        client = Web3(Web3.WebsocketProvider(my_provider))
+    else:
+        print(timestamp(), 'Using IPCProvider')
+        client = Web3(Web3.IPCProvider(my_provider))
+
     print(timestamp(), "FANTOM Chain Connected =", client.isConnected())
     print(timestamp(), "Loading Smart Contracts...")
     routerAddress = Web3.toChecksumAddress("0xF491e7B69E4244ad4002BC14e878a34207E38c29")
@@ -1294,8 +1384,21 @@ elif settings["EXCHANGE"] == 'quickswap':
         my_provider = settings['CUSTOMNODE']
     else:
         my_provider = "https://polygon-rpc.com"
-    
-    client = Web3(Web3.HTTPProvider(my_provider))
+
+    if not my_provider:
+        printt_err('Custom node empty. Exiting')
+        exit(1)
+
+    if my_provider[0].lower() == 'h':
+        print(timestamp(), 'Using HTTPProvider')
+        client = Web3(Web3.HTTPProvider(my_provider))
+    elif my_provider[0].lower() == 'w':
+        print(timestamp(), 'Using WebsocketProvider')
+        client = Web3(Web3.WebsocketProvider(my_provider))
+    else:
+        print(timestamp(), 'Using IPCProvider')
+        client = Web3(Web3.IPCProvider(my_provider))
+
     print(timestamp(), "Matic Chain Connected =", client.isConnected())
     print(timestamp(), "Loading Smart Contracts...")
     routerAddress = Web3.toChecksumAddress("0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff")
@@ -1312,8 +1415,21 @@ elif settings["EXCHANGE"] == 'waultswap':
         my_provider = settings['CUSTOMNODE']
     else:
         my_provider = "https://rpc-waultfinance-mainnet.maticvigil.com/v1/0bc1bb1691429f1eeee66b2a4b919c279d83d6b0"
-    
-    client = Web3(Web3.HTTPProvider(my_provider))
+
+    if not my_provider:
+        printt_err('Custom node empty. Exiting')
+        exit(1)
+
+    if my_provider[0].lower() == 'h':
+        print(timestamp(), 'Using HTTPProvider')
+        client = Web3(Web3.HTTPProvider(my_provider))
+    elif my_provider[0].lower() == 'w':
+        print(timestamp(), 'Using WebsocketProvider')
+        client = Web3(Web3.WebsocketProvider(my_provider))
+    else:
+        print(timestamp(), 'Using IPCProvider')
+        client = Web3(Web3.IPCProvider(my_provider))
+
     print(timestamp(), "Matic Chain Connected =", client.isConnected())
     print(timestamp(), "Loading Smart Contracts...")
     routerAddress = Web3.toChecksumAddress("0x3a1D87f206D12415f5b0A33E786967680AAb4f6d")
@@ -1330,8 +1446,21 @@ elif settings["EXCHANGE"] == 'pangolin':
         my_provider = settings['CUSTOMNODE']
     else:
         my_provider = "https://api.avax.network/ext/bc/C/rpc"
-    
-    client = Web3(Web3.HTTPProvider(my_provider))
+
+    if not my_provider:
+        printt_err('Custom node empty. Exiting')
+        exit(1)
+
+    if my_provider[0].lower() == 'h':
+        print(timestamp(), 'Using HTTPProvider')
+        client = Web3(Web3.HTTPProvider(my_provider))
+    elif my_provider[0].lower() == 'w':
+        print(timestamp(), 'Using WebsocketProvider')
+        client = Web3(Web3.WebsocketProvider(my_provider))
+    else:
+        print(timestamp(), 'Using IPCProvider')
+        client = Web3(Web3.IPCProvider(my_provider))
+
     print(timestamp(), "AVAX Chain Connected =", client.isConnected())
     print(timestamp(), "Loading Smart Contracts...")
     routerAddress = Web3.toChecksumAddress("0xE54Ca86531e17Ef3616d22Ca28b0D458b6C89106")
@@ -2564,8 +2693,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
     # implementing an ugly fix for those shitty tokens with decimals = 9 to solve https://github.com/CryptoGnome/LimitSwap/issues/401
     if DECIMALS == 1000000000:
         amount = 1000000000 * amount
-        printt_debug("Amount after fix applied for those shitty tokens with decimals = 9:", amount)
-
+        printt_debug("Amount after fix applied for those shitty tokens with decimals = 9      :", amount)
 
     if custom.lower() == 'false':
         # if USECUSTOMBASEPAIR = false
@@ -2585,7 +2713,12 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
                 amountOutMin = 100
             else:
                 amountOutMin = int(amount_out * (1 - (slippage / 100)))
-            
+
+            # implementing an ugly fix for those shitty tokens with decimals = 9 to solve https://github.com/CryptoGnome/LimitSwap/issues/401
+            if DECIMALS == 1000000000:
+                amountOutMin = 1000000000 * amountOutMin
+                printt_debug("amountOutMin after fix applied for those shitty tokens with decimals = 9:", amountOutMin)
+
             deadline = int(time() + + 60)
             
 
@@ -2594,7 +2727,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
             if modified == True:
                 
                 if settings["EXCHANGE"].lower() == 'koffeeswap':
-                    logging.info("make_the_buy condition 1")
+                    printt_debug("make_the_buy condition 1", write_to_log=True)
                     transaction = routerContract.functions.swapExactKCSForTokens(
                         amountOutMin,
                         [weth, outToken],
@@ -2609,7 +2742,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
                     })
                 
                 elif settings["EXCHANGE"].lower() == 'pangolin' or settings["EXCHANGE"].lower() == 'traderjoe':
-                    logging.info("make_the_buy condition 2")
+                    printt_debug("make_the_buy condition 2", write_to_log=True)
                     transaction = routerContract.functions.swapExactAVAXForTokens(
                         amountOutMin,
                         [weth, outToken],
@@ -2624,7 +2757,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
                     })
 
                 elif settings["EXCHANGE"].lower() == 'bakeryswap':
-                    logging.info("make_the_buy condition 11")
+                    printt_debug("make_the_buy condition 11", write_to_log=True)
                     transaction = routerContract.functions.swapExactBNBForTokens(
                         amountOutMin,
                         [weth, outToken],
@@ -2647,7 +2780,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
 
                 if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
     
-                    logging.info("make_the_buy condition 3")
+                    printt_debug("make_the_buy condition 3", write_to_log=True)
                     
                     transaction = routerContract.functions.swapExactETHForTokens(
                         amountOutMin,
@@ -2668,7 +2801,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
                     # USECUSTOMBASEPAIR = false
                     # for all the rest of exchanges with Modified = false
                     
-                    logging.info("make_the_buy condition 4")
+                    printt_debug("make_the_buy condition 4", write_to_log=True)
                     transaction = routerContract.functions.swapExactETHForTokens(
                         amountOutMin,
                         [weth, outToken],
@@ -2703,7 +2836,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
             
             if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
                 # Special condition on Uniswap, to implement EIP-1559
-                logging.info("make_the_buy condition 5")
+                printt_debug("make_the_buy condition 5", write_to_log=True)
                 transaction = routerContract.functions.swapExactTokensForTokens(
                     amount,
                     amountOutMin,
@@ -2720,7 +2853,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
                 })
             
             else:
-                logging.info("make_the_buy condition 6")
+                printt_debug("make_the_buy condition 6", write_to_log=True)
                 transaction = routerContract.functions.swapExactTokensForTokens(
                     amount,
                     amountOutMin,
@@ -2766,7 +2899,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
                     # LIQUIDITYINNATIVETOKEN = true
                     
                     # Special condition on Uniswap, to implement EIP-1559
-                    logging.info("make_the_buy condition 7")
+                    printt_debug("make_the_buy condition 7", write_to_log=True)
                     transaction = routerContract.functions.swapExactTokensForTokens(
                         amount,
                         amountOutMin,
@@ -2788,7 +2921,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
                     # Base Pair different from weth
                     # LIQUIDITYINNATIVETOKEN = true
                     # Exchange different from Uniswap
-                    logging.info("make_the_buy condition 8")
+                    printt_debug("make_the_buy condition 8", write_to_log=True)
                     transaction = routerContract.functions.swapExactTokensForTokens(
                         amount,
                         amountOutMin,
@@ -2835,7 +2968,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
                     # USECUSTOMBASEPAIR = true
                     # Base Pair different from weth
                     # Special condition on Uniswap, to implement EIP-1559
-                    logging.info("make_the_buy condition 9")
+                    printt_debug("make_the_buy condition 9", write_to_log=True)
                     transaction = routerContract.functions.swapExactTokensForTokens(
                         amount,
                         amountOutMin,
@@ -2857,7 +2990,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
                     # USECUSTOMBASEPAIR = true
                     # Base Pair different from weth
                     # Exchange different from Uniswap
-                    logging.info("make_the_buy condition 10")
+                    printt_debug("make_the_buy condition 10", write_to_log=True)
                     
                     transaction = routerContract.functions.swapExactTokensForTokens(
                         amount,
@@ -2918,7 +3051,7 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
 
     amount = int(float(token_dict['BUYAMOUNTINTOKEN']) * DECIMALS)
 
-    printt_debug("make_the_buy_exact_tokens amount:", amount)
+    printt_debug("make_the_buy_exact_tokens amount:", amount, write_to_log=True)
     gas = token_dict['_GAS_TO_USE']
     gaslimit = token_dict['GASLIMIT']
     custom = token_dict['USECUSTOMBASEPAIR']
@@ -3006,7 +3139,7 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
             if modified == True:
                 
                 if settings["EXCHANGE"].lower() == 'koffeeswap':
-                    logging.info("make_the_buy_exact_tokens condition 1")
+                    printt_debug("make_the_buy_exact_tokens condition 1", write_to_log=True)
                     transaction = routerContract.functions.swapKCSForExactTokens(
                         amount,
                         [weth, outToken],
@@ -3021,7 +3154,7 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
                     })
                 
                 elif settings["EXCHANGE"].lower() == 'pangolin' or settings["EXCHANGE"].lower() == 'traderjoe':
-                    logging.info("make_the_buy_exact_tokens condition 2")
+                    printt_debug("make_the_buy_exact_tokens condition 2", write_to_log=True)
                     transaction = routerContract.functions.swapAVAXForExactTokens(
                         amount,
                         [weth, outToken],
@@ -3036,7 +3169,7 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
                     })
 
                 elif settings["EXCHANGE"].lower() == 'bakeryswap':
-                    logging.info("make_the_buy_exact_tokens condition 11")
+                    printt_debug("make_the_buy_exact_tokens condition 11", write_to_log=True)
                     transaction = routerContract.functions.swapBNBForExactTokens(
                         amount,
                         [weth, outToken],
@@ -3057,7 +3190,7 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
                 # Special condition on Uniswap, to implement EIP-1559
                 
                 if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
-                    logging.info("make_the_buy_exact_tokens condition 3")
+                    printt_debug("make_the_buy_exact_tokens condition 3", write_to_log=True)
                     
                     transaction = routerContract.functions.swapETHForExactTokens(
                         amount,
@@ -3078,7 +3211,7 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
                     # USECUSTOMBASEPAIR = false
                     # for all the rest of exchanges with Modified = false
                     
-                    logging.info("make_the_buy_exact_tokens condition 4")
+                    printt_debug("make_the_buy_exact_tokens condition 4", write_to_log=True)
 
                     transaction = routerContract.functions.swapETHForExactTokens(
                         amount,
