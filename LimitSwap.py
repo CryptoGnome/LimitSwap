@@ -92,6 +92,7 @@ parser = argparse.ArgumentParser()
 # USER COMMAND LINE ARGUMENTS
 parser.add_argument("--pump", type=int,  help="Holds the position as long as the price is going up. Sells when the price has gone down PUMP percent")
 parser.add_argument("-p", "--password", type=str, help="Password to decrypt private keys (WARNING: your password could be saved in your command prompt history)")
+parser.add_argument("--reject_already_existing_liquidity", action='store_true', help="If liquidity is found on the first check, reject that pair.")
 parser.add_argument("-s", "--settings", type=str, help="Specify the file to user for settings (default: settings.json)",default="./settings.json")
 parser.add_argument("-t", "--tokens", type=str, help="Specify the file to use for tokens to trade (default: tokens.json)", default="./tokens.json")
 parser.add_argument("-v", "--verbose", action='store_true', help="Print detailed messages to stdout")
@@ -260,15 +261,15 @@ def printt_sell_price(token_dict, token_price):
     #     token_price - the current price of the token we want to buy
     #
     #     returns: nothing
-    
+    printt_debug(token_dict)
     printt_debug("token_dict['_TRADING_IS_ON'] 266:", token_dict['_TRADING_IS_ON'], "for token:", token_dict['SYMBOL'])
     printt_debug("_PREVIOUS_QUOTE :", token_dict['_PREVIOUS_QUOTE'], "for token:", token_dict['SYMBOL'])
     
     if token_dict['USECUSTOMBASEPAIR'] == 'false':
-        price_message = token_dict['SYMBOL'] + " Price: " + "{0:.24f}".format(token_price) + " " + base_symbol + " - Buy:" + str(token_dict['BUYPRICEINBASE'])
+        price_message = token_dict['_PAIR_SYMBOL'] + " Price: " + "{0:.24f}".format(token_price) + " " + base_symbol + " - Buy:" + str(token_dict['BUYPRICEINBASE'])
     
     else:
-        price_message = token_dict['SYMBOL'] + " Price:" + "{0:.24f}".format(token_price) + " " + token_dict['BASESYMBOL'] + " - Buy:" + str(token_dict['BUYPRICEINBASE'])
+        price_message = token_dict['_PAIR_SYMBOL'] + " Price: " + "{0:.24f}".format(token_price) + " " + token_dict['BASESYMBOL'] + " - Buy:" + str(token_dict['BUYPRICEINBASE'])
     
     price_message = price_message + " Sell:" + str(token_dict['SELLPRICEINBASE']) + " Stop:" + str(token_dict['STOPLOSSPRICEINBASE'])
     # price_message = price_message + " ATH:" + "{0:.24f}".format(token_dict['_ALL_TIME_HIGH']) + " ATL:" + "{0:.24f}".format(token_dict['_ALL_TIME_LOW'])
@@ -449,6 +450,9 @@ def load_tokens_file(tokens_path, load_message=True):
     # returns: 1. a dictionary of dictionaries in json format containing details of the tokens we're rading
     #          2. the timestamp for the last modification of the file
     
+    # Any new token configurations that are added due to "WATCH_STABLES_ALSO" configuration will be added to this array. After we are done
+    # loading all settings from tokens.json, we'll append this list to the token list
+    set_of_new_tokens = []
 
     if load_message == True:
         print(timestamp(), "Loading tokens from", tokens_path)
@@ -465,7 +469,7 @@ def load_tokens_file(tokens_path, load_message=True):
     ]
     
     default_true_settings = [
-        'LIQUIDITYINNATIVETOKEN',
+        'LIQUIDITYINNATIVETOKEN'
     ]
     
     default_false_settings = [
@@ -477,7 +481,8 @@ def load_tokens_file(tokens_path, load_message=True):
         'MULTIPLEBUYS',
         'KIND_OF_SWAP',
         'ALWAYS_CHECK_BALANCE',
-        'WAIT_FOR_OPEN_TRADE'
+        'WAIT_FOR_OPEN_TRADE',
+        'WATCH_STABLES_ALSO'
     ]
     
     default_value_settings = {
@@ -485,7 +490,7 @@ def load_tokens_file(tokens_path, load_message=True):
         'BUYAMOUNTINTOKEN': 0,
         'MAXTOKENS': 0,
         'MOONBAG': 0,
-        'MINIMUM_LIQUIDITY_IN_DOLLARS': 0,
+        'MINIMUM_LIQUIDITY_IN_DOLLARS': 1000,
         'MAX_BASE_AMOUNT_PER_EXACT_TOKENS_TRANSACTION': 0.5,
         'SELLAMOUNTINTOKENS': 'all',
         'GAS': 8,
@@ -497,7 +502,8 @@ def load_tokens_file(tokens_path, load_message=True):
         'MAX_SUCCESS_TRANSACTIONS_IN_A_ROW': 2,
         'GASPRIORITY_FOR_ETH_ONLY': 1.5,
         'STOPLOSSPRICEINBASE': 0,
-        'BUYCOUNT': 0
+        'BUYCOUNT': 0,
+        '_STABLE_BASES': {}
     }
     
     # There are values that we will set internally. They must all begin with _
@@ -541,6 +547,8 @@ def load_tokens_file(tokens_path, load_message=True):
     # _LAST_MESSAGE         - a place to store a copy of the last message printed to conside, use to avoid
     #                         repeated liquidity messages
     # _GAS_IS_CALCULATED    - if gas needs to be calculated by wait_for_open_trade, this parameter is set to true
+    # _EXCHANGE_BASE_SYMBOL - this is the symbol for the base that is used by the exchange the token is trading on
+    # _PAIR_SYMBOL          - the symbol for this TOKEN/BASE pair
 
     program_defined_values = {
         '_LIQUIDITY_READY': False,
@@ -567,8 +575,11 @@ def load_tokens_file(tokens_path, load_message=True):
         '_BASE_DECIMALS': 0,
         '_WETH_DECIMALS': 0,
         '_LAST_PRICE_MESSAGE': 0,
-        '_LAST_MESSAGE': 0
-        
+        '_LAST_MESSAGE' : 0,
+        '_FIRST_SELL_QUOTE' : 0,
+        '_BUILT_BY_BOT' : False,
+        '_EXCHANGE_BASE_SYMBOL' : settings['_EXCHANGE_BASE_SYMBOL'],
+        '_PAIR_SYMBOL' : ''
     }
     
     for token in tokens:
@@ -614,6 +625,21 @@ def load_tokens_file(tokens_path, load_message=True):
                 elif re.search(r'^\d+$', token[key]):
                     token[key] = int(token[key])
     
+        if token['WATCH_STABLES_ALSO'] == 'true' and token['USECUSTOMBASEPAIR'] == 'false':
+            for new_token_dict in build_extended_base_configuration(token):
+                set_of_new_tokens.append(new_token_dict)
+        elif token['WATCH_STABLES_ALSO'] == 'true':
+            printt_warn ("Ignoring WATCH_STABLES_ALSO", "for", token['SYMBOL'], ". WATCH_STABLES_ALSO = true and USECUSTOMBASEPAIR = true is unsupported.")
+
+
+        if token['USECUSTOMBASEPAIR'] == 'false':
+            token['_PAIR_SYMBOL'] = token['SYMBOL'] + '/' + token['_EXCHANGE_BASE_SYMBOL']
+        else:
+            token['_PAIR_SYMBOL'] = token['SYMBOL'] + '/' + token['BASESYMBOL']
+
+    # Add any tokens generated by "WATCH_STABLES_ALSO" to the tokens list.
+    for token_dict in set_of_new_tokens:
+        tokens.append(token_dict)
     return tokens
 
 
@@ -800,15 +826,20 @@ def token_list_report(tokens, all_pairs=False):
     # returns: an array of all SYMBOLS we are trading
     
     token_list = ""
+    tokens_trading = 0
     
     for token in tokens:
         if all_pairs == True or token["ENABLED"] == 'true':
+            tokens_trading += 1
             if token_list != "":
                 token_list = token_list + " "
-            token_list = token_list + token['SYMBOL']
+            if token['USECUSTOMBASEPAIR'] == 'false':
+                token_list = token_list + token['_PAIR_SYMBOL']
+            else:
+                token_list = token_list + token['_PAIR_SYMBOL']
     
     if all_pairs == False:
-        printt("Quantity of tokens attempting to trade:", len(tokens), "(", token_list, ")")
+        printt("Quantity of tokens attempting to trade:", tokens_trading, "(" , token_list , ")")
     else:
         printt("Quantity of tokens attempting to trade:", len(tokens), "(", token_list, ")")
 
@@ -954,9 +985,14 @@ if settings['EXCHANGE'] == 'pancakeswap':
     routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
     factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
     weth = Web3.toChecksumAddress("0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c")
-    base_symbol = "BNB"
+    base_symbol = "BNB "
     rugdocchain = '&chain=bsc'
     modified = False
+
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'BNB '
+    settings['_STABLE_BASES'] = {'USDT':{ 'address': '0x55d398326f99059ff775485246999027b3197955', 'multiplier' : 0},
+                                 'BUSD':{ 'address': '0xe9e7cea3dedca5984780bafc599bd69add087d56', 'multiplier' : 0},
+                                 'USDC':{ 'address': '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', 'multiplier' : 0}}
 
 if settings['EXCHANGE'].lower() == 'pancakeswaptestnet':
     
@@ -993,9 +1029,14 @@ if settings['EXCHANGE'].lower() == 'pancakeswaptestnet':
     routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
     factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
     weth = Web3.toChecksumAddress("0xae13d989dac2f0debff460ac112a837c89baa7cd")
-    base_symbol = "BNB"
+    base_symbol = "BNBt"
     rugdocchain = '&chain=bsc'
     modified = False
+    
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'BNB'
+    settings['_STABLE_BASES'] = {'BUSD':{ 'address': '0x8301f2213c0eed49a7e28ae4c3e91722919b8b47', 'multiplier' : 0},
+                                 'DAI':{ 'address': '0x8a9424745056eb399fd19a0ec26a14316684e274', 'multiplier' : 0}}
+
 
 if settings['EXCHANGE'].lower() == 'traderjoe':
     
@@ -1598,6 +1639,56 @@ def save_settings(settings, pwd):
         f.write("\n]\n")
 
 
+def update_stable_multipliers ():
+    # Function: update_custom_prices
+    # ----------------------------
+    # updates the values of the custom bases we'd like to use as it compares to the base symbol for the exchange
+    # the user has selected
+    #
+    # returns: nothing
+    printt_debug("ENTER update_stable_multipliers")
+
+    for stable_token in settings['_STABLE_BASES']:
+        stable_ticker = settings['_EXCHANGE_BASE_SYMBOL'] + '/' + stable_token
+        stable_per_base = settings['_CCXT_EXCHANGE'].fetch_ticker(stable_ticker)['bid']
+        settings['_STABLE_BASES'][stable_token]['multiplier'] = stable_per_base
+    printt_debug("stable_per_base:", stable_per_base)
+
+
+def build_extended_base_configuration (token_dict):
+    # Function: build_extended_base_configuration
+    # ----------------------------
+    # Check the user defined token list for the _STABLE_BASES and build configurations for each
+    #
+    # returns: an array of dictionaries containing the configuration build of the token
+    #          that can be parsed and or added to the the token configuration for trading
+
+    printt_debug("ENTER build_extended_base_configuration")
+    
+    calculate_base_price()
+    
+    new_token_set = []
+
+    token_dict['_BUILT_BY_BOT'] = True
+    for stable_token in settings['_STABLE_BASES']:
+        new_token = token_dict.copy()
+        printt_debug("settings['_STABLE_BASES'][stable_token]['multiplier']: ", settings['_STABLE_BASES'][stable_token]['multiplier'])
+        new_token.update({
+                        'BUYAMOUNTINBASE': token_dict['BUYAMOUNTINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
+                        "BUYPRICEINBASE": token_dict['BUYPRICEINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
+                        "SELLPRICEINBASE": token_dict['SELLPRICEINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
+                        "MINIMUM_LIQUIDITY_IN_DOLLARS": token_dict['MINIMUM_LIQUIDITY_IN_DOLLARS'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
+                        "USECUSTOMBASEPAIR": "true",
+                        "BASESYMBOL": stable_token,
+                        "BASEADDRESS": settings['_STABLE_BASES'][stable_token]['address'],
+                        "_PAIR_SYMBOL" : token_dict['SYMBOL'] + '/' + stable_token,
+                        "_BUILT_BY_BOT" : True
+                        })
+        new_token_set.append(new_token)
+        printt_debug(token_dict)
+    return new_token_set
+
+
 def parse_wallet_settings(settings, pwd):
     # Function: load_wallet_settings
     # ----------------------------
@@ -2137,6 +2228,7 @@ def wait_for_open_trade(token, inToken, outToken):
     # https://etherscan.io/tx/0xffcb84f9519c2d598f1121a6e84cf7c3f4271c4e3514552858be796518ed7e95
     # https://etherscan.io/tx/0x6938ea87626efbef08c542d72a166192baaf1f1c112001fdb9a107520b140a9f
     # https://etherscan.io/tx/0xa95d6013647b5e0efc6f7b4920d891dfa162447a0dbb0ea6ac5b252ecb8946ae
+    # https://etherscan.io/tx/0x65d66d1e7d3ff3d8fc67308d105aac6722b00da23f116c89a5420544db5b875d
     # Function: openTrading()
     # MethodID: 0xc9567bf9
 
@@ -2498,7 +2590,7 @@ def calculate_base_price():
 
     printt_debug("ENTER: calculate_base_price")
 
-    if base_symbol == "BNB":
+    if base_symbol == "BNB" or base_symbol == "BNB ":
         DECIMALS_STABLES = 1000000000000000000
         DECIMALS_BNB = 1000000000000000000
 
@@ -2508,6 +2600,14 @@ def calculate_base_price():
         reserves = pair_contract.functions.getReserves().call()
         basePrice = Decimal((reserves[1] / DECIMALS_STABLES) / (reserves[0] / DECIMALS_BNB))
         printt_debug("BNB PRICE: ", "{:.6f}".format(basePrice))
+
+    elif base_symbol == "BNBt":
+        DECIMALS_STABLES = 1000000000000000000
+        DECIMALS_BNB = 1000000000000000000
+
+        # Fixed price of 500$ for BNB on testnet
+        basePrice = Decimal(500)
+        printt_debug("BNBt PRICE: ", "{:.6f}".format(basePrice))
 
     elif base_symbol == "ETH":
         DECIMALS_STABLES = 1000000
@@ -2520,7 +2620,15 @@ def calculate_base_price():
         reserves = pair_contract.functions.getReserves().call()
         basePrice = Decimal((reserves[1] / DECIMALS_STABLES) / (reserves[0] / DECIMALS_ETH))
         printt_debug("ETH PRICE: ", "{:.6f}".format(basePrice))
-    
+
+    elif base_symbol == "ETHt":
+        DECIMALS_STABLES = 1000000
+        DECIMALS_BNB = 1000000000000000000
+
+        # Fixed price of 500$ for BNB on testnet
+        basePrice = Decimal(500)
+        printt_debug("BNBt PRICE: ", "{:.6f}".format(basePrice))
+
     elif base_symbol == "AVAX":
         DECIMALS_STABLES = 1000000
         DECIMALS_ETH = 1000000000000000000
@@ -2566,7 +2674,15 @@ def calculate_base_price():
     else:
         printt_err("Unknown chain... please add it to calculate_base_price")
         basePrice = 0
-        
+    
+    
+    for stable_token in settings['_STABLE_BASES']:
+        stable_ticker = settings['_EXCHANGE_BASE_SYMBOL'] + '/' + stable_token
+        settings['_STABLE_BASES'][stable_token]['multiplier'] = float(basePrice)
+    printt_debug("stable_per_base:", basePrice)
+
+    printt(base_symbol, "price:", "{:.2f}".format(basePrice), "$")
+    
     return basePrice
 
 
@@ -2657,7 +2773,7 @@ def calculate_gas(token):
         token['GASLIMIT'] = 300000
     
     if token['GAS'] == 'boost' or token['GAS'] == 'BOOST' or token['GAS'] == 'Boost':
-        if base_symbol == "BNB":
+        if base_symbol == "BNB" or base_symbol == "BNB ":
             gas_price = 10
         else:
             gas_check = client.eth.gasPrice
@@ -4161,6 +4277,8 @@ def run():
     reload_tokens_file = False
 
     try:
+        
+        # Load tokens from file
         tokens = load_tokens_file(command_line_args.tokens, True)
         
         # Display the number of token pairs we're attempting to trade
@@ -4203,11 +4321,11 @@ def run():
                     token['_REACHED_MAX_TOKENS'] = True
                     printt_warn("You have reached MAXTOKENS for token ", token['SYMBOL'], "--> bot stops to buy", write_to_log=True)
 
-            # Calculate base price
-            if settings['EXCHANGE'].lower() != 'pancakeswaptestnet' and settings['EXCHANGE'].lower() != 'uniswaptestnet':
-                token['_BASE_PRICE'] = calculate_base_price()
-                printt(base_symbol, "price:", "{:.6f}".format(token['_BASE_PRICE']), "$")
-            
+            # # Calculate base price
+            # if settings['EXCHANGE'].lower() != 'pancakeswaptestnet' and settings['EXCHANGE'].lower() != 'uniswaptestnet':
+            #     token['_BASE_PRICE'] = calculate_base_price()
+            #     printt(base_symbol, "price:", "{:.6f}".format(token['_BASE_PRICE']), "$")
+            #
             # Calculate balances prior to buy() to accelerate buy()
             calculate_base_balance(token)
             
@@ -4220,6 +4338,7 @@ def run():
                 
         load_token_file_increment = 0
         tokens_file_modified_time = os.path.getmtime(command_line_args.tokens)
+        first_liquidity_check = True
         
         while True:
             
@@ -4275,20 +4394,25 @@ def run():
                         try:
                             if token['LIQUIDITYINNATIVETOKEN'] == 'true':
                                 #       Case 1/ LIQUIDITYINNATIVETOKEN = true  --> we will snipe using ETH / BNB liquidity --> we use check_pool with weth
+                                printt_debug("pool1")
                                 pool = check_pool(inToken, weth, token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
                             else:
                                 #       Case 2/ LIQUIDITYINNATIVETOKEN = false --> we will snipe using Custom Base Pair    --> we use check_pool with outToken
+                                printt_debug("pool2")
                                 pool = check_pool(inToken, outToken, token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
         
                             if pool != 0:
                                 token['_LIQUIDITY_READY'] = True
-                                printt_info("Found liquidity for", token['SYMBOL'])
+                                printt_ok("Found", "{0:.2f}".format(pool), "liquidity for", token['_PAIR_SYMBOL'])
+                                if first_liquidity_check == True and command_line_args.reject_already_existing_liquidity:
+                                    printt("Rejecting", token['_PAIR_SYMBOL'], "because it already had liquidity.")
+                                    token['ENABLED'] = 'false'
                                 pass
                             else:
-                                printt_repeating(token, token['SYMBOL'] + " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
+                                printt_repeating(token, token['_PAIR_SYMBOL'] + " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
                                 continue
                         except Exception:
-                            printt_repeating(token, token['SYMBOL'] + " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
+                            printt_repeating(token, token['_PAIR_SYMBOL'] + " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
                             continue
                             
                     #
@@ -4326,7 +4450,7 @@ def run():
                     #   the user that we've reached the maximum number of tokens, check for other criteria to buy.
                     #
                     
-                    if token['_QUOTE'] != 0 and token['_QUOTE'] < Decimal(token['BUYPRICEINBASE']) and token['_REACHED_MAX_SUCCESS_TX'] == False and token['_REACHED_MAX_TOKENS'] == False:
+                    if token['_QUOTE'] != 0 and token['_QUOTE'] < Decimal(token['BUYPRICEINBASE']) and token['_REACHED_MAX_SUCCESS_TX'] == False and token['_REACHED_MAX_TOKENS'] == False and token['ENABLED'] == 'true':
     
                         #
                         # OPEN TRADE CHECK
@@ -4462,14 +4586,19 @@ def run():
                         if token['_COST_PER_TOKEN'] == 0 and token['_INFORMED_SELL'] == False:
                             printt_warn("WARNING: You are running a pump on an already purchased position.")
                             sleep(5)
-                        
-                        printt_sell_price(token, token['_QUOTE'])
-                        
-                        minimum_price = token['_ALL_TIME_HIGH'] - (Decimal(command_line_args.pump) * Decimal(0.01) * token['_ALL_TIME_HIGH'])
-                        
-                        if token['_QUOTE'] < minimum_price and token['_TOKEN_BALANCE'] > 0:
-                            printt_err(token['SYMBOL'], "has dropped", command_line_args.pump, "% from it's ATH - SELLING POSITION")
-                            price_conditions_met = True
+
+                        # We don't currently have a way to estimate true cost per token, because we are including fees. So, we need
+                        # to get two quotes so that we can do trend analysis
+                        if token['_FIRST_SELL_QUOTE'] == 0:
+                            token['_FIRST_SELL_QUOTE'] = quote
+
+                        else:
+
+                            maximum_gains = token['_ALL_TIME_HIGH'] - token['_FIRST_SELL_QUOTE']
+                            minimum_price = token['_ALL_TIME_HIGH'] - (command_line_args.pump * 0.01 * maximum_gains)
+                            if quote < minimum_price:
+                                printt_err(token['SYMBOL'], "has dropped", command_line_args.pump, "% from it's ATH - SELLING POSITION")
+                                price_conditions_met = True
                     
                     elif (token['_QUOTE'] > Decimal(token['SELLPRICEINBASE']) or token['_QUOTE'] < Decimal(token['STOPLOSSPRICEINBASE']))  and token['_TOKEN_BALANCE'] > 0:
                         price_conditions_met = True
@@ -4532,6 +4661,7 @@ def run():
             
                 else:
                     printt("Trading for token", token['SYMBOL'], "is disabled")
+            first_liquidity_check = False
             sleep(cooldown)
     
     except Exception as ee:
