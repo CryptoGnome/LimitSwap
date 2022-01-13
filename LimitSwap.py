@@ -2032,6 +2032,7 @@ def wait_for_open_trade(token, inToken, outToken):
     # MethodID: 0x4efac329
 
     # https://bscscan.com/tx/0x0c528819b84a7336c3ff1cc72290ba8ca48555b932383fcbe6722a703a6b72a4
+    # https://bscscan.com/tx/0x7f526b56a20bf34a7af29137747c9e153c4563f5af4d084d8682893b20e56bd8
     # Function: SetupEnableTrading
     # MethodID: 0x7b9e987a
 
