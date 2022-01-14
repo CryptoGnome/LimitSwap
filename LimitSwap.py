@@ -207,7 +207,7 @@ def printt_info(*print_args, write_to_log=False):
     # returns: nothing
     
     if bot_settings['_NEED_NEW_LINE'] == True: print()
-    print(timestamp(), " ", style.BLUE, ' '.join(map(str, print_args)), style.RESET, sep="")
+    print(timestamp(), " ", style.INFO, ' '.join(map(str, print_args)), style.RESET, sep="")
     
     if write_to_log == True:
         logging.info(' '.join(map(str, print_args)))
@@ -1033,9 +1033,9 @@ if settings['EXCHANGE'].lower() == 'pancakeswaptestnet':
     rugdocchain = '&chain=bsc'
     modified = False
     
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'BNB'
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'BNBt'
     settings['_STABLE_BASES'] = {'BUSD':{ 'address': '0x8301f2213c0eed49a7e28ae4c3e91722919b8b47', 'multiplier' : 0},
-                                 'DAI':{ 'address': '0x8a9424745056eb399fd19a0ec26a14316684e274', 'multiplier' : 0}}
+                                 'DAI ':{ 'address': '0x8a9424745056eb399fd19a0ec26a14316684e274', 'multiplier' : 0}}
 
 
 if settings['EXCHANGE'].lower() == 'traderjoe':
@@ -1639,23 +1639,7 @@ def save_settings(settings, pwd):
         f.write("\n]\n")
 
 
-def update_stable_multipliers ():
-    # Function: update_custom_prices
-    # ----------------------------
-    # updates the values of the custom bases we'd like to use as it compares to the base symbol for the exchange
-    # the user has selected
-    #
-    # returns: nothing
-    printt_debug("ENTER update_stable_multipliers")
-
-    for stable_token in settings['_STABLE_BASES']:
-        stable_ticker = settings['_EXCHANGE_BASE_SYMBOL'] + '/' + stable_token
-        stable_per_base = settings['_CCXT_EXCHANGE'].fetch_ticker(stable_ticker)['bid']
-        settings['_STABLE_BASES'][stable_token]['multiplier'] = stable_per_base
-    printt_debug("stable_per_base:", stable_per_base)
-
-
-def build_extended_base_configuration (token_dict):
+def build_extended_base_configuration(token_dict):
     # Function: build_extended_base_configuration
     # ----------------------------
     # Check the user defined token list for the _STABLE_BASES and build configurations for each
@@ -1665,11 +1649,15 @@ def build_extended_base_configuration (token_dict):
 
     printt_debug("ENTER build_extended_base_configuration")
     
-    calculate_base_price()
     
     new_token_set = []
 
+    # Giving values for the native pair
     token_dict['_BUILT_BY_BOT'] = True
+    token_dict['LIQUIDITYINNATIVETOKEN'] = "true"
+    token_dict['_BASE_PRICE'] = calculate_base_price()
+
+    # Giving values for the stables pair
     for stable_token in settings['_STABLE_BASES']:
         new_token = token_dict.copy()
         printt_debug("settings['_STABLE_BASES'][stable_token]['multiplier']: ", settings['_STABLE_BASES'][stable_token]['multiplier'])
@@ -1677,15 +1665,17 @@ def build_extended_base_configuration (token_dict):
                         'BUYAMOUNTINBASE': token_dict['BUYAMOUNTINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
                         "BUYPRICEINBASE": token_dict['BUYPRICEINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
                         "SELLPRICEINBASE": token_dict['SELLPRICEINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
-                        "MINIMUM_LIQUIDITY_IN_DOLLARS": token_dict['MINIMUM_LIQUIDITY_IN_DOLLARS'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
+                        "MINIMUM_LIQUIDITY_IN_DOLLARS": token_dict['MINIMUM_LIQUIDITY_IN_DOLLARS'],
                         "USECUSTOMBASEPAIR": "true",
+                        "LIQUIDITYINNATIVETOKEN": "false",
                         "BASESYMBOL": stable_token,
+                        "_BASE_PRICE": settings['_STABLE_BASES'][stable_token]['multiplier'],
                         "BASEADDRESS": settings['_STABLE_BASES'][stable_token]['address'],
                         "_PAIR_SYMBOL" : token_dict['SYMBOL'] + '/' + stable_token,
                         "_BUILT_BY_BOT" : True
                         })
         new_token_set.append(new_token)
-        printt_debug(token_dict)
+        
     return new_token_set
 
 
@@ -2325,7 +2315,7 @@ def check_liquidity_amount(token, DECIMALS_OUT, DECIMALS_weth):
 
         liquidity_amount = check_pool(inToken, weth, token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
         liquidity_amount_in_dollars = float(liquidity_amount) * float(token['_BASE_PRICE'])
-        printt("Current", token['SYMBOL'], "Liquidity =", "{:.6f}".format(liquidity_amount_in_dollars), "$")
+        printt("Current", token['SYMBOL'], "Liquidity =", "{:.2f}".format(liquidity_amount_in_dollars), "$")
         
         if float(token['MINIMUM_LIQUIDITY_IN_DOLLARS']) <= float(liquidity_amount_in_dollars):
             printt_ok("MINIMUM_LIQUIDITY_IN_DOLLARS parameter =", int(token['MINIMUM_LIQUIDITY_IN_DOLLARS']), " --> Enough liquidity detected : Buy Signal Found!")
@@ -2337,7 +2327,7 @@ def check_liquidity_amount(token, DECIMALS_OUT, DECIMALS_weth):
             printt_warn("NOT ENOUGH LIQUIDITY", write_to_log=True)
             printt_warn("", write_to_log=True)
             printt_warn("- You have set MINIMUM_LIQUIDITY_IN_DOLLARS  =", token['MINIMUM_LIQUIDITY_IN_DOLLARS'], "$", write_to_log=True)
-            printt_warn("- Liquidity detected for", token['SYMBOL'], "=", "{:.6f}".format(liquidity_amount_in_dollars), "$", write_to_log=True)
+            printt_warn("- Liquidity detected for", token['SYMBOL'], "=", "{:.2f}".format(liquidity_amount_in_dollars), "$", write_to_log=True)
             printt_warn("--> Bot will not buy and disable token", write_to_log=True)
             printt_warn("------------------------------------------------", write_to_log=True)
             token['ENABLED'] = 'false'
@@ -2377,7 +2367,7 @@ def check_liquidity_amount(token, DECIMALS_OUT, DECIMALS_weth):
             printt_warn("NOT ENOUGH LIQUIDITY", write_to_log=True)
             printt_warn("", write_to_log=True)
             printt_warn("- You have set MINIMUM_LIQUIDITY_IN_DOLLARS  =", token['MINIMUM_LIQUIDITY_IN_DOLLARS'], "$", write_to_log=True)
-            printt_warn("- Liquidity detected for", token['SYMBOL'], "=", "{:.6f}".format(liquidity_amount_in_dollars), "$", write_to_log=True)
+            printt_warn("- Liquidity detected for", token['SYMBOL'], "=", "{:.2f}".format(liquidity_amount_in_dollars), "$", write_to_log=True)
             printt_warn("--> Bot will not buy and disable token", write_to_log=True)
             printt_warn("------------------------------------------------", write_to_log=True)
             token['ENABLED'] = 'false'
@@ -2675,11 +2665,9 @@ def calculate_base_price():
         printt_err("Unknown chain... please add it to calculate_base_price")
         basePrice = 0
     
-    
     for stable_token in settings['_STABLE_BASES']:
-        stable_ticker = settings['_EXCHANGE_BASE_SYMBOL'] + '/' + stable_token
         settings['_STABLE_BASES'][stable_token]['multiplier'] = float(basePrice)
-    printt_debug("stable_per_base:", basePrice)
+    printt_debug("basePrice:", basePrice)
 
     printt(base_symbol, "price:", "{:.2f}".format(basePrice), "$")
     
@@ -2781,7 +2769,7 @@ def calculate_gas(token):
         
         printt_info("Current Gas Price =", gas_price)
         token['_GAS_TO_USE'] = (gas_price * ((int(token['BOOSTPERCENT'])) / 100)) + gas_price
-        printt_info("Transaction will be created with gas =", token['_GAS_TO_USE'])
+        printt_info("Transaction for", token['SYMBOL'], "will be created with gas =", token['_GAS_TO_USE'])
     
     else:
         token['_GAS_TO_USE'] = int(token['GAS'])
@@ -3122,6 +3110,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
                     # Exchange different from Uniswap
                     printt_debug("make_the_buy condition 10", write_to_log=True)
                     
+                    printt_debug()
                     transaction = routerContract.functions.swapExactTokensForTokens(
                         amount,
                         amountOutMin,
@@ -3493,7 +3482,6 @@ def buy(token_dict, inToken, outToken, pwd):
     fees = token_dict["HASFEES"]
     custom = token_dict['USECUSTOMBASEPAIR']
     symbol = token_dict['SYMBOL']
-    base = token_dict['BASESYMBOL']
     routing = token_dict['LIQUIDITYINNATIVETOKEN']
     gaspriority = token_dict['GASPRIORITY_FOR_ETH_ONLY']
     multiplebuys = token_dict['MULTIPLEBUYS']
@@ -3578,7 +3566,8 @@ def buy(token_dict, inToken, outToken, pwd):
             return tx_hash
     
     else:
-        printt_err("You don't have enough in your wallet to make the BUY order of", token_dict['SYMBOL'], "--> bot do not buy", )
+        printt_debug(token_dict)
+        printt_err("You don't have enough", token_dict['BASESYMBOL'], "in your wallet to make the BUY order of", token_dict['SYMBOL'], "--> bot do not buy", )
         calculate_base_balance(token_dict)
         return False
 
@@ -4401,9 +4390,10 @@ def run():
                                 printt_debug("pool2")
                                 pool = check_pool(inToken, outToken, token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
         
-                            if pool != 0:
+                            # Setting a minimum of 0.1 quantity of liquidity, to avoid users being scammed
+                            if pool > 0.1:
                                 token['_LIQUIDITY_READY'] = True
-                                printt_ok("Found", "{0:.2f}".format(pool), "liquidity for", token['_PAIR_SYMBOL'])
+                                printt_ok("Found", "{0:.4f}".format(pool), "liquidity for", token['_PAIR_SYMBOL'])
                                 if first_liquidity_check == True and command_line_args.reject_already_existing_liquidity:
                                     printt("Rejecting", token['_PAIR_SYMBOL'], "because it already had liquidity.")
                                     token['ENABLED'] = 'false'
@@ -4460,6 +4450,7 @@ def run():
                         if token['WAIT_FOR_OPEN_TRADE'].lower() == 'true' or token['WAIT_FOR_OPEN_TRADE'].lower() == 'true_no_message' or token['WAIT_FOR_OPEN_TRADE'] == 'mempool':
                             wait_for_open_trade(token, inToken, outToken)
     
+                        printt_debug(token)
                         #
                         # PURCHASE POSITION
                         #   If we've passed all checks, attempt to purchase the token
@@ -4475,6 +4466,8 @@ def run():
                         logging.info("Buy Signal Found @" + str(log_price))
                         printt_ok("-----------------------------------------------------------")
                         printt_ok("Buy Signal Found =-= Buy Signal Found =-= Buy Signal Found ")
+                        printt_ok("")
+                        printt_ok("At this price :", str(log_price), write_to_log=True)
                         printt_ok("-----------------------------------------------------------")
                         
                         #
@@ -4660,7 +4653,7 @@ def run():
                                 printt_ok("----------------------------------", write_to_log=True)
             
                 else:
-                    printt("Trading for token", token['SYMBOL'], "is disabled")
+                    printt("Trading for token", token['_PAIR_SYMBOL'], "is disabled")
             first_liquidity_check = False
             sleep(cooldown)
     
