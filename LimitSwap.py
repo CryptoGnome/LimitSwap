@@ -980,7 +980,7 @@ if settings['EXCHANGE'].lower() == 'pancakeswaptestnet':
         print(timestamp(), 'Using IPCProvider')
         client = Web3(Web3.IPCProvider(my_provider))
     
-    print(timestamp(), "Binance Smart Chain Connected =", client.isConnected())
+    print(timestamp(), "Binance Smart Chain testnet Connected =", client.isConnected())
     print(timestamp(), "Loading Smart Contracts...")
     
     if settings['EXCHANGEVERSION'] == "1":
@@ -1030,6 +1030,42 @@ if settings['EXCHANGE'].lower() == 'traderjoe':
     base_symbol = "AVAX"
     rugdocchain = '&chain=avax'
     modified = True
+
+
+if settings['EXCHANGE'].lower() == 'traderjoetestnet':
+    # not working yet
+    if settings['USECUSTOMNODE'] == 'true':
+        my_provider = settings['CUSTOMNODE']
+    else:
+        my_provider = "https://api.avax-test.network/ext/bc/C/rpc"
+    
+    if not my_provider:
+        printt_err('Custom node empty. Exiting')
+        exit(1)
+    
+    if my_provider[0].lower() == 'h':
+        print(timestamp(), 'Using HTTPProvider')
+        client = Web3(Web3.HTTPProvider(my_provider))
+    elif my_provider[0].lower() == 'w':
+        print(timestamp(), 'Using WebsocketProvider')
+        client = Web3(Web3.WebsocketProvider(my_provider))
+    else:
+        print(timestamp(), 'Using IPCProvider')
+        client = Web3(Web3.IPCProvider(my_provider))
+    
+    print(timestamp(), "AVAX testnet Smart Chain Connected =", client.isConnected())
+    print(timestamp(), "Loading Smart Contracts...")
+    
+    routerAddress = Web3.toChecksumAddress("0x60aE616a2155Ee3d9A68541Ba4544862310933d4")
+    factoryAddress = Web3.toChecksumAddress("0x9Ad6C38BE94206cA50bb0d90783181662f0Cfa10")
+    
+    routerContract = client.eth.contract(address=routerAddress, abi=joeRouter)
+    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
+    weth = Web3.toChecksumAddress("0xd00ae08403b9bbb9124bb305c09058e32c39a48c")
+    base_symbol = "AVAXt"
+    rugdocchain = '&chain=avax'
+    modified = True
+    
 
 elif settings['EXCHANGE'] == 'pinkswap':
     if settings['USECUSTOMNODE'] == 'true':
@@ -1978,8 +2014,16 @@ def check_pool(inToken, outToken, DECIMALS_IN, DECIMALS_OUT):
     # be careful, we cannot put cache and use fetch_pair, because we need to detect when pair_address != 0x0000000000000000000000000000000000000000
     # pair_address = fetch_pair2(inToken, outToken, factoryContract) --> we don't do that until we're sure
 
-    pair_address = factoryContract.functions.getPair(inToken, outToken).call()
+    # implementing an ugly fix for those shitty tokens with decimals = 9 to solve https://github.com/CryptoGnome/LimitSwap/issues/401
+    if DECIMALS_IN == 1000000000:
+        DECIMALS_IN = 1000000000 * DECIMALS_IN
+        printt_debug("DECIMALS after fix applied for those shitty tokens with decimals = 9:", DECIMALS_IN)
 
+    printt_debug("DECIMALS_IN : ", DECIMALS_IN)
+    printt_debug("DECIMALS_OUT: ", DECIMALS_OUT)
+
+    pair_address = factoryContract.functions.getPair(inToken, outToken).call()
+    printt_debug("check_pool pair_address:", pair_address)
     if pair_address == '0x0000000000000000000000000000000000000000':
         printt_debug("check_pool condition 1 quick exit")
         return 0
@@ -2509,6 +2553,14 @@ def calculate_base_price():
         basePrice = Decimal((reserves[1] / DECIMALS_STABLES) / (reserves[0] / DECIMALS_BNB))
         printt_debug("BNB PRICE: ", "{:.6f}".format(basePrice))
 
+    elif base_symbol == "BNBt":
+        DECIMALS_STABLES = 1000000000000000000
+        DECIMALS_BNB = 1000000000000000000
+
+        # Fixed price of 500$ for BNB on testnet
+        basePrice = Decimal(500)
+        printt_debug("BNBt PRICE: ", "{:.6f}".format(basePrice))
+
     elif base_symbol == "ETH":
         DECIMALS_STABLES = 1000000
         DECIMALS_ETH = 1000000000000000000
@@ -2521,6 +2573,14 @@ def calculate_base_price():
         basePrice = Decimal((reserves[1] / DECIMALS_STABLES) / (reserves[0] / DECIMALS_ETH))
         printt_debug("ETH PRICE: ", "{:.6f}".format(basePrice))
     
+    elif base_symbol == "ETHt":
+        DECIMALS_STABLES = 1000000
+        DECIMALS_BNB = 1000000000000000000
+
+        # Fixed price of 3500$ for ETH on testnet
+        basePrice = Decimal(3500)
+        printt_debug("BNBt PRICE: ", "{:.6f}".format(basePrice))
+
     elif base_symbol == "AVAX":
         DECIMALS_STABLES = 1000000
         DECIMALS_ETH = 1000000000000000000
@@ -2532,6 +2592,14 @@ def calculate_base_price():
         reserves = pair_contract.functions.getReserves().call()
         basePrice = Decimal((reserves[1] / DECIMALS_STABLES) / (reserves[0] / DECIMALS_ETH))
         printt_debug("AVAX PRICE: ", "{:.6f}".format(basePrice))
+
+    elif base_symbol == "AVAXt":
+        DECIMALS_STABLES = 1000000
+        DECIMALS_BNB = 1000000000000000000
+
+        # Fixed price of 80 for AVAX on testnet
+        basePrice = Decimal(80)
+        printt_debug("BNBt PRICE: ", "{:.6f}".format(basePrice))
 
     elif base_symbol == "FTM":
         DECIMALS_STABLES = 1000000
@@ -2728,11 +2796,6 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
             else:
                 amountOutMin = int(amount_out * (1 - (slippage / 100)))
 
-            # implementing an ugly fix for those shitty tokens with decimals = 9 to solve https://github.com/CryptoGnome/LimitSwap/issues/401
-            if DECIMALS == 1000000000:
-                amountOutMin = 1000000000 * amountOutMin
-                printt_debug("amountOutMin after fix applied for those shitty tokens with decimals = 9:", amountOutMin)
-
             deadline = int(time() + + 60)
             
 
@@ -2840,12 +2903,6 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
             else:
                 amountOutMin = int(amount_out * (1 - (slippage / 100)))
             
-            # implementing an ugly fix for those shitty tokens with decimals = 9 to solve https://github.com/CryptoGnome/LimitSwap/issues/401
-            if DECIMALS == 1000000000:
-                amountOutMin = 1000000000 * amountOutMin
-                printt_debug("amountOutMin after fix applied for those shitty tokens with decimals = 9:", amountOutMin)
-
-            
             deadline = int(time() + + 60)
             
             if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
@@ -2901,11 +2958,6 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
                 else:
                     amountOutMin = int(amount_out * (1 - (slippage / 100)))
                 deadline = int(time() + + 60)
-
-                # implementing an ugly fix for those shitty tokens with decimals = 9 to solve https://github.com/CryptoGnome/LimitSwap/issues/401
-                if DECIMALS == 1000000000:
-                    amountOutMin = 1000000000 * amountOutMin
-                    printt_debug("amountOutMin after fix applied for those shitty tokens with decimals = 9:", amountOutMin)
 
                 if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
                     # USECUSTOMBASEPAIR = true
@@ -2970,11 +3022,6 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
                 else:
                     amountOutMin = int(amount_out * (1 - (slippage / 100)))
 
-                # implementing an ugly fix for those shitty tokens with decimals = 9 to solve https://github.com/CryptoGnome/LimitSwap/issues/401
-                if DECIMALS == 1000000000:
-                    amountOutMin = 1000000000 * amountOutMin
-                    printt_debug("amountOutMin after fix applied for those shitty tokens with decimals = 9:", amountOutMin)
-
                 deadline = int(time() + + 60)
                 
                 if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
@@ -3005,7 +3052,14 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
                     # Base Pair different from weth
                     # Exchange different from Uniswap
                     printt_debug("make_the_buy condition 10", write_to_log=True)
-                    
+
+                    printt_debug("amountin    : ", amount)
+                    printt_debug("amountOutMin: ", amountOutMin)
+                    printt_debug("path1       : ", inToken)
+                    printt_debug("path2       : ", outToken)
+                    printt_debug("gas         : ", gas)
+                    printt_debug("gaslimit    : ", gaslimit)
+
                     transaction = routerContract.functions.swapExactTokensForTokens(
                         amount,
                         amountOutMin,
