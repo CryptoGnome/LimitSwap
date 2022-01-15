@@ -523,6 +523,7 @@ def load_tokens_file(tokens_path, load_message=True):
     # _TOKEN_BALANCE        - the number of traded tokens the user has in her wallet
     # _BASE_BALANCE         - balance of Base token, calculated at bot launch and after a BUY/SELL
     # _BASE_PRICE           - price of Base token, calculated at bot launch with calculate_base_price
+    # _PAIR_TO_DISPLAY      - token symbol / base symbol
     # _CUSTOM_BASE_BALANCE  - balance of Custom Base token, calculated at bot launch and after a BUY/SELL
     # _QUOTE                - holds the token's quote
     # _PREVIOUS_QUOTE       - holds the ask price for a token the last time a price was queried, this is used
@@ -557,6 +558,7 @@ def load_tokens_file(tokens_path, load_message=True):
         '_TOKEN_BALANCE': 0,
         '_BASE_BALANCE': 0,
         '_BASE_PRICE': 0,
+        '_PAIR_TO_DISPLAY': "Pair",
         '_CUSTOM_BASE_BALANCE': 0,
         '_QUOTE': 0,
         '_PREVIOUS_QUOTE': 0,
@@ -706,6 +708,7 @@ def reload_tokens_file(tokens_path, load_message=True):
     # _TOKEN_BALANCE        - the number of traded tokens the user has in her wallet
     # _BASE_BALANCE         - balance of Base token, calculated at bot launch and after a BUY/SELL
     # _BASE_PRICE           - price of Base token, calculated at bot launch with calculate_base_price
+    # _PAIR_TO_DISPLAY      - token symbol / base symbol
     # _CUSTOM_BASE_BALANCE' - balance of Custom Base token, calculated at bot launch and after a BUY/SELL
     # _QUOTE                - holds the token's quote
     # _PREVIOUS_QUOTE       - holds the ask price for a token the last time a price was queried, this is used
@@ -738,6 +741,7 @@ def reload_tokens_file(tokens_path, load_message=True):
         '_TOKEN_BALANCE': 0,
         '_BASE_BALANCE': 0,
         '_BASE_PRICE': 0,
+        '_PAIR_TO_DISPLAY': "Pair",
         '_CUSTOM_BASE_BALANCE': 0,
         '_PREVIOUS_QUOTE': 0,
         '_QUOTE': 0,
@@ -911,7 +915,7 @@ printt("************************************************************************
 
 # Check for version
 #
-version = '4.1.0.3'
+version = '4.1.1'
 printt("YOUR BOT IS CURRENTLY RUNNING VERSION ", version, write_to_log=True)
 check_release()
 
@@ -1821,7 +1825,6 @@ def auth():
     my_provider2 = 'https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161'
     client2 = Web3(Web3.HTTPProvider(my_provider2))
     print(timestamp(), "Connected to Ethereum BlockChain =", client2.isConnected())
-    # Insert LIMITSWAP Token Contract Here To Calculate Staked Verification
     address = Web3.toChecksumAddress("0x1712aad2c773ee04bdc9114b32163c058321cd85")
     abi = standardAbi
     balanceContract = client2.eth.contract(address=address, abi=abi)
@@ -1852,15 +1855,15 @@ def approve(address, amount):
         minimumbalance = 0.01
     
     if eth_balance > minimumbalance:
-        print("Estimating Gas Cost Using Web3")
+        printt("Estimating Gas Cost Using Web3")
         # Estimates GAS price and use a +20% factor
         if settings['EXCHANGE'] == 'uniswaptestnet':
             # Special condition on uniswaptestnet to make GAS > Priority Gas
             gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(200) / 100)
-            print("Current Gas Price =", gas)
+            printt("Current Gas Price =", gas)
         else:
             gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
-            print("Current Gas Price = ", gas)
+            printt("Current Gas Price = ", gas)
             
         contract = client.eth.contract(address=Web3.toChecksumAddress(address), abi=standardAbi)
         transaction = contract.functions.approve(routerAddress, amount).buildTransaction({
@@ -2008,16 +2011,13 @@ def sync(inToken, outToken):
     sync = syncContract.functions.sync().call()
 
 
-def check_pool(inToken, outToken, DECIMALS_IN, DECIMALS_OUT):
+def check_pool(inToken, outToken, DECIMALS_OUT):
     # This function is made to calculate Liquidity of a token
     printt_debug("ENTER check_pool")
     # be careful, we cannot put cache and use fetch_pair, because we need to detect when pair_address != 0x0000000000000000000000000000000000000000
     # pair_address = fetch_pair2(inToken, outToken, factoryContract) --> we don't do that until we're sure
 
-    # implementing an ugly fix for those shitty tokens with decimals = 9 to solve https://github.com/CryptoGnome/LimitSwap/issues/401
-    if DECIMALS_IN == 1000000000:
-        DECIMALS_IN = 1000000000 * DECIMALS_IN
-        printt_debug("DECIMALS after fix applied for those shitty tokens with decimals = 9:", DECIMALS_IN)
+    DECIMALS_IN = 1000000000000000000
 
     printt_debug("DECIMALS_IN : ", DECIMALS_IN)
     printt_debug("DECIMALS_OUT: ", DECIMALS_OUT)
@@ -2275,7 +2275,7 @@ def check_liquidity_amount(token, DECIMALS_OUT, DECIMALS_weth):
     if token["LIQUIDITYINNATIVETOKEN"] == 'true':
         printt_debug("check_liquidity_amount case 1")
 
-        liquidity_amount = check_pool(inToken, weth, token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
+        liquidity_amount = check_pool(inToken, weth, token['_BASE_DECIMALS'])
         liquidity_amount_in_dollars = float(liquidity_amount) * float(token['_BASE_PRICE'])
         printt("Current", token['SYMBOL'], "Liquidity =", "{:.6f}".format(liquidity_amount_in_dollars), "$")
         
@@ -2305,7 +2305,7 @@ def check_liquidity_amount(token, DECIMALS_OUT, DECIMALS_weth):
         outToken = Web3.toChecksumAddress(token['BASEADDRESS'])
         printt_debug("check_liquidity_amount case 1")
 
-        liquidity_amount = check_pool(inToken, outToken, token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
+        liquidity_amount = check_pool(inToken, outToken, token['_BASE_DECIMALS'])
         
         # 1/ calculate Custom Base token price in ETH/BNB...
         # We could have used this also :
@@ -2630,6 +2630,19 @@ def calculate_base_price():
         reserves = pair_contract.functions.getReserves().call()
         basePrice = Decimal((reserves[0] / DECIMALS_STABLES) / (reserves[1] / DECIMALS_ETH))
         printt_debug("KCS PRICE: ", "{:.6f}".format(basePrice))
+        
+    elif base_symbol == "MATIC":
+        DECIMALS_STABLES = 1000000
+        DECIMALS_ETH = 1000000000000000000
+    
+        # USDT 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
+        # https://polygonscan.com/token/0xc2132d05d31c914a87c6611c10748aeb04b58e8f
+        
+        pair_address = '0x604229c960e5CACF2aaEAc8Be68Ac07BA9dF81c3'
+        pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
+        reserves = pair_contract.functions.getReserves().call()
+        basePrice = Decimal((reserves[1] / DECIMALS_STABLES) / (reserves[0] / DECIMALS_ETH))
+        printt_debug("MATIC PRICE: ", "{:.6f}".format(basePrice))
     
     else:
         printt_err("Unknown chain... please add it to calculate_base_price")
@@ -2742,7 +2755,7 @@ def calculate_gas(token):
     return 0
 
 
-def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit, gaspriority, routing, custom, slippage, DECIMALS):
+def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspriority, routing, custom, slippage, DECIMALS):
     # Function: make_the_buy
     # --------------------
     # creates BUY order with the good condition
@@ -2770,13 +2783,6 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
         walletused = settings['WALLETADDRESS5']
     
     
-    # Set the amount to buy
-    amount = amount_to_buy
-    # implementing an ugly fix for those shitty tokens with decimals = 9 to solve https://github.com/CryptoGnome/LimitSwap/issues/401
-    if DECIMALS == 1000000000:
-        amount = 1000000000 * amount
-        printt_debug("Amount after fix applied for those shitty tokens with decimals = 9      :", amount)
-
     if custom.lower() == 'false':
         # if USECUSTOMBASEPAIR = false
         
@@ -3053,13 +3059,6 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
                     # Exchange different from Uniswap
                     printt_debug("make_the_buy condition 10", write_to_log=True)
 
-                    printt_debug("amountin    : ", amount)
-                    printt_debug("amountOutMin: ", amountOutMin)
-                    printt_debug("path1       : ", inToken)
-                    printt_debug("path2       : ", outToken)
-                    printt_debug("gas         : ", gas)
-                    printt_debug("gaslimit    : ", gaslimit)
-
                     transaction = routerContract.functions.swapExactTokensForTokens(
                         amount,
                         amountOutMin,
@@ -3108,7 +3107,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount_to_buy, gas, gaslimit
         return tx_hash
 
 
-def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gaslimit, routing, custom, slippage, DECIMALS, basebalance):
+def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gaslimit, routing, custom, slippage, DECIMALS_FOR_AMOUNT, basebalance):
     # Function: make_the_buy_exact_tokens
     # --------------------
     # creates BUY order with the good condition
@@ -3117,7 +3116,7 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
     #
     printt_debug("ENTER make_the_buy_exact_tokens")
 
-    amount = int(float(token_dict['BUYAMOUNTINTOKEN']) * DECIMALS)
+    amount = int(float(token_dict['BUYAMOUNTINTOKEN']) * DECIMALS_FOR_AMOUNT)
 
     printt_debug("make_the_buy_exact_tokens amount:", amount, write_to_log=True)
     gas = token_dict['_GAS_TO_USE']
@@ -3127,19 +3126,13 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
     gaspriority = token_dict['GASPRIORITY_FOR_ETH_ONLY']
     token_symbol = token_dict['SYMBOL']
 
-
-    # I'm working on it to understand what happen, but with tokens with decimals = 9:
-    #   - amount does not need to be changed
-    #   - but DECIMALS need to be changed to display amount_in properly
-    # --> so for now I need to create 2 different decimals. Working on it to get something cleaner.
-    
-    DECIMALS_FOR_AMOUNT_TO_BUY_DISPLAY = DECIMALS
     
     # implementing an ugly fix for those shitty tokens with decimals = 9 to solve https://github.com/CryptoGnome/LimitSwap/issues/401
-    if DECIMALS == 1000000000:
-        DECIMALS = 1000000000 * DECIMALS
-        printt_debug("DECIMALS after fix applied for those shitty tokens with decimals = 9:", DECIMALS)
+    # if DECIMALS == 1000000000:
+    #     DECIMALS = 1000000000 * DECIMALS
+    #     printt_debug("DECIMALS after fix applied for those shitty tokens with decimals = 9:", DECIMALS)
 
+    DECIMALS = 1000000000000000000
 
     # Choose proper wallet.
     if buynumber == 0:
@@ -3196,7 +3189,7 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
             printt_ok("")
             printt_warn("WARNING : buying exact amount of tokens only works with LIQUIDITYINNATIVETOKEN = true and USECUSTOMBASEPAIR = false")
             printt_ok("")
-            printt_ok("Amount of tokens to buy        :", amount / DECIMALS_FOR_AMOUNT_TO_BUY_DISPLAY, token_symbol, write_to_log=True)
+            printt_ok("Amount of tokens to buy        :", amount / DECIMALS_FOR_AMOUNT, token_symbol, write_to_log=True)
             printt_ok("Amount of base token to be used:", amount_in / DECIMALS, base_symbol, write_to_log=True)
             printt_ok("Current Base token balance     :", base_balance_before_buy / DECIMALS, base_symbol, write_to_log=True)
             printt_ok("(be careful you must have enough to pay fees in addition to this)", write_to_log=True)
@@ -3296,7 +3289,7 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
 
     else:
         # USECUSTOMBASEPAIR = true
-        printt_err("Sorry, swap for exact tokens is only available for USECUSTOMBASEPAIR = false. Exiting.")
+        printt_err("Sorry, swap for exact tokens is only available for USECUSTOMBASEPAIR = false... I'm working on that.")
         sys.exit()
 
     
@@ -3489,7 +3482,7 @@ def buy(token_dict, inToken, outToken, pwd):
         
         gaslimit = int(gaslimit)
         slippage = int(slippage)
-        amount = int(float(amount) * CONTRACT_DECIMALS)
+        amount = int(float(amount) * 1000000000000000000)
         buynumber = 0
 
         if multiplebuys.lower() == 'true':
@@ -4201,7 +4194,7 @@ def benchmark():
     start_time = time()
     for i in range(rounds):
         try:
-            check_pool(inToken, weth, token[0]['_CONTRACT_DECIMALS'], token[0]['_BASE_DECIMALS'])
+            check_pool(inToken, weth, token[0]['_BASE_DECIMALS'])
         except Exception:
             pass
     end_time = time()
@@ -4248,6 +4241,11 @@ def run():
             token['_WETH_DECIMALS'] = int(decimals(weth))
             printt_debug("token['_WETH_DECIMALS']    :", token['_WETH_DECIMALS'])
 
+            # Determine token name + base symbol to display
+            if token['USECUSTOMBASEPAIR'] == 'true':
+                token['_PAIR_TO_DISPLAY'] = token['SYMBOL'] + "/" + token['BASESYMBOL']
+            else:
+                token['_PAIR_TO_DISPLAY'] = token['SYMBOL'] + "/" + base_symbol
 
             # Check to see if we have any tokens in our wallet already
             token['_TOKEN_BALANCE'] = check_balance(token['ADDRESS'], token['SYMBOL'], display_quantity=False) / token['_CONTRACT_DECIMALS']
@@ -4329,20 +4327,20 @@ def run():
                         try:
                             if token['LIQUIDITYINNATIVETOKEN'] == 'true':
                                 #       Case 1/ LIQUIDITYINNATIVETOKEN = true  --> we will snipe using ETH / BNB liquidity --> we use check_pool with weth
-                                pool = check_pool(inToken, weth, token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
+                                pool = check_pool(inToken, weth, token['_BASE_DECIMALS'])
                             else:
                                 #       Case 2/ LIQUIDITYINNATIVETOKEN = false --> we will snipe using Custom Base Pair    --> we use check_pool with outToken
-                                pool = check_pool(inToken, outToken, token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
+                                pool = check_pool(inToken, outToken, token['_BASE_DECIMALS'])
         
                             if pool != 0:
                                 token['_LIQUIDITY_READY'] = True
                                 printt_info("Found liquidity for", token['SYMBOL'])
                                 pass
                             else:
-                                printt_repeating(token, token['SYMBOL'] + " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
+                                printt_repeating(token, token['_PAIR_TO_DISPLAY'] + " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
                                 continue
                         except Exception:
-                            printt_repeating(token, token['SYMBOL'] + " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
+                            printt_repeating(token, token['_PAIR_TO_DISPLAY']  + "/" + base_symbol + " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
                             continue
                             
                     #
@@ -4405,6 +4403,8 @@ def run():
                         logging.info("Buy Signal Found @" + str(log_price))
                         printt_ok("-----------------------------------------------------------")
                         printt_ok("Buy Signal Found =-= Buy Signal Found =-= Buy Signal Found ")
+                        printt_ok("")
+                        printt_ok("Buy price in", token['_PAIR_TO_DISPLAY'], ":", log_price)
                         printt_ok("-----------------------------------------------------------")
                         
                         #
