@@ -492,7 +492,8 @@ def load_tokens_file(tokens_path, load_message=True):
         'BOOSTPERCENT': 50,
         'GASLIMIT': 1000000,
         'BUYAFTER_XXX_SECONDS': 0,
-        'XXX_SECONDS_COOLDOWN_AFTER_SUCCESS_TX': 0,
+        'XXX_SECONDS_COOLDOWN_AFTER_BUY_SUCCESS_TX': 0,
+        'XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX': 0,
         'MAX_FAILED_TRANSACTIONS_IN_A_ROW': 2,
         'MAX_SUCCESS_TRANSACTIONS_IN_A_ROW': 2,
         'GASPRIORITY_FOR_ETH_ONLY': 1.5,
@@ -677,7 +678,8 @@ def reload_tokens_file(tokens_path, load_message=True):
         'BOOSTPERCENT': 50,
         'GASLIMIT': 1000000,
         'BUYAFTER_XXX_SECONDS': 0,
-        'XXX_SECONDS_COOLDOWN_AFTER_SUCCESS_TX': 0,
+        'XXX_SECONDS_COOLDOWN_AFTER_BUY_SUCCESS_TX': 0,
+        'XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX': 0,
         'MAX_FAILED_TRANSACTIONS_IN_A_ROW': 2,
         'MAX_SUCCESS_TRANSACTIONS_IN_A_ROW': 2,
         'GASPRIORITY_FOR_ETH_ONLY': 1.5,
@@ -4456,10 +4458,10 @@ def run():
                                 # Re-calculate balances after buy()
                                 calculate_base_balance(token)
                                 
-                                # Optional cooldown after SUCCESS buy, if you use XXX_SECONDS_COOLDOWN_AFTER_SUCCESS_TX parameter
-                                if token['XXX_SECONDS_COOLDOWN_AFTER_SUCCESS_TX'] != 0:
-                                    printt_info("Bot will wait", token['XXX_SECONDS_COOLDOWN_AFTER_SUCCESS_TX'], "seconds after BUY, due to XXX_SECONDS_COOLDOWN_AFTER_SUCCESS_TX parameter", write_to_log=True)
-                                    sleep(token['XXX_SECONDS_COOLDOWN_AFTER_SUCCESS_TX'])
+                                # Optional cooldown after SUCCESS buy, if you use XXX_SECONDS_COOLDOWN_AFTER_BUY_SUCCESS_TX parameter
+                                if token['XXX_SECONDS_COOLDOWN_AFTER_BUY_SUCCESS_TX'] != 0:
+                                    printt_info("Bot will wait", token['XXX_SECONDS_COOLDOWN_AFTER_BUY_SUCCESS_TX'], "seconds after BUY, due to XXX_SECONDS_COOLDOWN_AFTER_BUY_SUCCESS_TX parameter", write_to_log=True)
+                                    sleep(token['XXX_SECONDS_COOLDOWN_AFTER_BUY_SUCCESS_TX'])
 
                                 # increment _SUCCESS_TRANSACTIONS amount
                                 token['_SUCCESS_TRANSACTIONS'] += 1
@@ -4569,6 +4571,11 @@ def run():
                                 printt_ok("----------------------------------", write_to_log=True)
                                 printt_ok("SUCCESS : your sell Tx is confirmed    ", write_to_log=True)
                                 
+                                # Optional cooldown after SUCCESS sell, if you use XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX parameter
+                                if token['XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX'] != 0:
+                                    printt_info("Bot will wait", token['XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX'], "seconds after BUY, due to XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX parameter", write_to_log=True)
+                                    sleep(token['XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX'])
+
                                 # Re-calculate balances after buy()
                                 calculate_base_balance(token)
 
