@@ -1,3 +1,21 @@
+
+  * [HOW TO INSTALL LimitSwap](#how-to-install-limitswap)
+    + [1. Run The Python Code Locally [*this is most ideal and can work on any OS*]](#1-run-the-python-code-locally---this-is-most-ideal-and-can-work-on-any-os--)
+    + [2. Download the pre-compiled package [*This can lag behind current version*]](#2-download-the-pre-compiled-package---this-can-lag-behind-current-version--)
+      - [Pros and cons](#pros-and-cons)
+    + [3. With Docker](#3-with-docker)
+      - [Requirements](#requirements)
+      - [Usage](#usage)
+  * [Developers 🔧](#developers---)
+  * [Links & Socials](#links---socials)
+      - [WiKi](#wiki)
+      - [Website:](#website-)
+      - [Twitter:](#twitter-)
+      - [Telegram:](#telegram-)
+
+<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
+
+
 # LimitSwap
 LimitSwap is a trading bot for UniSwap & Many Other DEXs. It has the ability to scan multiple pairs on uniswap and grab the price in realtime and make automated trading decisions based on the users settings [AKA: Limit Orders]
 
