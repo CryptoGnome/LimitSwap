@@ -4,7 +4,7 @@
       - [For Windows users](#for-windows-users)
       - [For Linux users](#for-linux-users)
       - [For Mac users](#for-mac-users)
-    + [2. Download the pre-compiled package (For Windows users only)](#2-download-the-pre-compiled-package-for-windows-users-only-)
+    + [2. Download the pre-compiled package (For Windows users only)](#2-download-the-pre-compiled-package-for-windows-users-only)
 
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
