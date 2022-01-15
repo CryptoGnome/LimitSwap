@@ -1,4 +1,4 @@
-
+- [LimitSwap](#limitswap)
   * [HOW TO INSTALL LimitSwap](#how-to-install-limitswap)
     + [1. Run The Python Code Locally [*this is most ideal and can work on any OS*]](#1-run-the-python-code-locally---this-is-most-ideal-and-can-work-on-any-os--)
     + [2. Download the pre-compiled package [*This can lag behind current version*]](#2-download-the-pre-compiled-package---this-can-lag-behind-current-version--)
@@ -12,8 +12,6 @@
       - [Website:](#website-)
       - [Twitter:](#twitter-)
       - [Telegram:](#telegram-)
-
-<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
 
 # LimitSwap
