@@ -4487,8 +4487,10 @@ def run():
                                     printt_info("You have reached MAXTOKENS for", token['SYMBOL'], "token --> disabling trade", write_to_log=True)
 
                                 # Calculates cost per token
-                                token['_COST_PER_TOKEN'] = float(token['BUYAMOUNTINBASE']) / float(token['_TOKEN_BALANCE'])
-                                printt_debug(token['SYMBOL'], " cost per token was: ", token['_COST_PER_TOKEN'])
+                                # TODO : solve problem here https://t.me/LimitSwap/102375
+                                if float(token['_TOKEN_BALANCE']) > 0:
+                                    token['_COST_PER_TOKEN'] = float(token['BUYAMOUNTINBASE']) / float(token['_TOKEN_BALANCE'])
+                                    printt_debug(token['SYMBOL'], " cost per token was: ", token['_COST_PER_TOKEN'])
                     
                         else:
                             continue
