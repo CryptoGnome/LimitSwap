@@ -1,22 +1,34 @@
+- [LimitSwap](#limitswap)
+  * [HOW TO INSTALL LimitSwap](#how-to-install-limitswap)
+    + [1. Run The Python Code Locally](#1-run-the-python-code-locally)
+      - [For Windows users](#for-windows-users)
+      - [For Linux users](#for-linux-users)
+      - [For Mac users](#for-mac-users)
+    + [2. Download the pre-compiled package (For Windows users only)](#2-download-the-pre-compiled-package--for-windows-users-only-)
+  * [Developers 🔧](#developers---)
+  * [Links & Socials](#links---socials)
+
+<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
+
+
 # LimitSwap
 LimitSwap is a trading bot for UniSwap & Many Other DEXs. It has the ability to scan multiple pairs on uniswap and grab the price in realtime and make automated trading decisions based on the users settings [AKA: Limit Orders]
-
-
-*This bot was built as a learning project for me to learn how to use Web.py, Erc20, & improve my coding skills please use at your own risk!*
 
 &nbsp;
 &nbsp;
 
 ## HOW TO INSTALL LimitSwap
-There are 3 ways to install LimitSwap : 
+There are 2 ways to install LimitSwap : 
 
 &nbsp;
 
 
-### 1. Run The Python Code Locally [*this is most ideal and can work on any OS*]
-Here is a tutorial step-by-step: 
+### 1. Run The Python Code Locally 
+Here are tutorials step-by-step: 
 
 &nbsp;
+
+#### For Windows users
 
 ----------------------------------------
 
@@ -103,7 +115,61 @@ or
 &nbsp;
 &nbsp;
 
-### 2. Download the pre-compiled package [*This can lag behind current version*]
+#### For Linux users
+
+----------------------------------------
+
+DO THIS ONCE
+
+----------------------------------------
+
+
+ `sudo -s`
+
+ `apt-get install python3-dev build-essential python3-pip`
+
+
+----------------------------------------
+
+DO THE NEXT STEPS FOR EACH UPGRADE
+
+----------------------------------------
+
+Navigate to the Limistswap folder, then:
+
+`python3 -m venv env`
+
+`source env/bin/activate`
+
+`pip install wheel`
+
+`pip install -r requirements.txt`
+
+`python LimitSwap.py`
+
+This allows you to use parameters. For example, if you have several .json files and you want to choose which one to use :
+
+`python LimitSwap.py -s settingsBSC.json -t tokensBSC.json`  
+
+or
+
+`python LimitSwap.py --benchmark`  
+
+&nbsp;
+
+#### For Mac users
+
+----------------------------------------
+
+Tutorial to be done... but it's pretty close from previous tutorials
+
+----------------------------------------
+
+&nbsp;
+&nbsp;
+
+### 2. Download the pre-compiled package (For Windows users only)
+
 That we provide on the Release page : it's a .exe file that you can run on your computer.
 https://github.com/tsarbuig/LimitSwap/releases
 
@@ -126,37 +192,6 @@ https://github.com/tsarbuig/LimitSwap/releases
 🔴 : it's pre-compiled, so you cannot check the Source Code
 
 &nbsp;
-&nbsp;
-
-
-### 3. With Docker
-
-#### Requirements
-MacOS and Windows users require Docker for Desktop https://www.docker.com/products/docker-desktop
-Ubuntu Linux require Docker installed `sudo apt-get install docker.io`
-
-#### Usage
-Navigate into the bot directory and build the Docker image by executing the following command:
-
-`docker build -t limit_swap_v4 .`
-
-(For MacOS and Linux) Still within the main directory you can run Docker via:
-
-`docker run --rm --name limit-swap_v4 -it -v $(pwd)/settings.json:/app/settings.json -v $(pwd)/tokens.json:/app/tokens.json limit_swap_v4`
-
-(For Windows with Powershell)
-
-`docker run --rm --name limit-swap_v4 -it -v $PWD/settings.json:/app/settings.json -v $PWD/tokens.json:/app/tokens.json limit_swap_v4`
-
-If you wish to run the container in the background please include -d for detached.
-
-The streaming container logs can be visualised with `docker logs -f limit_swap_v4`
-
-To stop the bot `docker stop limit_swap_v4`
-
-
-&nbsp;
-
 &nbsp;
 
 
