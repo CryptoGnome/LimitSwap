@@ -632,7 +632,7 @@ def load_tokens_file(tokens_path, load_message=True):
             for new_token_dict in build_extended_base_configuration(token):
                 set_of_new_tokens.append(new_token_dict)
         elif token['WATCH_STABLES_PAIRS'] == 'true':
-            printt_warn ("Ignoring WATCH_STABLES_PAIRS", "for", token['SYMBOL'], ". WATCH_STABLES_PAIRS = true and USECUSTOMBASEPAIR = true is unsupported.")
+            printt_warn ("Ignoring WATCH_STABLES_PAIRS", "for", token['SYMBOL'], ": WATCH_STABLES_PAIRS = true and USECUSTOMBASEPAIR = true is unsupported.")
 
 
         if token['USECUSTOMBASEPAIR'] == 'false':
@@ -1077,8 +1077,46 @@ if settings['EXCHANGE'].lower() == 'traderjoe':
     base_symbol = "AVAX"
     rugdocchain = '&chain=avax'
     modified = True
+    
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'AVAX'
+    settings['_STABLE_BASES'] = {'MIM ':{ 'address': '0x130966628846bfd36ff31a822705796e8cb8c18d', 'multiplier' : 0},
+                                 'USDT':{ 'address': '0xc7198437980c041c805a1edcba50c1ce5db95118', 'multiplier' : 0}}
 
-elif settings['EXCHANGE'] == 'pinkswap':
+if settings["EXCHANGE"] == 'pangolin':
+    if settings['USECUSTOMNODE'] == 'true':
+        my_provider = settings['CUSTOMNODE']
+    else:
+        my_provider = "https://api.avax.network/ext/bc/C/rpc"
+
+    if not my_provider:
+        printt_err('Custom node empty. Exiting')
+    exit(1)
+
+    if my_provider[0].lower() == 'h':
+        print(timestamp(), 'Using HTTPProvider')
+        client = Web3(Web3.HTTPProvider(my_provider))
+    elif my_provider[0].lower() == 'w':
+        print(timestamp(), 'Using WebsocketProvider')
+        client = Web3(Web3.WebsocketProvider(my_provider))
+    else:
+        print(timestamp(), 'Using IPCProvider')
+        client = Web3(Web3.IPCProvider(my_provider))
+
+    print(timestamp(), "AVAX Chain Connected =", client.isConnected())
+    print(timestamp(), "Loading Smart Contracts...")
+    routerAddress = Web3.toChecksumAddress("0xE54Ca86531e17Ef3616d22Ca28b0D458b6C89106")
+    factoryAddress = Web3.toChecksumAddress("0xefa94DE7a4656D787667C749f7E1223D71E9FD88")
+    routerContract = client.eth.contract(address=routerAddress, abi=pangolinAbi)
+    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
+    weth = Web3.toChecksumAddress("0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7")
+    base_symbol = "AVAX"
+    rugdocchain = '&chain=avax'
+    modified = True
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'AVAX'
+    settings['_STABLE_BASES'] = {'MIM ': {'address': '0x130966628846bfd36ff31a822705796e8cb8c18d', 'multiplier': 0},
+                                 'USDT': {'address': '0xc7198437980c041c805a1edcba50c1ce5db95118', 'multiplier': 0}}
+
+if settings['EXCHANGE'] == 'pinkswap':
     if settings['USECUSTOMNODE'] == 'true':
         my_provider = settings['CUSTOMNODE']
         print(timestamp(), 'Using custom node.')
@@ -1112,8 +1150,13 @@ elif settings['EXCHANGE'] == 'pinkswap':
     base_symbol = "BNB"
     rugdocchain = '&chain=bsc'
     modified = False
+    
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'BNB '
+    settings['_STABLE_BASES'] = {'USDT':{ 'address': '0x55d398326f99059ff775485246999027b3197955', 'multiplier' : 0},
+                                 'BUSD':{ 'address': '0xe9e7cea3dedca5984780bafc599bd69add087d56', 'multiplier' : 0},
+                                 'USDC':{ 'address': '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', 'multiplier' : 0}}
 
-elif settings['EXCHANGE'] == 'biswap':
+if settings['EXCHANGE'] == 'biswap':
     if settings['USECUSTOMNODE'] == 'true':
         my_provider = settings['CUSTOMNODE']
         print(timestamp(), 'Using custom node.')
@@ -1147,7 +1190,11 @@ elif settings['EXCHANGE'] == 'biswap':
     base_symbol = "BNB"
     rugdocchain = '&chain=bsc'
     modified = False
-    
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'BNB '
+    settings['_STABLE_BASES'] = {'USDT':{ 'address': '0x55d398326f99059ff775485246999027b3197955', 'multiplier' : 0},
+                                 'BUSD':{ 'address': '0xe9e7cea3dedca5984780bafc599bd69add087d56', 'multiplier' : 0},
+                                 'USDC':{ 'address': '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', 'multiplier' : 0}}
+
 elif settings['EXCHANGE'].lower() == 'babyswap':
     if settings['USECUSTOMNODE'].lower() == 'true':
         my_provider = settings['CUSTOMNODE']
@@ -1182,8 +1229,12 @@ elif settings['EXCHANGE'].lower() == 'babyswap':
     base_symbol = "BNB"
     rugdocchain = '&chain=bsc'
     modified = False
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'BNB '
+    settings['_STABLE_BASES'] = {'USDT':{ 'address': '0x55d398326f99059ff775485246999027b3197955', 'multiplier' : 0},
+                                 'BUSD':{ 'address': '0xe9e7cea3dedca5984780bafc599bd69add087d56', 'multiplier' : 0},
+                                 'USDC':{ 'address': '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', 'multiplier' : 0}}
 
-elif settings['EXCHANGE'] == 'bakeryswap':
+if settings['EXCHANGE'] == 'bakeryswap':
     if settings['USECUSTOMNODE'] == 'true':
         my_provider = settings['CUSTOMNODE']
         print(timestamp(), 'Using custom node.')
@@ -1217,8 +1268,12 @@ elif settings['EXCHANGE'] == 'bakeryswap':
     base_symbol = "BNB"
     rugdocchain = '&chain=bsc'
     modified = True
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'BNB '
+    settings['_STABLE_BASES'] = {'USDT':{ 'address': '0x55d398326f99059ff775485246999027b3197955', 'multiplier' : 0},
+                                 'BUSD':{ 'address': '0xe9e7cea3dedca5984780bafc599bd69add087d56', 'multiplier' : 0},
+                                 'USDC':{ 'address': '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', 'multiplier' : 0}}
 
-elif settings['EXCHANGE'] == 'apeswap':
+if settings['EXCHANGE'] == 'apeswap':
     if settings['USECUSTOMNODE'] == 'true':
         my_provider = settings['CUSTOMNODE']
     else:
@@ -1252,6 +1307,10 @@ elif settings['EXCHANGE'] == 'apeswap':
     base_symbol = "BNB"
     rugdocchain = '&chain=bsc'
     modified = False
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'BNB '
+    settings['_STABLE_BASES'] = {'USDT':{ 'address': '0x55d398326f99059ff775485246999027b3197955', 'multiplier' : 0},
+                                 'BUSD':{ 'address': '0xe9e7cea3dedca5984780bafc599bd69add087d56', 'multiplier' : 0},
+                                 'USDC':{ 'address': '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', 'multiplier' : 0}}
 
 elif settings["EXCHANGE"] == 'uniswap':
     if settings['USECUSTOMNODE'] == 'true':
@@ -1283,6 +1342,10 @@ elif settings["EXCHANGE"] == 'uniswap':
     base_symbol = "ETH"
     rugdocchain = '&chain=eth'
     modified = False
+
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'ETH'
+    settings['_STABLE_BASES'] = {'USDT':{ 'address': '0xdac17f958d2ee523a2206206994597c13d831ec7', 'multiplier' : 0},
+                                 'USDC':{ 'address': '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', 'multiplier' : 0}}
 
 elif settings["EXCHANGE"] == 'uniswaptestnet':
     if settings['USECUSTOMNODE'] == 'true':
@@ -1345,6 +1408,9 @@ elif settings["EXCHANGE"] == 'kuswap':
     base_symbol = "KCS"
     rugdocchain = '&chain=kcc'
     modified = False
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'KCS'
+    settings['_STABLE_BASES'] = {'USD ':{ 'address': '0x0039f574ee5cc39bdd162e9a88e3eb1f111baf48', 'multiplier' : 0}}
+
 
 elif settings["EXCHANGE"] == 'koffeeswap':
     if settings['USECUSTOMNODE'] == 'true':
@@ -1376,6 +1442,8 @@ elif settings["EXCHANGE"] == 'koffeeswap':
     base_symbol = "KCS"
     rugdocchain = '&chain=kcc'
     modified = True
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'KCS'
+    settings['_STABLE_BASES'] = {'USD ':{ 'address': '0x0039f574ee5cc39bdd162e9a88e3eb1f111baf48', 'multiplier' : 0}}
 
 elif settings["EXCHANGE"] == 'spookyswap':
     if settings['USECUSTOMNODE'] == 'true':
@@ -1407,6 +1475,8 @@ elif settings["EXCHANGE"] == 'spookyswap':
     base_symbol = "FTM"
     rugdocchain = '&chain=ftm'
     modified = False
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'FTM'
+    settings['_STABLE_BASES'] = {'USDC':{ 'address': '0x04068da6c83afcfa0e13ba15a6696662335d5b75', 'multiplier' : 0}}
 
 elif settings["EXCHANGE"] == 'spiritswap':
     if settings['USECUSTOMNODE'] == 'true':
@@ -1414,7 +1484,20 @@ elif settings["EXCHANGE"] == 'spiritswap':
     else:
         my_provider = "https://rpcapi.fantom.network"
     
-    client = Web3(Web3.HTTPProvider(my_provider))
+    if not my_provider:
+        printt_err('Custom node empty. Exiting')
+        exit(1)
+
+    if my_provider[0].lower() == 'h':
+        print(timestamp(), 'Using HTTPProvider')
+        client = Web3(Web3.HTTPProvider(my_provider))
+    elif my_provider[0].lower() == 'w':
+        print(timestamp(), 'Using WebsocketProvider')
+        client = Web3(Web3.WebsocketProvider(my_provider))
+    else:
+        print(timestamp(), 'Using IPCProvider')
+        client = Web3(Web3.IPCProvider(my_provider))
+
     print(timestamp(), "FANTOM Chain Connected =", client.isConnected())
     print(timestamp(), "Loading Smart Contracts...")
     routerAddress = Web3.toChecksumAddress("0x16327E3FbDaCA3bcF7E38F5Af2599D2DDc33aE52")
@@ -1425,6 +1508,9 @@ elif settings["EXCHANGE"] == 'spiritswap':
     base_symbol = "FTM"
     rugdocchain = '&chain=ftm'
     modified = False
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'FTM'
+    settings['_STABLE_BASES'] = {'USDC':{ 'address': '0x04068da6c83afcfa0e13ba15a6696662335d5b75', 'multiplier' : 0}}
+
 
 elif settings["EXCHANGE"] == 'quickswap':
     if settings['USECUSTOMNODE'] == 'true':
@@ -1456,6 +1542,9 @@ elif settings["EXCHANGE"] == 'quickswap':
     base_symbol = "MATIC"
     rugdocchain = '&chain=poly'
     modified = False
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'MATIC'
+    settings['_STABLE_BASES'] = {'USDT':{ 'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier' : 0}}
+
 
 elif settings["EXCHANGE"] == 'waultswap':
     if settings['USECUSTOMNODE'] == 'true':
@@ -1487,37 +1576,8 @@ elif settings["EXCHANGE"] == 'waultswap':
     base_symbol = "MATIC"
     rugdocchain = '&chain=poly'
     modified = False
-
-elif settings["EXCHANGE"] == 'pangolin':
-    if settings['USECUSTOMNODE'] == 'true':
-        my_provider = settings['CUSTOMNODE']
-    else:
-        my_provider = "https://api.avax.network/ext/bc/C/rpc"
-
-    if not my_provider:
-        printt_err('Custom node empty. Exiting')
-        exit(1)
-
-    if my_provider[0].lower() == 'h':
-        print(timestamp(), 'Using HTTPProvider')
-        client = Web3(Web3.HTTPProvider(my_provider))
-    elif my_provider[0].lower() == 'w':
-        print(timestamp(), 'Using WebsocketProvider')
-        client = Web3(Web3.WebsocketProvider(my_provider))
-    else:
-        print(timestamp(), 'Using IPCProvider')
-        client = Web3(Web3.IPCProvider(my_provider))
-
-    print(timestamp(), "AVAX Chain Connected =", client.isConnected())
-    print(timestamp(), "Loading Smart Contracts...")
-    routerAddress = Web3.toChecksumAddress("0xE54Ca86531e17Ef3616d22Ca28b0D458b6C89106")
-    factoryAddress = Web3.toChecksumAddress("0xefa94DE7a4656D787667C749f7E1223D71E9FD88")
-    routerContract = client.eth.contract(address=routerAddress, abi=pangolinAbi)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
-    weth = Web3.toChecksumAddress("0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7")
-    base_symbol = "AVAX"
-    rugdocchain = '&chain=avax'
-    modified = True
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'MATIC'
+    settings['_STABLE_BASES'] = {'USDT':{ 'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier' : 0}}
 
 
 def get_password():
@@ -4644,7 +4704,7 @@ def run():
                                 
                                 # Optional cooldown after SUCCESS sell, if you use XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX parameter
                                 if token['XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX'] != 0:
-                                    printt_info("Bot will wait", token['XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX'], "seconds after BUY, due to XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX parameter", write_to_log=True)
+                                    printt_info("Bot will wait", token['XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX'], "seconds after SELL, due to XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX parameter", write_to_log=True)
                                     sleep(token['XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX'])
 
                                 # Re-calculate balances after buy()
