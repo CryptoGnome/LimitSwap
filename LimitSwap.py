@@ -2096,14 +2096,14 @@ def wait_for_open_trade(token, inToken, outToken):
     printt("WAIT_FOR_OPEN_TRADE is enabled", write_to_log=True)
     printt("", write_to_log=True)
 
-    if token['WAIT_FOR_OPEN_TRADE'] == 'true':
+    if token['WAIT_FOR_OPEN_TRADE'] == 'true' or token['WAIT_FOR_OPEN_TRADE'] == 'true_after_buy_tx_failed':
         printt("It works with 2 ways:", write_to_log=True)
         printt("1/ Bot will scan mempool to detect Enable Trading functions", write_to_log=True)
         printt("2/ Bot will wait for price to move before making a BUY order", write_to_log=True)
         printt(" ", write_to_log=True)
         printt("---- Why those 2 ways ? ----", write_to_log=True)
         printt("Because we need to enter in the code the functions used by the teams to make trading open", write_to_log=True)
-        printt("And there is a LOT of ways to do that, so we cannot be 100% to detect i in the mempool", write_to_log=True)
+        printt("And there is a LOT of ways to do that, so we cannot be 100% to detect it in the mempool", write_to_log=True)
         printt(" ", write_to_log=True)
         printt_err("---- WE NEED YOUR HELP FOR THAT ----", write_to_log=True)
         printt_err("To detect Enable Trading in mempool, we need to enter in the code the functions used by the teams to make trading open:", write_to_log=True)
@@ -2117,11 +2117,11 @@ def wait_for_open_trade(token, inToken, outToken):
         printt("Explanation : if you try to snipe in BUSD and liquidity is in BNB, price will move because of price movement between BUSD and BNB", write_to_log=True)
         printt("--> if liquidity is in BNB or ETH, use LIQUIDITYINNATIVETOKEN = true and USECUSTOMBASEPAIR = false", write_to_log=True)
         printt(" ", write_to_log=True)
-        printt("When you will have read all this message and understood how it works, enter the value 'true_no_message' in your WAIT_FOR_OPEN_TRADE setting", write_to_log=True)
+        printt("When you will have read all this message and understood how it works, enter the value 'true_no_message' or 'true_after_buy_tx_failed_no_message' in your WAIT_FOR_OPEN_TRADE setting", write_to_log=True)
         printt(" ", write_to_log=True)
         printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
 
-    if token['WAIT_FOR_OPEN_TRADE'] == 'mempool':
+    if token['WAIT_FOR_OPEN_TRADE'] == 'mempool' or token['WAIT_FOR_OPEN_TRADE'] == 'mempool_after_buy_tx_failed':
         printt("It will scan mempool to detect Enable Trading functions", write_to_log=True)
         printt(" ", write_to_log=True)
         printt_err("---- WE NEED YOUR HELP FOR THAT ----", write_to_log=True)
@@ -2137,11 +2137,11 @@ def wait_for_open_trade(token, inToken, outToken):
 
     tx_filter = client.eth.filter({"filter_params": "pending", "address": inToken})
     
-    list_of_methodId = ["0xc9567bf9", "0x8a8c523c", "0x0d295980", "0xbccce037", "0x4efac329", "0x7b9e987a", "0x6533e038", "0x8f70ccf7", "0xa6334231", "0x48dfea0a", "0xc818c280"]
+    list_of_methodId = ["0xc9567bf9", "0x8a8c523c", "0x0d295980", "0xbccce037", "0x4efac329", "0x7b9e987a", "0x6533e038", "0x8f70ccf7", "0xa6334231", "0x48dfea0a", "0xc818c280", "0xade87098", "0x0099d386", "0xfb201b1d"]
 
     while openTrade == False:
     
-        if token['WAIT_FOR_OPEN_TRADE'] == 'true' or token['WAIT_FOR_OPEN_TRADE'] == 'true_no_message':
+        if token['WAIT_FOR_OPEN_TRADE'] == 'true' or token['WAIT_FOR_OPEN_TRADE'] == 'true_no_message' or token['WAIT_FOR_OPEN_TRADE'] == 'true_after_buy_tx_failed' or token['WAIT_FOR_OPEN_TRADE'] == 'true_after_buy_tx_failed_no_message':
             pprice = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], int(token['_CONTRACT_DECIMALS']), int(token['_BASE_DECIMALS']))
     
             if pprice != float(token['_PREVIOUS_QUOTE']):
@@ -2689,13 +2689,12 @@ def calculate_base_balance(token):
     
     printt_debug("ENTER: calculate_base_balance()")
 
-
     # STEP 1 - Determine if wallet has minimum base balance
     # Bot will get your balance, and show an error if there is a problem with your node.
     if base_symbol == "ETH":
         minimumbalance = 0.05
     else:
-        minimumbalance = 0.01
+        minimumbalance = 0.03
 
     try:
         eth_balance = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
@@ -2705,8 +2704,8 @@ def calculate_base_balance(token):
         sys.exit()
 
     if eth_balance < minimumbalance:
-        printt_err(
-            "You have less than 0.05 ETH or 0.01 BNB/FTM/MATIC/etc. token in your wallet, bot needs more to cover fees : please add some more in your wallet")
+        printt_err("You have less than 0.05 ETH or 0.03 BNB/FTM/MATIC/etc. token in your wallet, bot needs more to cover fees : please add some more in your wallet")
+        printt_err("We know it can seem a lot, but the smart contracts used by Exchanges have automatic controls of minimal balance.")
         sleep(10)
         exit(1)
 
@@ -4432,7 +4431,7 @@ def run():
                             if txbuyresult != 1:
                                 # transaction is a FAILURE
                                 printt_err("-------------------------------", write_to_log=True)
-                                printt_err("ERROR TRANSACTION FAILURE !")
+                                printt_err("   BUY TRANSACTION FAILURE !")
                                 printt_err("-------------------------------")
                                 printt_err("Type of failures and possible causes:")
                                 printt_err("- TRANSFER_FROM_FAILED         --> GASLIMIT too low. Raise it to GASLIMIT = 1000000 at least")
@@ -4450,7 +4449,11 @@ def run():
                                 
                                 # Check if Base pair is approved, in case of TRANSFER_FROM_FAILED
                                 preapprove_base(token)
-                                
+
+                                # If user selected WAIT_FOR_OPEN_TRADE = 'XXX_after_buy_tx_failed" bot enters WAIT_FOR_OPEN_TRADE mode
+                                if token['WAIT_FOR_OPEN_TRADE'].lower() == 'true_after_buy_tx_failed' or token['WAIT_FOR_OPEN_TRADE'].lower() == 'true_after_buy_tx_failed_no_message' or token['WAIT_FOR_OPEN_TRADE'] == 'mempool_after_buy_tx_failed':
+                                    wait_for_open_trade(token, inToken, outToken)
+
                             else:
                                 # transaction is a SUCCESS
                                 printt_ok("----------------------------------", write_to_log=True)
@@ -4548,9 +4551,9 @@ def run():
                             
                             if txsellresult != 1:
                                 # transaction is a FAILURE
-                                printt_err("-------------------------------")
-                                printt_err("ERROR TRANSACTION FAILURE !")
-                                printt_err("-------------------------------")
+                                printt_err("--------------------------------")
+                                printt_err("   SELL TRANSACTION FAILURE !")
+                                printt_err("--------------------------------")
                                 printt_err("Type of failures and possible causes:")
                                 printt_err("- TRANSFER_FROM_FAILED         --> GASLIMIT too low. Raise it to GASLIMIT = 1000000 at least")
                                 printt_err("- TRANSFER_FROM_FAILED         --> Token is not approved for trade. LimitSwap will check approval right now.")
