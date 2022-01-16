@@ -1721,7 +1721,6 @@ def build_extended_base_configuration(token_dict):
     # Giving values for the native pair
     token_dict['_BUILT_BY_BOT'] = True
     token_dict['LIQUIDITYINNATIVETOKEN'] = "true"
-    token_dict['_BASE_PRICE'] = calculate_base_price()
 
     # Giving values for the stables pair
     for stable_token in settings['_STABLE_BASES']:
@@ -4354,6 +4353,9 @@ def run():
 
             token['_WETH_DECIMALS'] = int(decimals(weth))
             printt_debug("token['_WETH_DECIMALS']    :", token['_WETH_DECIMALS'])
+            
+            # Calculate base price
+            token['_BASE_PRICE'] = calculate_base_price()
 
             # Determine token name + base symbol to display
             if token['USECUSTOMBASEPAIR'] == 'true':
@@ -4368,13 +4370,6 @@ def run():
                 if token['_TOKEN_BALANCE'] > float(token['MAXTOKENS']):
                     token['_REACHED_MAX_TOKENS'] = True
                     printt_warn("You have reached MAXTOKENS for token ", token['SYMBOL'], "--> bot stops to buy", write_to_log=True)
-
-            # # Calculate base price
-            # if settings['EXCHANGE'].lower() != 'pancakeswaptestnet' and settings['EXCHANGE'].lower() != 'uniswaptestnet':
-            #     token['_BASE_PRICE'] = calculate_base_price()
-            #     printt(base_symbol, "price:", "{:.6f}".format(token['_BASE_PRICE']), "$")
-            #
-            
             
             # Calculate balances prior to buy() to accelerate buy()
             calculate_base_balance(token)
@@ -4522,12 +4517,11 @@ def run():
                         printt_debug("===========================================")
                         
                         log_price = "{:.18f}".format(token['_QUOTE'])
-                        logging.info("Buy Signal Found @" + str(log_price))
-                        printt_ok("-----------------------------------------------------------")
-                        printt_ok("Buy Signal Found =-= Buy Signal Found =-= Buy Signal Found ")
-                        printt_ok("")
-                        printt_ok("Buy price in", token['_PAIR_TO_DISPLAY'], ":", log_price)
-                        printt_ok("-----------------------------------------------------------")
+                        printt_ok("-----------------------------------------------------------", write_to_log=True)
+                        printt_ok("Buy Signal Found =-= Buy Signal Found =-= Buy Signal Found ", write_to_log=True)
+                        printt_ok("", write_to_log=True)
+                        printt_ok("Buy price in", token['_PAIR_TO_DISPLAY'], ":", log_price, write_to_log=True)
+                        printt_ok("-----------------------------------------------------------", write_to_log=True)
                         
                         #
                         # LIQUIDITY CHECK
