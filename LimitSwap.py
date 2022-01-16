@@ -271,7 +271,7 @@ def printt_sell_price(token_dict, token_price):
     else:
         price_message = token_dict['_PAIR_SYMBOL'] + " Price: " + "{0:.24f}".format(token_price) + " " + token_dict['BASESYMBOL'] + " - Buy:" + str(token_dict['BUYPRICEINBASE'])
     
-    price_message = price_message + " Sell:" + str(token_dict['SELLPRICEINBASE']) + " Stop:" + str(token_dict['STOPLOSSPRICEINBASE'])
+    price_message = price_message + " Sell:" + str(token_dict['_CALCULATED_SELLPRICEINBASE']) + " Stop:" + str(token_dict['_CALCULATED_STOPLOSSPRICEINBASE'])
     # price_message = price_message + " ATH:" + "{0:.24f}".format(token_dict['_ALL_TIME_HIGH']) + " ATL:" + "{0:.24f}".format(token_dict['_ALL_TIME_LOW'])
 
     if token_dict['USECUSTOMBASEPAIR'] == 'false':
@@ -527,15 +527,19 @@ def load_tokens_file(tokens_path, load_message=True):
     #                         done depend on (if MAX_SUCCESS_TRANSACTIONS_IN_A_ROW < _REACHED_MAX_SUCCESS_TX) conditionals
     # _TRADING_IS_ON        - defines if trading is ON of OFF on a token. Used with WAIT_FOR_OPEN_TRADE parameter
     # _RUGDOC_DECISION      - decision of the user after RugDoc API check
-    # _TOKEN_BALANCE        - the number of traded tokens the user has in her wallet
+    # _TOKEN_BALANCE        - the number of traded tokens the user has in his wallet
+    # _PREVIOUS_TOKEN_BALANCE - the number of traded tokens the user has in his wallet before BUY order
     # _BASE_BALANCE         - balance of Base token, calculated at bot launch and after a BUY/SELL
     # _BASE_PRICE           - price of Base token, calculated at bot launch with calculate_base_price
+    # _BASE_USED_FOR_TX     - amount of base balance used to make the Tx transaction
     # _PAIR_TO_DISPLAY      - token symbol / base symbol
     # _CUSTOM_BASE_BALANCE  - balance of Custom Base token, calculated at bot launch and after a BUY/SELL
     # _QUOTE                - holds the token's quote
     # _PREVIOUS_QUOTE       - holds the ask price for a token the last time a price was queried, this is used
     #                         to determine the direction the market is going
     # _COST_PER_TOKEN       - the calculated/estimated price the bot paid for the number of tokens it traded
+    # _CALCULATED_SELLPRICEINBASE           - the calculated sell price created with build_sell_conditions()
+    # _CALCULATED_STOPLOSSPRICEINBASE       - the calculated stoploss price created with build_sell_conditions()
     # _ALL_TIME_HIGH        - the highest price a token has had since the bot was started
     # _ALL_TIME_LOW         - the lowest price a token has had since the bot was started
     # _CONTRACT_DECIMALS    - the number of decimals a contract uses. Used to speed up some of our processes
@@ -565,14 +569,18 @@ def load_tokens_file(tokens_path, load_message=True):
         '_SUCCESS_TRANSACTIONS': 0,
         '_REACHED_MAX_SUCCESS_TX': False,
         '_TOKEN_BALANCE': 0,
+        '_PREVIOUS_TOKEN_BALANCE': 0,
         '_BASE_BALANCE': 0,
         '_BASE_PRICE': 0,
+        '_BASE_USED_FOR_TX': 0,
         '_PAIR_TO_DISPLAY': "Pair",
         '_CUSTOM_BASE_BALANCE': 0,
         '_QUOTE': 0,
         '_PREVIOUS_QUOTE': 0,
         '_ALL_TIME_HIGH': 0,
         '_COST_PER_TOKEN': 0,
+        '_CALCULATED_SELLPRICEINBASE': 0,
+        '_CALCULATED_STOPLOSSPRICEINBASE': 0,
         '_ALL_TIME_LOW': 0,
         '_CONTRACT_DECIMALS': 0,
         '_BASE_DECIMALS': 0,
@@ -734,14 +742,18 @@ def reload_tokens_file(tokens_path, load_message=True):
     # _TRADING_IS_ON        - defines if trading is ON of OFF on a token. Used with WAIT_FOR_OPEN_TRADE parameter
     # _RUGDOC_DECISION      - decision of the user after RugDoc API check
     # _TOKEN_BALANCE        - the number of traded tokens the user has in her wallet
+    # _PREVIOUS_TOKEN_BALANCE - the number of traded tokens the user has in his wallet before BUY order
     # _BASE_BALANCE         - balance of Base token, calculated at bot launch and after a BUY/SELL
     # _BASE_PRICE           - price of Base token, calculated at bot launch with calculate_base_price
+    # _BASE_USED_FOR_TX     - amount of base balance used to make the Tx transaction
     # _PAIR_TO_DISPLAY      - token symbol / base symbol
     # _CUSTOM_BASE_BALANCE' - balance of Custom Base token, calculated at bot launch and after a BUY/SELL
     # _QUOTE                - holds the token's quote
     # _PREVIOUS_QUOTE       - holds the ask price for a token the last time a price was queried, this is used
     #                         to determine the direction the market is going
     # _COST_PER_TOKEN       - the calculated/estimated price the bot paid for the number of tokens it traded
+    # _CALCULATED_SELLPRICEINBASE           - the calculated sell price created with build_sell_conditions()
+    # _CALCULATED_STOPLOSSPRICEINBASE       - the calculated stoploss price created with build_sell_conditions()
     # _ALL_TIME_HIGH        - the highest price a token has had since the bot was started
     # _ALL_TIME_LOW         - the lowest price a token has had since the bot was started
     # _CONTRACT_DECIMALS    - the number of decimals a contract uses. Used to speed up some of our processes
@@ -767,14 +779,18 @@ def reload_tokens_file(tokens_path, load_message=True):
         '_SUCCESS_TRANSACTIONS': 0,
         '_REACHED_MAX_SUCCESS_TX': False,
         '_TOKEN_BALANCE': 0,
+        '_PREVIOUS_TOKEN_BALANCE': 0,
         '_BASE_BALANCE': 0,
         '_BASE_PRICE': 0,
+        '_BASE_USED_FOR_TX': 0,
         '_PAIR_TO_DISPLAY': "Pair",
         '_CUSTOM_BASE_BALANCE': 0,
         '_PREVIOUS_QUOTE': 0,
         '_QUOTE': 0,
         '_ALL_TIME_HIGH': 0,
         '_COST_PER_TOKEN': 0,
+        '_CALCULATED_SELLPRICEINBASE': 0,
+        '_CALCULATED_STOPLOSSPRICEINBASE': 0,
         '_ALL_TIME_LOW': 0,
         '_CONTRACT_DECIMALS': 0,
         '_BASE_DECIMALS': 0,
@@ -948,7 +964,7 @@ printt("************************************************************************
 
 # Check for version
 #
-version = '4.2.0.1'
+version = '4.2.1'
 printt("YOUR BOT IS CURRENTLY RUNNING VERSION ", version, write_to_log=True)
 check_release()
 
@@ -2357,6 +2373,64 @@ def get_tokens_purchased(tx_hash):
     exit(0)
 
 
+def build_sell_conditions(token_dict, condition):
+    # Function: build_sell_conditions
+    # ----------------------------
+    # This function is designed to be called anytime sell conditions need to be adjusted for a token
+    #
+    # token_dict - one element of the tokens{} dictionary
+    # buy - provides the opportunity to specify a buy price, otherwise token_dict['_COST_PER_TOKEN'] is used
+    # sell - provides the opportunity to specify a buy price, otherwise token_dict['SELLPRICEINBASE'] is used
+    # stop - provides the opportunity to specify a buy price, otherwise token_dict['STOPLOSSPRICEINBASE'] is used
+
+    printt_debug("ENTER build_sell_conditions() with", condition, "parameter")
+    
+    buy = token_dict['_COST_PER_TOKEN']
+    sell = token_dict['SELLPRICEINBASE']
+    stop = token_dict['STOPLOSSPRICEINBASE']
+    
+    # Calculates cost per token
+    # TODO : solve problem here https://t.me/LimitSwap/102375
+    if float(token_dict['_TOKEN_BALANCE']) > 0:
+        if token_dict['KIND_OF_SWAP'] == 'base':
+            token_dict['_COST_PER_TOKEN'] = float(token_dict['BUYAMOUNTINBASE']) / float((token_dict['_TOKEN_BALANCE'] - token_dict['_PREVIOUS_TOKEN_BALANCE']))
+        elif token_dict['KIND_OF_SWAP'] == 'tokens':
+            token_dict['_COST_PER_TOKEN'] = float(token_dict['_BASE_USED_FOR_TX']) / float(token_dict['BUYAMOUNTINTOKEN'])
+        else:
+            printt_err("Wrong value in KIND_OF_SWAP parameter")
+    printt_debug(token_dict['SYMBOL'], " cost per token was: ", token_dict['_COST_PER_TOKEN'])
+
+    # Check to see if the SELLPRICEINBASE is a percentage of the purchase
+    if re.search('^(\d+\.){0,1}\d+%$', str(sell)):
+        sell = sell.replace("%","")
+        if condition == 'build_at_launch':
+            token_dict['_CALCULATED_SELLPRICEINBASE'] = token_dict['BUYPRICEINBASE'] * (float(sell) / 100)
+        else:
+            token_dict['_CALCULATED_SELLPRICEINBASE'] = token_dict['_COST_PER_TOKEN'] * (float(sell) / 100)
+            printt_info("-----------------------------------------------------------")
+            printt_info(token_dict['SYMBOL'], " cost per token was: ", token_dict['_COST_PER_TOKEN'])
+            printt_info("--> SELLPRICEINBASE = ", token_dict['SELLPRICEINBASE'],"*", token_dict['_COST_PER_TOKEN'], "= ", token_dict['_CALCULATED_SELLPRICEINBASE'])
+            printt_info("-----------------------------------------------------------")
+    # Otherwise, don't adjust the sell price in base
+    else:
+        token_dict['_CALCULATED_SELLPRICEINBASE'] = sell
+
+    # Check to see if the STOPLOSSPRICEINBASE is a percentage of the purchase
+    if re.search('^(\d+\.){0,1}\d+%$', str(stop)):
+        stop = stop.replace("%","")
+        if condition == 'build_at_launch':
+            token_dict['_CALCULATED_STOPLOSSPRICEINBASE'] = 0
+        else:
+            token_dict['_CALCULATED_STOPLOSSPRICEINBASE'] = token_dict['_COST_PER_TOKEN'] * (float(stop) / 100)
+            printt_info("-----------------------------------------------------------")
+            printt_info("--> STOPLOSSPRICEINBASE = ", token_dict['STOPLOSSPRICEINBASE'],"*", token_dict['_COST_PER_TOKEN'], "= ", token_dict['_CALCULATED_STOPLOSSPRICEINBASE'])
+            printt_info("-----------------------------------------------------------")
+
+    # Otherwise, don't adjust the sell price in base
+    else:
+        token_dict['_CALCULATED_STOPLOSSPRICEINBASE'] = stop
+        
+        
 def check_liquidity_amount(token, DECIMALS_OUT, DECIMALS_weth):
     # Function: check_liquidity_amount
     # ----------------------------
@@ -3276,6 +3350,9 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
             # LIQUIDITYINNATIVETOKEN = true
             # USECUSTOMBASEPAIR = false
             amount_in = routerContract.functions.getAmountsIn(amount, [weth, outToken]).call()[0]
+
+            # Store this amount in _BASE_USED_FOR_TX, for use in build_sell_conditions() later
+            token_dict['_BASE_USED_FOR_TX'] = amount_in / DECIMALS
             
             # Check if you have enough Base tokens in you wallet to make this order
             if amount_in > base_balance_before_buy:
@@ -3305,6 +3382,8 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
             printt_ok("Current Base token balance     :", base_balance_before_buy / DECIMALS, base_symbol, write_to_log=True)
             printt_ok("(be careful you must have enough to pay fees in addition to this)", write_to_log=True)
             printt_ok("-----------------------------------------------------------", write_to_log=True)
+            
+            
             
             # THIS SECTION IS FOR MODIFIED CONTRACTS : EACH EXCHANGE NEEDS TO BE SPECIFIED
             # USECUSTOMBASEPAIR = false
@@ -4356,7 +4435,12 @@ def run():
             
             # Calculate base price
             token['_BASE_PRICE'] = calculate_base_price()
-
+          
+            # Calculate sell price
+            build_sell_conditions(token, 'build_at_launch')
+            printt_debug("token['_CALCULATED_SELLPRICEINBASE']:", token['_CALCULATED_SELLPRICEINBASE'])
+            printt_debug("token['_CALCULATED_STOPLOSSPRICEINBASE']:", token['_CALCULATED_STOPLOSSPRICEINBASE'])
+            
             # Determine token name + base symbol to display
             if token['USECUSTOMBASEPAIR'] == 'true':
                 token['_PAIR_TO_DISPLAY'] = token['SYMBOL'] + "/" + token['BASESYMBOL']
@@ -4365,6 +4449,7 @@ def run():
 
             # Check to see if we have any tokens in our wallet already
             token['_TOKEN_BALANCE'] = check_balance(token['ADDRESS'], token['SYMBOL'], display_quantity=False) / token['_CONTRACT_DECIMALS']
+            token['_PREVIOUS_TOKEN_BALANCE'] = token['_TOKEN_BALANCE']
             if token['_TOKEN_BALANCE'] > 0:
                 printt("Your wallet already owns : ", token['_TOKEN_BALANCE'], token['SYMBOL'], write_to_log=True)
                 if token['_TOKEN_BALANCE'] > float(token['MAXTOKENS']):
@@ -4573,9 +4658,22 @@ def run():
                                 # transaction is a SUCCESS
                                 printt_ok("----------------------------------", write_to_log=True)
                                 printt_ok("SUCCESS : your buy Tx is confirmed    ", write_to_log=True)
+                                printt_ok("", write_to_log=True)
+                                
                                 # Re-calculate balances after buy()
                                 calculate_base_balance(token)
                                 
+                                # Check the balance of our wallet
+                                DECIMALS = token['_CONTRACT_DECIMALS']
+                                token['_TOKEN_BALANCE'] = check_balance(inToken, token['SYMBOL'],display_quantity=True) / DECIMALS
+                                printt_ok("", write_to_log=True)
+                                printt_ok("You bought", token['_TOKEN_BALANCE'] - token['_PREVIOUS_TOKEN_BALANCE'], token['SYMBOL'], "tokens", write_to_log=True)
+                                printt_ok("----------------------------------", write_to_log=True)
+                                
+                                # if user has chose the option "instantafterbuy", token is approved right after buy order is confirmed.
+                                if (settings['PREAPPROVE'] == 'instantafterbuy' or settings['PREAPPROVE'] == 'true'):
+                                    check_approval(token, token['ADDRESS'], token['_TOKEN_BALANCE'] * DECIMALS, 'preapprove')
+
                                 # Optional cooldown after SUCCESS buy, if you use XXX_SECONDS_COOLDOWN_AFTER_BUY_SUCCESS_TX parameter
                                 if token['XXX_SECONDS_COOLDOWN_AFTER_BUY_SUCCESS_TX'] != 0:
                                     printt_info("Bot will wait", token['XXX_SECONDS_COOLDOWN_AFTER_BUY_SUCCESS_TX'], "seconds after BUY, due to XXX_SECONDS_COOLDOWN_AFTER_BUY_SUCCESS_TX parameter", write_to_log=True)
@@ -4584,16 +4682,7 @@ def run():
                                 # increment _SUCCESS_TRANSACTIONS amount
                                 token['_SUCCESS_TRANSACTIONS'] += 1
                                 printt_debug("3840 _SUCCESS_TRANSACTIONS:", token['_SUCCESS_TRANSACTIONS'])
-
-                                # Check the balance of our wallet
-                                DECIMALS = token['_CONTRACT_DECIMALS']
-                                token['_TOKEN_BALANCE'] = check_balance(inToken, token['SYMBOL'],display_quantity=True) / DECIMALS
-                                printt_ok("----------------------------------", write_to_log=True)
                                 
-                                # if user has chose the option "instantafterbuy", token is approved right after buy order is confirmed.
-                                if (settings['PREAPPROVE'] == 'instantafterbuy' or settings['PREAPPROVE'] == 'true'):
-                                    check_approval(token, token['ADDRESS'], token['_TOKEN_BALANCE'] * DECIMALS, 'preapprove')
-
                                 # Check if MAX_SUCCESS_TRANSACTIONS_IN_A_ROW is reached or not
                                 if token['_SUCCESS_TRANSACTIONS'] >= token['MAX_SUCCESS_TRANSACTIONS_IN_A_ROW']:
                                     token['_REACHED_MAX_SUCCESS_TX'] = True
@@ -4604,12 +4693,9 @@ def run():
                                     token['_REACHED_MAX_TOKENS'] = True
                                     printt_info("You have reached MAXTOKENS for", token['SYMBOL'], "token --> disabling trade", write_to_log=True)
 
-                                # Calculates cost per token
-                                # TODO : solve problem here https://t.me/LimitSwap/102375
-                                if float(token['_TOKEN_BALANCE']) > 0:
-                                    token['_COST_PER_TOKEN'] = float(token['BUYAMOUNTINBASE']) / float(token['_TOKEN_BALANCE'])
-                                    printt_debug(token['SYMBOL'], " cost per token was: ", token['_COST_PER_TOKEN'])
-                    
+                                # Build sell conditions for the token
+                                build_sell_conditions(token, 'after_buy')
+
                         else:
                             continue
 
@@ -4651,10 +4737,10 @@ def run():
                             if quote < minimum_price:
                                 printt_err(token['SYMBOL'], "has dropped", command_line_args.pump, "% from it's ATH - SELLING POSITION")
                                 price_conditions_met = True
-                    
-                    elif (token['_QUOTE'] > Decimal(token['SELLPRICEINBASE']) or token['_QUOTE'] < Decimal(token['STOPLOSSPRICEINBASE']))  and token['_TOKEN_BALANCE'] > 0:
+                                
+                    elif (token['_QUOTE'] > Decimal(token['_CALCULATED_SELLPRICEINBASE']) or token['_QUOTE'] < Decimal(token['_CALCULATED_STOPLOSSPRICEINBASE']))  and token['_TOKEN_BALANCE'] > 0:
                         price_conditions_met = True
-                    
+                        
                     if price_conditions_met == True:
                         log_price = "{:.18f}".format(token['_QUOTE'])
                         logging.info("Sell Signal Found @" + str(log_price))
@@ -4717,7 +4803,8 @@ def run():
                                 printt_ok("----------------------------------", write_to_log=True)
             
                 else:
-                    printt("Trading for token", token['_PAIR_SYMBOL'], "is disabled")
+                    if settings['VERBOSE_PRICING'] == 'true':
+                        printt("Trading for token", token['_PAIR_SYMBOL'], "is disabled")
             first_liquidity_check = False
             sleep(cooldown)
     
