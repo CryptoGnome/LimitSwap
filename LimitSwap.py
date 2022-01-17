@@ -55,6 +55,9 @@ import signal
 # Global used for printt_repeating to track how many repeated messages have been printed to console
 repeated_message_quantity = 0
 
+# Global used for run()
+tokens_json_already_loaded = 0
+
 # color styles
 class style():  # Class of different text colours - default is white
     BLACK = '\033[30m'
@@ -452,6 +455,9 @@ def load_tokens_file(tokens_path, load_message=True):
     
     # Any new token configurations that are added due to "WATCH_STABLES_PAIRS" configuration will be added to this array. After we are done
     # loading all settings from tokens.json, we'll append this list to the token list
+    
+    printt_debug("ENTER load_tokens_file")
+    
     set_of_new_tokens = []
 
     if load_message == True:
@@ -579,7 +585,7 @@ def load_tokens_file(tokens_path, load_message=True):
         '_PREVIOUS_QUOTE': 0,
         '_ALL_TIME_HIGH': 0,
         '_COST_PER_TOKEN': 0,
-        '_CALCULATED_SELLPRICEINBASE': 0,
+        '_CALCULATED_SELLPRICEINBASE': 99999,
         '_CALCULATED_STOPLOSSPRICEINBASE': 0,
         '_ALL_TIME_LOW': 0,
         '_CONTRACT_DECIMALS': 0,
@@ -670,9 +676,14 @@ def reload_tokens_file(tokens_path, load_message=True):
     # returns: 1. a dictionary of dictionaries in json format containing details of the tokens we're rading
     #          2. the timestamp for the last modification of the file
     
+    # Any new token configurations that are added due to "WATCH_STABLES_PAIRS" configuration will be added to this array. After we are done
+    # loading all settings from tokens.json, we'll append this list to the token list
+    
+    printt_debug("ENTER reload_tokens_file")
+    
     if load_message == True:
         print(timestamp(), "Reloading tokens from", tokens_path)
-    
+
     s = open(tokens_path, )
     tokens = json.load(s)
     s.close()
@@ -685,7 +696,7 @@ def reload_tokens_file(tokens_path, load_message=True):
     ]
     
     default_true_settings = [
-        'LIQUIDITYINNATIVETOKEN',
+        'LIQUIDITYINNATIVETOKEN'
     ]
     
     default_false_settings = [
@@ -694,10 +705,11 @@ def reload_tokens_file(tokens_path, load_message=True):
         'USECUSTOMBASEPAIR',
         'HASFEES',
         'RUGDOC_CHECK',
+        'MULTIPLEBUYS',
         'KIND_OF_SWAP',
         'ALWAYS_CHECK_BALANCE',
-        'MULTIPLEBUYS',
-        'WAIT_FOR_OPEN_TRADE'
+        'WAIT_FOR_OPEN_TRADE',
+        'WATCH_STABLES_PAIRS'
     ]
     
     default_value_settings = {
@@ -705,7 +717,7 @@ def reload_tokens_file(tokens_path, load_message=True):
         'BUYAMOUNTINTOKEN': 0,
         'MAXTOKENS': 0,
         'MOONBAG': 0,
-        'MINIMUM_LIQUIDITY_IN_DOLLARS': 0,
+        'MINIMUM_LIQUIDITY_IN_DOLLARS': 10000,
         'MAX_BASE_AMOUNT_PER_EXACT_TOKENS_TRANSACTION': 0.5,
         'SELLAMOUNTINTOKENS': 'all',
         'GAS': 8,
@@ -718,54 +730,11 @@ def reload_tokens_file(tokens_path, load_message=True):
         'MAX_SUCCESS_TRANSACTIONS_IN_A_ROW': 2,
         'GASPRIORITY_FOR_ETH_ONLY': 1.5,
         'STOPLOSSPRICEINBASE': 0,
-        'BUYCOUNT': 0
+        'BUYCOUNT': 0,
+        '_STABLE_BASES': {}
     }
-    
-    # There are values that we will set internally. They must all begin with _
-    # _LIQUIDITY_CHECKED    - false if we have yet to check liquidity for this token
-    # _INFORMED_SELL        - set to true when we've already informed the user that we're selling this position
-    # _LIQUIDITY_READY      - a flag to test if we've found liquidity for this pair
-    # _LIQUIDITY_CHECKED    - a flag to test if we've check for the amount of liquidity for this pair
-    # _INFORMED_SELL        - a flag to store that we've printed to console that we are going to be selling the position
-    # _REACHED_MAX_TOKENS   - flag to look at to determine if the user's wallet has reached the maximum number of flags
-    #                         this flag is used for conditionals throughout the run of this bot. Be sure to set this
-    #                         flag after enough tokens that brings the number of token up to the MAXTOKENS. In other words
-    #                         done depend on (if MAXTOKENS < _TOKEN_BALANCE) conditionals
-    # _GAS_TO_USE           - the amount of gas the bot has estimated it should use for the purchase of a token
-    #                         this number is calculated every bot start up
-    # _FAILED_TRANSACTIONS  - the number of times a transaction has failed for this token
-    # _SUCCESS_TRANSACTIONS - the number of times a transaction has succeeded for this token
-    # _REACHED_MAX_SUCCESS_TX  - flag to look at to determine if the user's wallet has reached the maximum number of flags
-    #                         this flag is used for conditionals throughout the run of this bot. Be sure to set this
-    #                         flag after enough tokens that brings the number of token up to the MAX_SUCCESS_TRANSACTIONS_IN_A_ROW. In other words
-    #                         done depend on (if MAX_SUCCESS_TRANSACTIONS_IN_A_ROW < _REACHED_MAX_SUCCESS_TX) conditionals
-    # _TRADING_IS_ON        - defines if trading is ON of OFF on a token. Used with WAIT_FOR_OPEN_TRADE parameter
-    # _RUGDOC_DECISION      - decision of the user after RugDoc API check
-    # _TOKEN_BALANCE        - the number of traded tokens the user has in her wallet
-    # _PREVIOUS_TOKEN_BALANCE - the number of traded tokens the user has in his wallet before BUY order
-    # _BASE_BALANCE         - balance of Base token, calculated at bot launch and after a BUY/SELL
-    # _BASE_PRICE           - price of Base token, calculated at bot launch with calculate_base_price
-    # _BASE_USED_FOR_TX     - amount of base balance used to make the Tx transaction
-    # _PAIR_TO_DISPLAY      - token symbol / base symbol
-    # _CUSTOM_BASE_BALANCE' - balance of Custom Base token, calculated at bot launch and after a BUY/SELL
-    # _QUOTE                - holds the token's quote
-    # _PREVIOUS_QUOTE       - holds the ask price for a token the last time a price was queried, this is used
-    #                         to determine the direction the market is going
-    # _COST_PER_TOKEN       - the calculated/estimated price the bot paid for the number of tokens it traded
-    # _CALCULATED_SELLPRICEINBASE           - the calculated sell price created with build_sell_conditions()
-    # _CALCULATED_STOPLOSSPRICEINBASE       - the calculated stoploss price created with build_sell_conditions()
-    # _ALL_TIME_HIGH        - the highest price a token has had since the bot was started
-    # _ALL_TIME_LOW         - the lowest price a token has had since the bot was started
-    # _CONTRACT_DECIMALS    - the number of decimals a contract uses. Used to speed up some of our processes
-    #                         instead of querying the contract for the same information repeatedly.
-    # _BASE_DECIMALS        - the number of decimals of custom base pair. Used to speed up some of our processes
-    #                         instead of querying the contract for the same information repeatedly.
-    # _WETH_DECIMALS        - the number of decimals of weth. Used to speed up some of our processes
-    #                         instead of querying the contract for the same information repeatedly.
-    # _LAST_PRICE_MESSAGE   - a copy of the last pricing message printed to console, used to determine the price
-    #                         should be printed again, or just a dot
-    # _GAS_IS_CALCULATED    - if gas needs to be calculated by wait_for_open_trade, this parameter is set to true
-    
+
+    # how can i NOT update those  program_defined_values, and let the previous ones ??
     program_defined_values = {
         '_LIQUIDITY_READY': False,
         '_LIQUIDITY_CHECKED': False,
@@ -785,8 +754,8 @@ def reload_tokens_file(tokens_path, load_message=True):
         '_BASE_USED_FOR_TX': 0,
         '_PAIR_TO_DISPLAY': "Pair",
         '_CUSTOM_BASE_BALANCE': 0,
-        '_PREVIOUS_QUOTE': 0,
         '_QUOTE': 0,
+        '_PREVIOUS_QUOTE': 0,
         '_ALL_TIME_HIGH': 0,
         '_COST_PER_TOKEN': 0,
         '_CALCULATED_SELLPRICEINBASE': 0,
@@ -795,7 +764,12 @@ def reload_tokens_file(tokens_path, load_message=True):
         '_CONTRACT_DECIMALS': 0,
         '_BASE_DECIMALS': 0,
         '_WETH_DECIMALS': 0,
-        '_LAST_PRICE_MESSAGE': 0
+        '_LAST_PRICE_MESSAGE': 0,
+        '_LAST_MESSAGE': 0,
+        '_FIRST_SELL_QUOTE': 0,
+        '_BUILT_BY_BOT': False,
+        '_EXCHANGE_BASE_SYMBOL': settings['_EXCHANGE_BASE_SYMBOL'],
+        '_PAIR_SYMBOL': ''
     }
     
     for token in tokens:
@@ -807,34 +781,41 @@ def reload_tokens_file(tokens_path, load_message=True):
                 printt_err("Be careful, sometimes new parameter are added : please check default tokens.json file")
                 sleep(20)
                 exit(-1)
-        
+
         for default_false in default_false_settings:
             if default_false not in token:
                 printt_v(default_false, "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a default value of false")
                 token[default_false] = "false"
             else:
                 token[default_false] = token[default_false].lower()
-        
+
         for default_true in default_true_settings:
             if default_true not in token:
                 printt_v(default_true, "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a default value of false")
                 token[default_true] = "false"
             else:
                 token[default_true] = token[default_true].lower()
-        
+
+        # Set program values only if they haven't been set already
+        if '_LIQUIDITY_READY' not in token:
+            for value in program_defined_values:
+                token[value] = program_defined_values[value]
+
         for default_key in default_value_settings:
             if default_key not in token:
                 printt_v(default_key, "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a value of", default_value_settings[default_key])
                 token[default_key] = default_value_settings[default_key]
             elif default_key == 'SELLAMOUNTINTOKENS':
                 default_value_settings[default_key] = default_value_settings[default_key].lower()
-        
-        # Set program values only if they haven't been set already
-        if '_LIQUIDITY_READY' not in token:
-            for value in program_defined_values:
-                token[value] = program_defined_values[value]
-    
+
+        if token['USECUSTOMBASEPAIR'] == 'false':
+            token['_PAIR_SYMBOL'] = token['SYMBOL'] + '/' + token['_EXCHANGE_BASE_SYMBOL']
+        else:
+            token['_PAIR_SYMBOL'] = token['SYMBOL'] + '/' + token['BASESYMBOL']
+
     return tokens
+
+
 
 
 def token_list_report(tokens, all_pairs=False):
@@ -967,7 +948,6 @@ printt("************************************************************************
 version = '4.2.1'
 printt("YOUR BOT IS CURRENTLY RUNNING VERSION ", version, write_to_log=True)
 check_release()
-
 
 """""""""""""""""""""""""""
 //NETWORKS SELECT
@@ -1881,6 +1861,13 @@ def build_extended_base_configuration(token_dict):
                         "_PAIR_SYMBOL" : token_dict['SYMBOL'] + '/' + stable_token,
                         "_BUILT_BY_BOT" : True
                         })
+        
+        # If these keys have special character on them, they represent percentages and we shouldn't copy them.
+        if not re.search('^(\d+\.){0,1}\d+(x|X|%)$', str(token_dict['SELLPRICEINBASE'])):
+            new_token['SELLPRICEINBASE'] = token_dict['SELLPRICEINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier']
+        if not re.search('^(\d+\.){0,1}\d+(x|X|%)$', str(token_dict['STOPLOSSPRICEINBASE'])):
+            new_token['STOPLOSSPRICEINBASE'] = token_dict['STOPLOSSPRICEINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
+            
         new_token_set.append(new_token)
         
     return new_token_set
@@ -2504,14 +2491,12 @@ def build_sell_conditions(token_dict, condition):
     # ----------------------------
     # This function is designed to be called anytime sell conditions need to be adjusted for a token
     #
-    # token_dict - one element of the tokens{} dictionary
     # buy - provides the opportunity to specify a buy price, otherwise token_dict['_COST_PER_TOKEN'] is used
     # sell - provides the opportunity to specify a buy price, otherwise token_dict['SELLPRICEINBASE'] is used
     # stop - provides the opportunity to specify a buy price, otherwise token_dict['STOPLOSSPRICEINBASE'] is used
 
     printt_debug("ENTER build_sell_conditions() with", condition, "parameter")
     
-    buy = token_dict['_COST_PER_TOKEN']
     sell = token_dict['SELLPRICEINBASE']
     stop = token_dict['STOPLOSSPRICEINBASE']
     
@@ -2529,13 +2514,16 @@ def build_sell_conditions(token_dict, condition):
     # Check to see if the SELLPRICEINBASE is a percentage of the purchase
     if re.search('^(\d+\.){0,1}\d+%$', str(sell)):
         sell = sell.replace("%","")
-        if condition == 'build_at_launch':
-            token_dict['_CALCULATED_SELLPRICEINBASE'] = token_dict['BUYPRICEINBASE'] * (float(sell) / 100)
+        if condition == 'before_buy':
+            printt_info("Since you have put a % in SELLPRICE, and bot did not buy yet, we will set SELLPRICE = 99999 so as the bot not to sell if you stop and run it again.")
+            token_dict['_CALCULATED_SELLPRICEINBASE'] = 99999
         else:
             token_dict['_CALCULATED_SELLPRICEINBASE'] = token_dict['_COST_PER_TOKEN'] * (float(sell) / 100)
             printt_info("-----------------------------------------------------------")
             printt_info(token_dict['SYMBOL'], " cost per token was: ", token_dict['_COST_PER_TOKEN'])
             printt_info("--> SELLPRICEINBASE = ", token_dict['SELLPRICEINBASE'],"*", token_dict['_COST_PER_TOKEN'], "= ", token_dict['_CALCULATED_SELLPRICEINBASE'])
+            printt_info("")
+            printt_warn("DO NOT CLOSE THE BOT OR THIS INFORMATION WILL BE LOST")
             printt_info("-----------------------------------------------------------")
     # Otherwise, don't adjust the sell price in base
     else:
@@ -2544,12 +2532,14 @@ def build_sell_conditions(token_dict, condition):
     # Check to see if the STOPLOSSPRICEINBASE is a percentage of the purchase
     if re.search('^(\d+\.){0,1}\d+%$', str(stop)):
         stop = stop.replace("%","")
-        if condition == 'build_at_launch':
+        if condition == 'before_buy':
             token_dict['_CALCULATED_STOPLOSSPRICEINBASE'] = 0
         else:
             token_dict['_CALCULATED_STOPLOSSPRICEINBASE'] = token_dict['_COST_PER_TOKEN'] * (float(stop) / 100)
             printt_info("-----------------------------------------------------------")
             printt_info("--> STOPLOSSPRICEINBASE = ", token_dict['STOPLOSSPRICEINBASE'],"*", token_dict['_COST_PER_TOKEN'], "= ", token_dict['_CALCULATED_STOPLOSSPRICEINBASE'])
+            printt_info("")
+            printt_warn("DO NOT CLOSE THE BOT OR THIS INFORMATION WILL BE LOST")
             printt_info("-----------------------------------------------------------")
 
     # Otherwise, don't adjust the sell price in base
@@ -4521,13 +4511,18 @@ def benchmark():
     
     
 def run():
-    reload_tokens_file = False
-
+    global tokens_json_already_loaded
+    tokens_json_already_loaded = tokens_json_already_loaded + 1
     try:
         
         # Load tokens from file
-        tokens = load_tokens_file(command_line_args.tokens, True)
-        
+        if tokens_json_already_loaded == 1:
+            tokens = load_tokens_file(command_line_args.tokens, True)
+        if tokens_json_already_loaded > 1:
+            printt_debug("try to launch reload_tokens_file")
+            #TODO : we should be using reload_tokens_file, but it does not work for now
+            tokens = load_tokens_file(command_line_args.tokens, True)
+
         # Display the number of token pairs we're attempting to trade
         token_list_report(tokens)
         
@@ -4563,7 +4558,12 @@ def run():
             token['_BASE_PRICE'] = calculate_base_price()
           
             # Calculate sell price
-            build_sell_conditions(token, 'build_at_launch')
+            # If _COST_PER_TOKEN ==0, it means the bot did not buy token yet --> before_buy condition
+            if token['_COST_PER_TOKEN'] == 0 :
+                build_sell_conditions(token, 'before_buy')
+            else:
+                build_sell_conditions(token, 'after_buy')
+                
             printt_debug("token['_CALCULATED_SELLPRICEINBASE']:", token['_CALCULATED_SELLPRICEINBASE'])
             printt_debug("token['_CALCULATED_STOPLOSSPRICEINBASE']:", token['_CALCULATED_STOPLOSSPRICEINBASE'])
             
@@ -4613,7 +4613,7 @@ def run():
                             sleep(10)
                             sys.exit()
 
-                    reload_tokens_file = True
+                    tokens_json_already_loaded = tokens_json_already_loaded + 1
                     raise Exception("tokens.json has been changed, reloading.")
             else:
                 load_token_file_increment = load_token_file_increment + 1
@@ -4665,9 +4665,11 @@ def run():
                                 pass
                             else:
                                 printt_repeating(token, token['_PAIR_SYMBOL'] + " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
+                                printt_debug(token)
                                 continue
                         except Exception:
                             printt_repeating(token, token['_PAIR_SYMBOL'] + " Not Listed For Trade Yet... waiting for liquidity to be added on exchange")
+                            printt_debug(token)
                             continue
                             
                     #
@@ -4927,7 +4929,14 @@ def run():
                                 # We re-calculate _TOKEN_BALANCE after the sell() order is made
                                 token['_TOKEN_BALANCE'] = check_balance(token['ADDRESS'], token['SYMBOL'], display_quantity=True)
                                 printt_ok("----------------------------------", write_to_log=True)
-            
+                
+                                # Check if MAXTOKENS is still reached or not
+                                if token['_TOKEN_BALANCE'] < Decimal(token['MAXTOKENS']):
+                                    token['_REACHED_MAX_TOKENS'] = False
+                                else:
+                                    token['_REACHED_MAX_TOKENS'] = True
+                                    printt_info("You are still above MAXTOKENS for", token['SYMBOL'], "token --> trade disabled", write_to_log=True)
+
                 else:
                     if settings['VERBOSE_PRICING'] == 'true':
                         printt("Trading for token", token['_PAIR_SYMBOL'], "is disabled")
@@ -4935,9 +4944,13 @@ def run():
             sleep(cooldown)
     
     except Exception as ee:
-        printt_debug("Debug 3229 - an Exception occured")
-        if reload_tokens_file == True:
+        printt_debug("Debug 4839 - an Exception occured")
+        printt_debug("tokens_json_already_loaded: ", tokens_json_already_loaded)
+        if tokens_json_already_loaded > 0:
+            printt_debug("Debug 4841 - reload_tokens_file condition")
             reload_bot_settings(bot_settings)
+            sleep(1)
+            logging.exception(ee)
             raise RestartAppError("Restarting LimitSwap")
         else:
             raise
