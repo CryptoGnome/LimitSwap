@@ -386,7 +386,8 @@ def load_settings_file(settings_path, load_message=True):
         'UNLIMITEDSLIPPAGE',
         'USECUSTOMNODE',
         'PASSWORD_ON_CHANGE',
-        'SLOW_MODE'
+        'SLOW_MODE',
+        'ENABLE_PUSHSAFER_NOTIFICATIONS'
     ]
     
     default_true_settings = [
