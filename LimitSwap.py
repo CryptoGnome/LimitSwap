@@ -2389,16 +2389,20 @@ def build_sell_conditions(token_dict, condition):
     if re.search('^(\d+\.){0,1}\d+%$', str(sell)):
         sell = sell.replace("%","")
         if condition == 'before_buy':
+            printt_err("Be careful, updating sellprice with % in real-time does NOT work for the moment. Bot will set SELLPRICE = 99999")
+            printt_err("----------------------------------------------------------------------------------------------------------------------------------")
+            printt_err("   --> do NOT change your tokens.json or close the bot after BUY order is made, or your calculated SELLPRICE will be lost!")
+            printt_err("----------------------------------------------------------------------------------------------------------------------------------")
             printt_info("Since you have put a % in SELLPRICE, and bot did not buy yet, we will set SELLPRICE = 99999 so as the bot not to sell if you stop and run it again.")
             token_dict['_CALCULATED_SELLPRICEINBASE'] = 99999
         else:
             token_dict['_CALCULATED_SELLPRICEINBASE'] = token_dict['_COST_PER_TOKEN'] * (float(sell) / 100)
-            printt_info("-----------------------------------------------------------")
+            printt_info("---------------------------------------------------------------------------")
             printt_info(token_dict['SYMBOL'], " cost per token was: ", token_dict['_COST_PER_TOKEN'])
             printt_info("--> SELLPRICEINBASE = ", token_dict['SELLPRICEINBASE'],"*", token_dict['_COST_PER_TOKEN'], "= ", token_dict['_CALCULATED_SELLPRICEINBASE'])
             printt_info("")
-            printt_warn("DO NOT CLOSE THE BOT OR THIS INFORMATION WILL BE LOST")
-            printt_info("-----------------------------------------------------------")
+            printt_err("DO NOT CHANGE TOKENS.JSON OR CLOSE THE BOT OR THIS INFORMATION WILL BE LOST")
+            printt_info("---------------------------------------------------------------------------")
     # Otherwise, don't adjust the sell price in base
     else:
         token_dict['_CALCULATED_SELLPRICEINBASE'] = sell
@@ -2407,13 +2411,14 @@ def build_sell_conditions(token_dict, condition):
     if re.search('^(\d+\.){0,1}\d+%$', str(stop)):
         stop = stop.replace("%","")
         if condition == 'before_buy':
+            printt_err("Be careful, updating sellprice with % in real-time does NOT work for the moment. Bot will set STOPLOSSPRICE = 0")
+            printt_info("Since you have put a % in SELLPRICE, and bot did not buy yet, we will set STOPLOSSPRICE = 0.")
             token_dict['_CALCULATED_STOPLOSSPRICEINBASE'] = 0
         else:
             token_dict['_CALCULATED_STOPLOSSPRICEINBASE'] = token_dict['_COST_PER_TOKEN'] * (float(stop) / 100)
             printt_info("-----------------------------------------------------------")
             printt_info("--> STOPLOSSPRICEINBASE = ", token_dict['STOPLOSSPRICEINBASE'],"*", token_dict['_COST_PER_TOKEN'], "= ", token_dict['_CALCULATED_STOPLOSSPRICEINBASE'])
             printt_info("")
-            printt_warn("DO NOT CLOSE THE BOT OR THIS INFORMATION WILL BE LOST")
             printt_info("-----------------------------------------------------------")
 
     # Otherwise, don't adjust the sell price in base
