@@ -20,6 +20,8 @@
 "UNLIMITEDSLIPPAGE": "false",
 "PASSWORD_ON_CHANGE": "false",
 "VERBOSE_PRICING": "true",
-"SLOW_MODE": "false"
+"SLOW_MODE": "false",
+"ENABLE_PUSHSAFER_NOTIFICATIONS": "false",
+"PUSHSAFER_DEVICE_OR_GROUP_ID": "put your device or group id here. Register at pushsafer.com"
 }
 ]

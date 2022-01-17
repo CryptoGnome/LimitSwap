@@ -18,6 +18,8 @@ import requests
 import cryptocode, re, pwinput
 import argparse
 import signal
+import pushsafer
+from pushsafer import Client
 
 
 # DEVELOPER CONSIDERATIONS
@@ -420,6 +422,24 @@ def load_settings_file(settings_path, load_message=True):
             settings[required_setting] = settings[required_setting].lower()
     
     return bot_settings, settings
+
+
+def pushsafer_notification(message, title, parameter):
+
+    printt_debug("ENTER pushsafer_notification")
+    pushsafer_id = settings['PUSHSAFER_DEVICE_OR_GROUP_ID']
+    
+    try:
+        client = Client("eFhoOW0yg0vxvMCqDPlB")
+        if parameter == 'success':
+            # client.send_message(message, title, pushsafer_id, icon, ....... , priority)
+            client.send_message(message, title, pushsafer_id, "20", "", "", "", "", "0", "1")
+        if parameter == 'failure':
+            # client.send_message(message, title, pushsafer_id, icon, ....... , priority)
+            client.send_message(message, title, pushsafer_id, "21", "", "", "", "", "0", "2")
+    except Exception as ee:
+        printt_err("PUSHSAFER - an Exception occured : check your logs")
+        logging.exception(ee)
 
 
 def get_file_modified_time(file_path, last_known_modification=0):
@@ -4709,6 +4729,11 @@ def run():
                                 printt_err("- ... or your node is not working well")
                                 printt_err("-------------------------------")
 
+                                # Pushsafer notifiaction
+                                if settings['ENABLE_PUSHSAFER_NOTIFICATIONS'] == 'true':
+                                    message = "FAILURE : your " + token['SYMBOL'] + " buy Tx failed"
+                                    pushsafer_notification(message, "BUY failure", 'failure')
+
                                 # increment _FAILED_TRANSACTIONS amount
                                 token['_FAILED_TRANSACTIONS'] += 1
                                 printt_debug("3813 _FAILED_TRANSACTIONS:", token['_FAILED_TRANSACTIONS'])
@@ -4723,7 +4748,7 @@ def run():
                             else:
                                 # transaction is a SUCCESS
                                 printt_ok("----------------------------------", write_to_log=True)
-                                printt_ok("SUCCESS : your buy Tx is confirmed    ", write_to_log=True)
+                                printt_ok("SUCCESS : your buy Tx is confirmed", write_to_log=True)
                                 printt_ok("", write_to_log=True)
                                 
                                 # Re-calculate balances after buy()
@@ -4736,6 +4761,11 @@ def run():
                                 printt_ok("You bought", token['_TOKEN_BALANCE'] - token['_PREVIOUS_TOKEN_BALANCE'], token['SYMBOL'], "tokens", write_to_log=True)
                                 printt_ok("----------------------------------", write_to_log=True)
                                 
+                                # Pushsafer notifiaction
+                                if settings['ENABLE_PUSHSAFER_NOTIFICATIONS'] == 'true':
+                                    message = "SUCCESS : your " + token['SYMBOL'] + " buy Tx is confirmed"
+                                    pushsafer_notification(message, "BUY success", 'success')
+
                                 # if user has chose the option "instantafterbuy", token is approved right after buy order is confirmed.
                                 if (settings['PREAPPROVE'] == 'instantafterbuy' or settings['PREAPPROVE'] == 'true'):
                                     check_approval(token, token['ADDRESS'], token['_TOKEN_BALANCE'] * DECIMALS, 'preapprove')
@@ -4839,6 +4869,12 @@ def run():
                                 # increment _FAILED_TRANSACTIONS amount
                                 token['_FAILED_TRANSACTIONS'] += 1
                                 
+                                # Pushsafer notifiaction
+                                if settings['ENABLE_PUSHSAFER_NOTIFICATIONS'] == 'true':
+                                    message = "FAILURE : your " + token['SYMBOL'] + " sell Tx failed"
+                                    pushsafer_notification(message, "SELL failure", 'failure')
+
+                                
                                 # We ask the bot to check if your allowance is > to your balance.
                                 check_approval(token, inToken, token['_TOKEN_BALANCE'] * 1000000000000000000, 'txfail')
 
@@ -4848,6 +4884,11 @@ def run():
                                 printt_ok("----------------------------------", write_to_log=True)
                                 printt_ok("SUCCESS : your sell Tx is confirmed    ", write_to_log=True)
                                 
+                                # Pushsafer notifiaction
+                                if settings['ENABLE_PUSHSAFER_NOTIFICATIONS'] == 'true':
+                                    message = "SUCCESS : your " + token['SYMBOL'] + " sell Tx is confirmed"
+                                    pushsafer_notification(message, "SELL success", 'success')
+
                                 # Optional cooldown after SUCCESS sell, if you use XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX parameter
                                 if token['XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX'] != 0:
                                     printt_info("Bot will wait", token['XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX'], "seconds after SELL, due to XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX parameter", write_to_log=True)
