@@ -2420,9 +2420,10 @@ def build_sell_conditions(token_dict, condition):
         sell = sell.replace("%","")
         if condition == 'before_buy':
             printt_err("Be careful, updating sellprice with % in real-time WORKS ONLY FOR ONE TOKEN for the moment")
-            printt_err("----------------------------------------------------------------------------------------------------------------------------------")
-            printt_err("   --> do NOT change your tokens.json or close the bot after BUY order is made, or your calculated SELLPRICE will be lost!")
-            printt_err("----------------------------------------------------------------------------------------------------------------------------------")
+            printt_err("------------------------------------------------------------------------------------------")
+            printt_err("     --> do NOT change your tokens.json if you have more than 1 token in it")
+            printt_err("or close the bot after BUY order is made, or your calculated SELLPRICE will be lost!")
+            printt_err("------------------------------------------------------------------------------------------")
             printt_info("Since you have put a % in SELLPRICE, and bot did not buy yet, we will set SELLPRICE = 99999 so as the bot not to sell if you stop and run it again.")
             token_dict['_CALCULATED_SELLPRICEINBASE'] = 99999
         else:
@@ -3008,7 +3009,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
             # USECUSTOMBASEPAIR = false
             amount_out = routerContract.functions.getAmountsOut(amount, [weth, outToken]).call()[-1]
             if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
-                amountOutMin = 100
+                amountOutMin = 0
             else:
                 amountOutMin = int(amount_out * (1 - (slippage / 100)))
 
@@ -3115,7 +3116,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
             # but user chose to put WETH or WBNB contract as CUSTOMBASEPAIR address
             amount_out = routerContract.functions.getAmountsOut(amount, [weth, outToken]).call()[-1]
             if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
-                amountOutMin = 100
+                amountOutMin = 0
             else:
                 amountOutMin = int(amount_out * (1 - (slippage / 100)))
             
