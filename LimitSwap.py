@@ -3,6 +3,7 @@ from toolz.functoolz import do
 from web3 import Web3
 from time import sleep, time
 import json
+from jsmin import jsmin
 from decimal import Decimal
 import os
 import web3
@@ -323,9 +324,10 @@ def load_settings_file(settings_path, load_message=True):
     if load_message == True:
         print(timestamp(), "Loading settings from", settings_path)
 
-    f = open(settings_path, )
-    all_settings = json.load(f)
-    f.close()
+    with open(settings_path, ) as js_file:
+        f = jsmin(js_file.read())
+    all_settings = json.loads(f)
+    
     
     settings = bot_settings = {}
     
@@ -463,10 +465,11 @@ def load_tokens_file(tokens_path, load_message=True):
     if load_message == True:
         print(timestamp(), "Loading tokens from", tokens_path)
 
-    s = open(tokens_path, )
-    tokens = json.load(s)
-    s.close()
-    
+
+    with open(tokens_path, ) as js_file:
+        t = jsmin(js_file.read())
+    tokens = json.loads(t)
+
     required_user_settings = [
         'ADDRESS',
         'BUYAMOUNTINBASE',
@@ -4698,7 +4701,7 @@ def run():
                                 # Check if MAXTOKENS is reached or not
                                 if token['_TOKEN_BALANCE'] > Decimal(token['MAXTOKENS']):
                                     token['_REACHED_MAX_TOKENS'] = True
-                                    printt_info("You have reached MAXTOKENS for", token['SYMBOL'], "token --> disabling trade", write_to_log=True)
+                                    printt_warn("You have reached MAXTOKENS for", token['SYMBOL'], "token --> disabling trade", write_to_log=True)
 
                                 # Build sell conditions for the token
                                 build_sell_conditions(token, 'after_buy')
