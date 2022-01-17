@@ -4831,7 +4831,7 @@ def run():
         if tokens_json_already_loaded > 0:
             printt_debug("Debug 4841 - reload_tokens_file condition")
             reload_bot_settings(bot_settings)
-            sleep(1)
+            sleep(0.01)
             logging.exception(ee)
             raise RestartAppError("Restarting LimitSwap")
         else:
