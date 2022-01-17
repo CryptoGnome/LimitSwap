@@ -2419,7 +2419,7 @@ def build_sell_conditions(token_dict, condition):
     if re.search('^(\d+\.){0,1}\d+%$', str(sell)):
         sell = sell.replace("%","")
         if condition == 'before_buy':
-            printt_err("Be careful, updating sellprice with % in real-time WORKS ONLY FOR ONE TOKEN for the moment)
+            printt_err("Be careful, updating sellprice with % in real-time WORKS ONLY FOR ONE TOKEN for the moment")
             printt_err("----------------------------------------------------------------------------------------------------------------------------------")
             printt_err("   --> do NOT change your tokens.json or close the bot after BUY order is made, or your calculated SELLPRICE will be lost!")
             printt_err("----------------------------------------------------------------------------------------------------------------------------------")
