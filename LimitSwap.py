@@ -3008,6 +3008,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
             # LIQUIDITYINNATIVETOKEN = true
             # USECUSTOMBASEPAIR = false
             amount_out = routerContract.functions.getAmountsOut(amount, [weth, outToken]).call()[-1]
+            
             if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
                 amountOutMin = 0
             else:
@@ -3115,6 +3116,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
             # USECUSTOMBASEPAIR = true
             # but user chose to put WETH or WBNB contract as CUSTOMBASEPAIR address
             amount_out = routerContract.functions.getAmountsOut(amount, [weth, outToken]).call()[-1]
+            
             if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
                 amountOutMin = 0
             else:
@@ -3170,10 +3172,12 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
             
             if routing.lower() == 'true':
                 amount_out = routerContract.functions.getAmountsOut(amount, [inToken, weth, outToken]).call()[-1]
+                
                 if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
                     amountOutMin = 100
                 else:
                     amountOutMin = int(amount_out * (1 - (slippage / 100)))
+                    
                 deadline = int(time() + + 60)
 
                 if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
@@ -3234,6 +3238,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
                         "YOU ARE TRADING WITH VERY BIG AMOUNT, BE VERY CAREFUL YOU COULD LOSE MONEY!!! TEAM RECOMMEND NOT TO DO THAT")
                 
                 amount_out = routerContract.functions.getAmountsOut(amount, [inToken, outToken]).call()[-1]
+                
                 if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
                     amountOutMin = 100
                 else:
@@ -3894,7 +3899,12 @@ def sell(token_dict, inToken, outToken):
             sync(inToken, weth)
             
             amount_out = routerContract.functions.getAmountsOut(amount, [inToken, weth]).call()[-1]
-            amountOutMin = int(amount_out * (1 - (slippage / 100)))
+            
+            if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
+                amountOutMin = 0
+            else:
+                amountOutMin = int(amount_out * (1 - (slippage / 100)))
+            
             deadline = int(time() + + 60)
             
             printt_debug("amount_out 2704  :", amount_out)
@@ -4068,7 +4078,12 @@ def sell(token_dict, inToken, outToken):
                 # if user has set WETH or WBNB as Custom base pair
                 sync(inToken, outToken)
                 amount_out = routerContract.functions.getAmountsOut(amount, [inToken, weth]).call()[-1]
-                amountOutMin = int(amount_out * (1 - (slippage / 100)))
+                
+                if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
+                    amountOutMin = 0
+                else:
+                    amountOutMin = int(amount_out * (1 - (slippage / 100)))
+                    
                 deadline = int(time() + + 60)
                 
                 if fees.lower() == 'true':
@@ -4171,7 +4186,12 @@ def sell(token_dict, inToken, outToken):
                     # LIQUIDITYINNATIVETOKEN = false
                     # USECUSTOMBASEPAIR = true
                     amount_out = routerContract.functions.getAmountsOut(amount, [inToken, outToken]).call()[-1]
-                    amountOutMin = int(amount_out * (1 - (slippage / 100)))
+                    
+                    if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
+                        amountOutMin = 0
+                    else:
+                        amountOutMin = int(amount_out * (1 - (slippage / 100)))
+
                     deadline = int(time() + + 60)
                     
                     if fees.lower() == 'true':
@@ -4264,7 +4284,12 @@ def sell(token_dict, inToken, outToken):
                     printt_debug("amount 2824:", amount)
                     
                     amount_out = routerContract.functions.getAmountsOut(amount, [inToken, weth, outToken]).call()[-1]
-                    amountOutMin = int(amount_out * (1 - (slippage / 100)))
+                    
+                    if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
+                        amountOutMin = 0
+                    else:
+                        amountOutMin = int(amount_out * (1 - (slippage / 100)))
+
                     deadline = int(time() + + 60)
                     
                     if fees.lower() == 'true':
