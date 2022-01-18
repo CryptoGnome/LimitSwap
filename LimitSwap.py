@@ -18,6 +18,7 @@ import requests
 import cryptocode, re, pwinput
 import argparse
 import signal
+import apprise
 
 
 # DEVELOPER CONSIDERATIONS
@@ -58,6 +59,13 @@ repeated_message_quantity = 0
 
 # Global used for run()
 tokens_json_already_loaded = 0
+
+# Global used to save program_defined_values before update of tokens.json
+_COST_PER_TOKEN_saved = []
+_PREVIOUS_TOKEN_BALANCE_saved = []
+
+# Global used for WATCH_STABLE_PAIRS
+set_of_new_tokens = []
 
 # color styles
 class style():  # Class of different text colours - default is white
@@ -377,7 +385,8 @@ def load_settings_file(settings_path, load_message=True):
         'UNLIMITEDSLIPPAGE',
         'USECUSTOMNODE',
         'PASSWORD_ON_CHANGE',
-        'SLOW_MODE'
+        'SLOW_MODE',
+        'ENABLE_APPRISE_NOTIFICATIONS'
     ]
     
     default_true_settings = [
@@ -413,6 +422,63 @@ def load_settings_file(settings_path, load_message=True):
             settings[required_setting] = settings[required_setting].lower()
     
     return bot_settings, settings
+
+
+def apprise_notification(token, parameter):
+    printt_debug("ENTER pushsafer_notification")
+
+    apobj = apprise.Apprise()
+
+    if settings['APPRISE_PARAMETERS'] == "":
+        printt_err("APPRISE_PARAMETERS setting is missing - please enter it")
+        return
+    
+    apprise_parameter = settings['APPRISE_PARAMETERS']
+    printt_debug("apprise_parameter:", apprise_parameter)
+    for key in apprise_parameter:
+        apobj.add(key)
+    
+    try:
+        if parameter == 'buy_success':
+            message = "SUCCESS : your " + token['SYMBOL'] + " buy Tx is confirmed. Price:" + str("{:.10f}".format(token['_QUOTE']))
+            title = "BUY Success"
+            
+            apobj.notify(
+                body=message,
+                title=title,
+            )
+            
+        elif parameter == 'buy_failure':
+            message = "FAILURE : your " + token['SYMBOL'] + " buy Tx failed"
+            title = "BUY Failure"
+            
+            apobj.notify(
+                body=message,
+                title=title,
+            )
+
+        elif parameter == 'sell_success':
+            message = "SUCCESS : your " + token['SYMBOL'] + " sell Tx is confirmed. Price:" + str("{:.10f}".format(token['_QUOTE']))
+            title = "SELL Success"
+            
+            apobj.notify(
+                body=message,
+                title=title,
+            )
+
+        elif parameter == 'sell_failure':
+            message = "FAILURE : your " + token['SYMBOL'] + " sell Tx failed"
+            title = "SELL Failure"
+
+            apobj.notify(
+                body=message,
+                title=title,
+            )
+            
+            
+    except Exception as ee:
+        printt_err("APPRISE - an Exception occured : check your logs")
+        logging.exception(ee)
 
 
 def get_file_modified_time(file_path, last_known_modification=0):
@@ -460,11 +526,10 @@ def load_tokens_file(tokens_path, load_message=True):
     
     printt_debug("ENTER load_tokens_file")
     
-    set_of_new_tokens = []
+    global set_of_new_tokens
 
     if load_message == True:
         print(timestamp(), "Loading tokens from", tokens_path)
-
 
     with open(tokens_path, ) as js_file:
         t = jsmin(js_file.read())
@@ -483,7 +548,6 @@ def load_tokens_file(tokens_path, load_message=True):
     
     default_false_settings = [
         'ENABLED',
-        'LIQUIDITYINNATIVETOKEN',
         'USECUSTOMBASEPAIR',
         'HASFEES',
         'RUGDOC_CHECK',
@@ -580,7 +644,7 @@ def load_tokens_file(tokens_path, load_message=True):
         '_TOKEN_BALANCE': 0,
         '_PREVIOUS_TOKEN_BALANCE': 0,
         '_BASE_BALANCE': 0,
-        '_BASE_PRICE': 0,
+        '_BASE_PRICE': calculate_base_price(),
         '_BASE_USED_FOR_TX': 0,
         '_PAIR_TO_DISPLAY': "Pair",
         '_CUSTOM_BASE_BALANCE': 0,
@@ -621,8 +685,8 @@ def load_tokens_file(tokens_path, load_message=True):
         
         for default_true in default_true_settings:
             if default_true not in token:
-                printt_v(default_true, "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a default value of false")
-                token[default_true] = "false"
+                printt_v(default_true, "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a default value of true")
+                token[default_true] = "true"
             else:
                 token[default_true] = token[default_true].lower()
         
@@ -684,27 +748,32 @@ def reload_tokens_file(tokens_path, load_message=True):
     
     printt_debug("ENTER reload_tokens_file")
     
+    global _COST_PER_TOKEN_saved
+    global _PREVIOUS_TOKEN_BALANCE_saved
+    global set_of_new_tokens
+
     if load_message == True:
         print(timestamp(), "Reloading tokens from", tokens_path)
 
-    s = open(tokens_path, )
-    tokens = json.load(s)
-    s.close()
+    with open(tokens_path, ) as js_file:
+        t = jsmin(js_file.read())
+    tokens = json.loads(t)
     
+    printt_debug("tokens1:", tokens)
+
     required_user_settings = [
         'ADDRESS',
         'BUYAMOUNTINBASE',
         'BUYPRICEINBASE',
         'SELLPRICEINBASE'
     ]
-    
+
     default_true_settings = [
         'LIQUIDITYINNATIVETOKEN'
     ]
-    
+
     default_false_settings = [
         'ENABLED',
-        'LIQUIDITYINNATIVETOKEN',
         'USECUSTOMBASEPAIR',
         'HASFEES',
         'RUGDOC_CHECK',
@@ -714,7 +783,7 @@ def reload_tokens_file(tokens_path, load_message=True):
         'WAIT_FOR_OPEN_TRADE',
         'WATCH_STABLES_PAIRS'
     ]
-    
+
     default_value_settings = {
         'SLIPPAGE': 49,
         'BUYAMOUNTINTOKEN': 0,
@@ -736,8 +805,7 @@ def reload_tokens_file(tokens_path, load_message=True):
         'BUYCOUNT': 0,
         '_STABLE_BASES': {}
     }
-
-    # how can i NOT update those  program_defined_values, and let the previous ones ??
+    
     program_defined_values = {
         '_LIQUIDITY_READY': False,
         '_LIQUIDITY_CHECKED': False,
@@ -751,7 +819,7 @@ def reload_tokens_file(tokens_path, load_message=True):
         '_SUCCESS_TRANSACTIONS': 0,
         '_REACHED_MAX_SUCCESS_TX': False,
         '_TOKEN_BALANCE': 0,
-        '_PREVIOUS_TOKEN_BALANCE': 0,
+        '_PREVIOUS_TOKEN_BALANCE': _PREVIOUS_TOKEN_BALANCE_saved,
         '_BASE_BALANCE': 0,
         '_BASE_PRICE': 0,
         '_BASE_USED_FOR_TX': 0,
@@ -760,8 +828,8 @@ def reload_tokens_file(tokens_path, load_message=True):
         '_QUOTE': 0,
         '_PREVIOUS_QUOTE': 0,
         '_ALL_TIME_HIGH': 0,
-        '_COST_PER_TOKEN': 0,
-        '_CALCULATED_SELLPRICEINBASE': 0,
+        '_COST_PER_TOKEN': _COST_PER_TOKEN_saved,
+        '_CALCULATED_SELLPRICEINBASE': 99999,
         '_CALCULATED_STOPLOSSPRICEINBASE': 0,
         '_ALL_TIME_LOW': 0,
         '_CONTRACT_DECIMALS': 0,
@@ -774,9 +842,9 @@ def reload_tokens_file(tokens_path, load_message=True):
         '_EXCHANGE_BASE_SYMBOL': settings['_EXCHANGE_BASE_SYMBOL'],
         '_PAIR_SYMBOL': ''
     }
-    
+
     for token in tokens:
-        
+    
         # Keys that must be set
         for required_key in required_user_settings:
             if required_key not in token:
@@ -784,38 +852,56 @@ def reload_tokens_file(tokens_path, load_message=True):
                 printt_err("Be careful, sometimes new parameter are added : please check default tokens.json file")
                 sleep(20)
                 exit(-1)
-
+    
         for default_false in default_false_settings:
             if default_false not in token:
                 printt_v(default_false, "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a default value of false")
                 token[default_false] = "false"
             else:
                 token[default_false] = token[default_false].lower()
-
+    
         for default_true in default_true_settings:
             if default_true not in token:
-                printt_v(default_true, "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a default value of false")
-                token[default_true] = "false"
+                printt_v(default_true, "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a default value of true")
+                token[default_true] = "true"
             else:
                 token[default_true] = token[default_true].lower()
-
-        # Set program values only if they haven't been set already
-        if '_LIQUIDITY_READY' not in token:
-            for value in program_defined_values:
-                token[value] = program_defined_values[value]
-
+    
         for default_key in default_value_settings:
             if default_key not in token:
                 printt_v(default_key, "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a value of", default_value_settings[default_key])
                 token[default_key] = default_value_settings[default_key]
             elif default_key == 'SELLAMOUNTINTOKENS':
                 default_value_settings[default_key] = default_value_settings[default_key].lower()
-
+    
+        # Set program values only if they haven't been set already
+        if '_LIQUIDITY_READY' not in token:
+            for value in program_defined_values:
+                token[value] = program_defined_values[value]
+    
+        for key in token:
+            if (isinstance(token[key], str)):
+                if re.search(r'^\d*\.\d+$', str(token[key])):
+                    token[key] = float(token[key])
+                elif re.search(r'^\d+$', token[key]):
+                    token[key] = int(token[key])
+    
+        if token['WATCH_STABLES_PAIRS'] == 'true' and token['USECUSTOMBASEPAIR'] == 'false':
+            for new_token_dict in build_extended_base_configuration(token):
+                set_of_new_tokens.append(new_token_dict)
+        elif token['WATCH_STABLES_PAIRS'] == 'true':
+            printt_warn("Ignoring WATCH_STABLES_PAIRS", "for", token['SYMBOL'], ": WATCH_STABLES_PAIRS = true and USECUSTOMBASEPAIR = true is unsupported.")
+    
         if token['USECUSTOMBASEPAIR'] == 'false':
             token['_PAIR_SYMBOL'] = token['SYMBOL'] + '/' + token['_EXCHANGE_BASE_SYMBOL']
         else:
             token['_PAIR_SYMBOL'] = token['SYMBOL'] + '/' + token['BASESYMBOL']
 
+    # Add any tokens generated by "WATCH_STABLES_PAIRS" to the tokens list.
+    for token_dict in set_of_new_tokens:
+        tokens.append(token_dict)
+
+    printt_debug("EXIT reload_tokens_file")
     return tokens
 
 
@@ -2518,10 +2604,11 @@ def build_sell_conditions(token_dict, condition):
     if re.search('^(\d+\.){0,1}\d+%$', str(sell)):
         sell = sell.replace("%","")
         if condition == 'before_buy':
-            printt_err("Be careful, updating sellprice with % in real-time does NOT work for the moment. Bot will set SELLPRICE = 99999")
-            printt_err("----------------------------------------------------------------------------------------------------------------------------------")
-            printt_err("   --> do NOT change your tokens.json or close the bot after BUY order is made, or your calculated SELLPRICE will be lost!")
-            printt_err("----------------------------------------------------------------------------------------------------------------------------------")
+            printt_err("Be careful, updating sellprice with % in real-time WORKS ONLY FOR ONE TOKEN for the moment")
+            printt_err("------------------------------------------------------------------------------------------")
+            printt_err("     --> do NOT change your tokens.json if you have more than 1 token in it")
+            printt_err("or close the bot after BUY order is made, or your calculated SELLPRICE will be lost!")
+            printt_err("------------------------------------------------------------------------------------------")
             printt_info("Since you have put a % in SELLPRICE, and bot did not buy yet, we will set SELLPRICE = 99999 so as the bot not to sell if you stop and run it again.")
             token_dict['_CALCULATED_SELLPRICEINBASE'] = 99999
         else:
@@ -2530,7 +2617,7 @@ def build_sell_conditions(token_dict, condition):
             printt_info(token_dict['SYMBOL'], " cost per token was: ", token_dict['_COST_PER_TOKEN'])
             printt_info("--> SELLPRICEINBASE = ", token_dict['SELLPRICEINBASE'],"*", token_dict['_COST_PER_TOKEN'], "= ", token_dict['_CALCULATED_SELLPRICEINBASE'])
             printt_info("")
-            printt_err("DO NOT CHANGE TOKENS.JSON OR CLOSE THE BOT OR THIS INFORMATION WILL BE LOST")
+            printt_err("DO NOT CLOSE THE BOT OR THIS INFORMATION WILL BE LOST")
             printt_info("---------------------------------------------------------------------------")
     # Otherwise, don't adjust the sell price in base
     else:
@@ -2540,7 +2627,7 @@ def build_sell_conditions(token_dict, condition):
     if re.search('^(\d+\.){0,1}\d+%$', str(stop)):
         stop = stop.replace("%","")
         if condition == 'before_buy':
-            printt_err("Be careful, updating sellprice with % in real-time does NOT work for the moment. Bot will set STOPLOSSPRICE = 0")
+            printt_err("Be careful, updating stoplossprice with % in real-time WORKS ONLY FOR ONE TOKEN for the moment")
             printt_info("Since you have put a % in SELLPRICE, and bot did not buy yet, we will set STOPLOSSPRICE = 0.")
             token_dict['_CALCULATED_STOPLOSSPRICEINBASE'] = 0
         else:
@@ -3106,8 +3193,9 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
             # LIQUIDITYINNATIVETOKEN = true
             # USECUSTOMBASEPAIR = false
             amount_out = routerContract.functions.getAmountsOut(amount, [weth, outToken]).call()[-1]
+            
             if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
-                amountOutMin = 100
+                amountOutMin = 0
             else:
                 amountOutMin = int(amount_out * (1 - (slippage / 100)))
 
@@ -3213,8 +3301,9 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
             # USECUSTOMBASEPAIR = true
             # but user chose to put WETH or WBNB contract as CUSTOMBASEPAIR address
             amount_out = routerContract.functions.getAmountsOut(amount, [weth, outToken]).call()[-1]
+            
             if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
-                amountOutMin = 100
+                amountOutMin = 0
             else:
                 amountOutMin = int(amount_out * (1 - (slippage / 100)))
             
@@ -3268,10 +3357,12 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
             
             if routing.lower() == 'true':
                 amount_out = routerContract.functions.getAmountsOut(amount, [inToken, weth, outToken]).call()[-1]
+                
                 if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
                     amountOutMin = 100
                 else:
                     amountOutMin = int(amount_out * (1 - (slippage / 100)))
+                    
                 deadline = int(time() + + 60)
 
                 if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
@@ -3332,6 +3423,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
                         "YOU ARE TRADING WITH VERY BIG AMOUNT, BE VERY CAREFUL YOU COULD LOSE MONEY!!! TEAM RECOMMEND NOT TO DO THAT")
                 
                 amount_out = routerContract.functions.getAmountsOut(amount, [inToken, outToken]).call()[-1]
+                
                 if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
                     amountOutMin = 100
                 else:
@@ -3992,7 +4084,12 @@ def sell(token_dict, inToken, outToken):
             sync(inToken, weth)
             
             amount_out = routerContract.functions.getAmountsOut(amount, [inToken, weth]).call()[-1]
-            amountOutMin = int(amount_out * (1 - (slippage / 100)))
+            
+            if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
+                amountOutMin = 0
+            else:
+                amountOutMin = int(amount_out * (1 - (slippage / 100)))
+            
             deadline = int(time() + + 60)
             
             printt_debug("amount_out 2704  :", amount_out)
@@ -4166,7 +4263,12 @@ def sell(token_dict, inToken, outToken):
                 # if user has set WETH or WBNB as Custom base pair
                 sync(inToken, outToken)
                 amount_out = routerContract.functions.getAmountsOut(amount, [inToken, weth]).call()[-1]
-                amountOutMin = int(amount_out * (1 - (slippage / 100)))
+                
+                if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
+                    amountOutMin = 0
+                else:
+                    amountOutMin = int(amount_out * (1 - (slippage / 100)))
+                    
                 deadline = int(time() + + 60)
                 
                 if fees.lower() == 'true':
@@ -4269,7 +4371,12 @@ def sell(token_dict, inToken, outToken):
                     # LIQUIDITYINNATIVETOKEN = false
                     # USECUSTOMBASEPAIR = true
                     amount_out = routerContract.functions.getAmountsOut(amount, [inToken, outToken]).call()[-1]
-                    amountOutMin = int(amount_out * (1 - (slippage / 100)))
+                    
+                    if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
+                        amountOutMin = 0
+                    else:
+                        amountOutMin = int(amount_out * (1 - (slippage / 100)))
+
                     deadline = int(time() + + 60)
                     
                     if fees.lower() == 'true':
@@ -4362,7 +4469,12 @@ def sell(token_dict, inToken, outToken):
                     printt_debug("amount 2824:", amount)
                     
                     amount_out = routerContract.functions.getAmountsOut(amount, [inToken, weth, outToken]).call()[-1]
-                    amountOutMin = int(amount_out * (1 - (slippage / 100)))
+                    
+                    if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
+                        amountOutMin = 0
+                    else:
+                        amountOutMin = int(amount_out * (1 - (slippage / 100)))
+
                     deadline = int(time() + + 60)
                     
                     if fees.lower() == 'true':
@@ -4520,6 +4632,9 @@ def benchmark():
     
 def run():
     global tokens_json_already_loaded
+    global _COST_PER_TOKEN_saved
+    global _PREVIOUS_TOKEN_BALANCE_saved
+    
     tokens_json_already_loaded = tokens_json_already_loaded + 1
     try:
         
@@ -4529,7 +4644,7 @@ def run():
         if tokens_json_already_loaded > 1:
             printt_debug("try to launch reload_tokens_file")
             #TODO : we should be using reload_tokens_file, but it does not work for now
-            tokens = load_tokens_file(command_line_args.tokens, True)
+            tokens = reload_tokens_file(command_line_args.tokens, True)
 
         # Display the number of token pairs we're attempting to trade
         token_list_report(tokens)
@@ -4779,6 +4894,10 @@ def run():
                                 printt_err("- ... or your node is not working well")
                                 printt_err("-------------------------------")
 
+                                # Apprise notification
+                                if settings['ENABLE_APPRISE_NOTIFICATIONS'] == 'true':
+                                    apprise_notification(token, 'buy_failure')
+
                                 # increment _FAILED_TRANSACTIONS amount
                                 token['_FAILED_TRANSACTIONS'] += 1
                                 printt_debug("3813 _FAILED_TRANSACTIONS:", token['_FAILED_TRANSACTIONS'])
@@ -4793,7 +4912,7 @@ def run():
                             else:
                                 # transaction is a SUCCESS
                                 printt_ok("----------------------------------", write_to_log=True)
-                                printt_ok("SUCCESS : your buy Tx is confirmed    ", write_to_log=True)
+                                printt_ok("SUCCESS : your buy Tx is confirmed", write_to_log=True)
                                 printt_ok("", write_to_log=True)
                                 
                                 # Re-calculate balances after buy()
@@ -4806,6 +4925,10 @@ def run():
                                 printt_ok("You bought", token['_TOKEN_BALANCE'] - token['_PREVIOUS_TOKEN_BALANCE'], token['SYMBOL'], "tokens", write_to_log=True)
                                 printt_ok("----------------------------------", write_to_log=True)
                                 
+                                # Apprise notification
+                                if settings['ENABLE_APPRISE_NOTIFICATIONS'] == 'true':
+                                    apprise_notification(token,'buy_success')
+
                                 # if user has chose the option "instantafterbuy", token is approved right after buy order is confirmed.
                                 if (settings['PREAPPROVE'] == 'instantafterbuy' or settings['PREAPPROVE'] == 'true'):
                                     check_approval(token, token['ADDRESS'], token['_TOKEN_BALANCE'] * DECIMALS, 'preapprove')
@@ -4909,6 +5032,11 @@ def run():
                                 # increment _FAILED_TRANSACTIONS amount
                                 token['_FAILED_TRANSACTIONS'] += 1
                                 
+                                # Apprise notification
+                                if settings['ENABLE_APPRISE_NOTIFICATIONS'] == 'true':
+                                    apprise_notification(token,'sell_failure')
+
+                                
                                 # We ask the bot to check if your allowance is > to your balance.
                                 check_approval(token, inToken, token['_TOKEN_BALANCE'] * 1000000000000000000, 'txfail')
 
@@ -4918,6 +5046,10 @@ def run():
                                 printt_ok("----------------------------------", write_to_log=True)
                                 printt_ok("SUCCESS : your sell Tx is confirmed    ", write_to_log=True)
                                 
+                                # Apprise notification
+                                if settings['ENABLE_APPRISE_NOTIFICATIONS'] == 'true':
+                                    apprise_notification(token, 'sell_success')
+
                                 # Optional cooldown after SUCCESS sell, if you use XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX parameter
                                 if token['XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX'] != 0:
                                     printt_info("Bot will wait", token['XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX'], "seconds after SELL, due to XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX parameter", write_to_log=True)
@@ -4956,8 +5088,11 @@ def run():
         printt_debug("tokens_json_already_loaded: ", tokens_json_already_loaded)
         if tokens_json_already_loaded > 0:
             printt_debug("Debug 4841 - reload_tokens_file condition")
+            _COST_PER_TOKEN_saved = token['_COST_PER_TOKEN']
+            _PREVIOUS_TOKEN_BALANCE_saved = token['_PREVIOUS_TOKEN_BALANCE']
+            printt_debug("4838 _COST_PER_TOKEN_saved:", _COST_PER_TOKEN_saved)
             reload_bot_settings(bot_settings)
-            sleep(1)
+            sleep(0.01)
             logging.exception(ee)
             raise RestartAppError("Restarting LimitSwap")
         else:

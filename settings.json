@@ -13,13 +13,15 @@
 "WALLETADDRESS5": "null",
 "PRIVATEKEY5": "null",
 "USECUSTOMNODE": "false",
-	"CUSTOMNODE": "put your own node here if you want and set USECUSTOMNODE = true",
+	"CUSTOMNODE": "false", // put your own node here if you want and set USECUSTOMNODE = true
 "EXCHANGE": "pancakeswap",
-	"EXCHANGEVERSION": "2",
+	"EXCHANGEVERSION": "2", // only for Pancakeswap
 "PREAPPROVE": "true",
 "UNLIMITEDSLIPPAGE": "false",
-"PASSWORD_ON_CHANGE": "false",
-"VERBOSE_PRICING": "true",
-"SLOW_MODE": "false"
+"PASSWORD_ON_CHANGE": "false", // set this to true if you want the bot to ask for your PK password if you update tokens.json in real time
+"VERBOSE_PRICING": "true", // set to false if you want a new price line to appear only when price change
+"SLOW_MODE": "false", // use this if you want the bot to make only 1 price check every 0.5s
+"ENABLE_APPRISE_NOTIFICATIONS": "true", // use this if you want to receive notifications with APPRISE API
+"APPRISE_PARAMETER": ["macosx://", "windows://"] // you can enter new parameters. Respect the format. Check https://github.com/caronc/apprise
 }
 ]

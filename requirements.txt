@@ -32,6 +32,7 @@ protobuf==3.19.1
 pwinput==1.0.2
 pycryptodome==3.11.0
 pyrsistent==0.18.0
+python-pushsafer==1.0
 pywin32==302; sys_platform == 'win32'
 requests==2.26.0
 rlp==2.0.1
