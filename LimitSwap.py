@@ -4981,7 +4981,10 @@ def run():
                                     printt_info("Bot will wait", token['XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX'], "seconds after SELL, due to XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX parameter", write_to_log=True)
                                     sleep(token['XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX'])
 
-                                # Re-calculate balances after buy()
+                                # Save previous token balance before recalculating
+                                token['_PREVIOUS_TOKEN_BALANCE'] = token['_TOKEN_BALANCE']
+
+                                # Re-calculate balances after sell()
                                 calculate_base_balance(token)
 
                                 # increment _SUCCESS_TRANSACTIONS amount
