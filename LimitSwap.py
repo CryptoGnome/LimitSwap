@@ -1824,13 +1824,11 @@ def build_extended_base_configuration(token_dict):
     # Giving values for the stables pair
     for stable_token in settings['_STABLE_BASES']:
         new_token = token_dict.copy()
-        printt_debug(str(token_dict['SELLPRICEINBASE'])+ "::"+str( settings['_STABLE_BASES'][stable_token]['multiplier']))
-        printt_debug("settings['_STABLE_BASES'][stable_token]['multiplier']: ", settings['_STABLE_BASES'][stable_token]['multiplier'])
         new_token.update({
                         'BUYAMOUNTINBASE': token_dict['BUYAMOUNTINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
                         "BUYPRICEINBASE": token_dict['BUYPRICEINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
-                        "SELLPRICEINBASE": float(token_dict['SELLPRICEINBASE']) * float(settings['_STABLE_BASES'][stable_token]['multiplier']),
-                        "STOPLOSSPRICEINBASE": float(token_dict['STOPLOSSPRICEINBASE']) * float(settings['_STABLE_BASES'][stable_token]['multiplier']),
+                        "SELLPRICEINBASE": float(token_dict['_CALCULATED_SELLPRICEINBASE']) * float(settings['_STABLE_BASES'][stable_token]['multiplier']),
+                        "STOPLOSSPRICEINBASE": float(token_dict['_CALCULATED_STOPLOSSPRICEINBASE']) * float(settings['_STABLE_BASES'][stable_token]['multiplier']),
                         "MINIMUM_LIQUIDITY_IN_DOLLARS": token_dict['MINIMUM_LIQUIDITY_IN_DOLLARS'],
                         "USECUSTOMBASEPAIR": "true",
                         "LIQUIDITYINNATIVETOKEN": "false",
@@ -2492,41 +2490,37 @@ def build_sell_conditions(token_dict, condition):
 
     # Check to see if the SELLPRICEINBASE is a percentage of the purchase
     if re.search('^(\d+\.){0,1}\d+%$', str(sell)):
-        printt_debug("build_sell_conditions condition with %%%")
         sell = sell.replace("%","")
         if condition == 'before_buy':
+            printt("")
             printt_err("Be careful, updating sellprice with % in real-time WORKS ONLY FOR ONE TOKEN for the moment")
-            printt_err("------------------------------------------------------------------------------------------")
-            printt_err("     --> do NOT change your tokens.json if you have more than 1 token in it")
+            printt_err("--------------------------------------------------------------------------------------------------")
+            printt_err("--> do NOT change your tokens.json if you have more than 1 token or if you use WATCH_STABLES_PAIRS")
             printt_err("or close the bot after BUY order is made, or your calculated SELLPRICE will be lost!")
-            printt_err("------------------------------------------------------------------------------------------")
+            printt_err("--------------------------------------------------------------------------------------------------")
+            printt("")
             printt_info("Since you have put a % in SELLPRICE, and bot did not buy yet, we will set SELLPRICE = 99999 so as the bot not to sell if you stop and run it again.")
             token_dict['_CALCULATED_SELLPRICEINBASE'] = 99999
         else:
             token_dict['_CALCULATED_SELLPRICEINBASE'] = token_dict['_COST_PER_TOKEN'] * (float(sell) / 100)
-            printt_info("---------------------------------------------------------------------------")
+            printt_info("")
             printt_info(token_dict['SYMBOL'], " cost per token was: ", token_dict['_COST_PER_TOKEN'])
             printt_info("--> SELLPRICEINBASE = ", token_dict['SELLPRICEINBASE'],"*", token_dict['_COST_PER_TOKEN'], "= ", token_dict['_CALCULATED_SELLPRICEINBASE'])
             printt_info("")
             printt_err("DO NOT CLOSE THE BOT OR THIS INFORMATION WILL BE LOST")
-            printt_info("---------------------------------------------------------------------------")
     # Otherwise, don't adjust the sell price in base
     else:
-        printt_debug("build_sell_conditions condition without %%%")
         token_dict['_CALCULATED_SELLPRICEINBASE'] = sell
     # Check to see if the STOPLOSSPRICEINBASE is a percentage of the purchase
     if re.search('^(\d+\.){0,1}\d+%$', str(stop)):
         stop = stop.replace("%","")
         if condition == 'before_buy':
-            printt_err("Be careful, updating stoplossprice with % in real-time WORKS ONLY FOR ONE TOKEN for the moment")
             printt_info("Since you have put a % in SELLPRICE, and bot did not buy yet, we will set STOPLOSSPRICE = 0.")
             token_dict['_CALCULATED_STOPLOSSPRICEINBASE'] = 0
         else:
             token_dict['_CALCULATED_STOPLOSSPRICEINBASE'] = token_dict['_COST_PER_TOKEN'] * (float(stop) / 100)
-            printt_info("-----------------------------------------------------------")
             printt_info("--> STOPLOSSPRICEINBASE = ", token_dict['STOPLOSSPRICEINBASE'],"*", token_dict['_COST_PER_TOKEN'], "= ", token_dict['_CALCULATED_STOPLOSSPRICEINBASE'])
             printt_info("")
-            printt_info("-----------------------------------------------------------")
 
     # Otherwise, don't adjust the sell price in base
     else:
@@ -3037,10 +3031,11 @@ def calculate_gas(token):
             gas_check = client.eth.gasPrice
             gas_price = gas_check / 1000000000
         
+        printt_info("")
         printt_info("Current Gas Price =", gas_price)
         token['_GAS_TO_USE'] = (gas_price * ((int(token['BOOSTPERCENT'])) / 100)) + gas_price
         printt_info("Transaction for", token['SYMBOL'], "will be created with gas =", token['_GAS_TO_USE'])
-    
+        printt_info("")
     else:
         token['_GAS_TO_USE'] = int(token['GAS'])
     
@@ -3757,9 +3752,7 @@ def buy(token_dict, inToken, outToken, pwd):
     elif token_dict['BUYAFTER_XXX_SECONDS'] != 0:
         printt_info("Bot will wait", token_dict['BUYAFTER_XXX_SECONDS'], " seconds before buy, as you entered in BUYAFTER_XXX_SECONDS parameter")
         sleep(token_dict['BUYAFTER_XXX_SECONDS'])
-    
-    printt("Placing New Buy Order for " + token_dict['SYMBOL'])
-    
+        
     if int(gaslimit) < 250000:
         printt_info( "Your GASLIMIT parameter is too low : LimitSwap has forced it to 300000 otherwise your transaction would fail for sure. We advise you to raise it to 1000000.")
         gaslimit = 300000
@@ -4621,8 +4614,10 @@ def run():
                 printt("Your wallet already owns : ", token['_TOKEN_BALANCE'], token['SYMBOL'], write_to_log=True)
                 if token['_TOKEN_BALANCE'] > float(token['MAXTOKENS']):
                     token['_REACHED_MAX_TOKENS'] = True
+                    printt("")
                     printt_warn("You have reached MAXTOKENS for token ", token['SYMBOL'], "--> bot stops to buy", write_to_log=True)
-            
+                    printt("")
+
             # Calculate balances prior to buy() to accelerate buy()
             calculate_base_balance(token)
             
@@ -4771,12 +4766,14 @@ def run():
                         printt_debug("===========================================")
                         
                         log_price = "{:.18f}".format(token['_QUOTE'])
+                        printt_ok("")
                         printt_ok("-----------------------------------------------------------", write_to_log=True)
                         printt_ok("Buy Signal Found =-= Buy Signal Found =-= Buy Signal Found ", write_to_log=True)
                         printt_ok("", write_to_log=True)
                         printt_ok("Buy price in", token['_PAIR_TO_DISPLAY'], ":", log_price, write_to_log=True)
                         printt_ok("-----------------------------------------------------------", write_to_log=True)
-                        
+                        printt_ok("")
+
                         #
                         # LIQUIDITY CHECK
                         #   If the option is selected
@@ -4871,7 +4868,9 @@ def run():
                                 # Check if MAXTOKENS is reached or not
                                 if token['_TOKEN_BALANCE'] > Decimal(token['MAXTOKENS']):
                                     token['_REACHED_MAX_TOKENS'] = True
+                                    printt("")
                                     printt_warn("You have reached MAXTOKENS for", token['SYMBOL'], "token --> disabling trade", write_to_log=True)
+                                    printt("")
 
                                 # Build sell conditions for the token
                                 build_sell_conditions(token, 'after_buy')
