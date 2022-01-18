@@ -567,6 +567,7 @@ def load_tokens_file(tokens_path, load_message=True):
         'MAX_BASE_AMOUNT_PER_EXACT_TOKENS_TRANSACTION': 0.5,
         'SELLAMOUNTINTOKENS': 'all',
         'GAS': 8,
+        'MAX_GAS': 99999,
         'BOOSTPERCENT': 50,
         'GASLIMIT': 1000000,
         'BUYAFTER_XXX_SECONDS': 0,
@@ -793,6 +794,7 @@ def reload_tokens_file(tokens_path, load_message=True):
         'MAX_BASE_AMOUNT_PER_EXACT_TOKENS_TRANSACTION': 0.5,
         'SELLAMOUNTINTOKENS': 'all',
         'GAS': 8,
+        'MAX_GAS': 99999,
         'BOOSTPERCENT': 50,
         'GASLIMIT': 1000000,
         'BUYAFTER_XXX_SECONDS': 0,
@@ -3752,13 +3754,27 @@ def buy(token_dict, inToken, outToken, pwd):
     
     if balance > Decimal(amount) or token_dict['KIND_OF_SWAP'] == 'tokens':
         
-        if token_dict['_GAS_IS_CALCULATED'] != True:
-            # If WAIT_FOR_OPEN_TRADE = true, token['_GAS_TO_USE'] was calculated by wait_for_open_trade
-            # If it was not used, let's calculate now how much gas we should use for this token
+        if base_symbol == "ETH" and token_dict['_GAS_IS_CALCULATED'] != True:
+            # We calculate the GAS only for ETH, because it changes at every block on ETH.
+            # On other blockchains, it's almost constant so ne need for it
+            #
+            # If WAIT_FOR_OPEN_TRADE was used and detected openTrading transaction in mempool :
+            #   1/  _GAS_TO_USE was calculated by wait_for_open_trade  to be the same as openTrading transaction
+            #   2/  _GAS_IS_CALCULATED was set to true, to understand that we don't need to re-calculate it again
+            #
+            # If WAIT_FOR_OPEN_TRADE was not used, let's calculate now how much gas we should use for this token for ETH only
+            printt_debug("Need to re-calculate GAS price")
             calculate_gas(token_dict)
-            
+
+        # Stops transaction if GAS > MAXGAS
         printt_debug("_GAS_TO_USE is set to: ", token_dict['_GAS_TO_USE'])
-        
+        printt_debug("MAX_GAS is set to    : ", token_dict['MAX_GAS'])
+
+        if token_dict['_GAS_TO_USE'] > token_dict['MAX_GAS']:
+            printt_err("GAS = ", token_dict['_GAS_TO_USE'], "is superior to your MAX_GAS parameter (=", token_dict['MAX_GAS'], ") --> bot do not buy", )
+            token_dict['ENABLED'] = 'false'
+            return False
+
         gaslimit = int(gaslimit)
         slippage = int(slippage)
         amount = int(float(amount) * 1000000000000000000)
@@ -3852,6 +3868,16 @@ def sell(token_dict, inToken, outToken):
             calculate_gas(token_dict)
             printt_debug("gas: 2380", token_dict['_GAS_TO_USE'])
             gas = token_dict['_GAS_TO_USE']
+        
+        # Stops transaction if GAS > MAXGAS
+        printt_debug("_GAS_TO_USE is set to: ", token_dict['_GAS_TO_USE'])
+        printt_debug("MAX_GAS is set to    : ", token_dict['MAX_GAS'])
+
+        if token_dict['_GAS_TO_USE'] > token_dict['MAX_GAS']:
+            printt_err("GAS = ", token_dict['_GAS_TO_USE'], "is superior to your MAX_GAS parameter (=", token_dict['MAX_GAS'], ") --> bot do not sell and disable token", )
+            token_dict['ENABLED'] = 'false'
+            return False
+
         
         slippage = int(slippage)
         gaslimit = int(gaslimit)
@@ -4879,6 +4905,8 @@ def run():
                         logging.info("Sell Signal Found @" + str(log_price))
                         printt_ok("--------------------------------------------------------------")
                         printt_ok("Sell Signal Found =-= Sell Signal Found =-= Sell Signal Found ")
+                        printt_ok("", write_to_log=True)
+                        printt_ok("Sell price in", token['_PAIR_TO_DISPLAY'], ":", log_price, write_to_log=True)
                         printt_ok("--------------------------------------------------------------")
                         
                         tx = sell(token, inToken, outToken)
