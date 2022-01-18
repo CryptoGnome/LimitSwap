@@ -1017,6 +1017,19 @@ filename = "bakeryRouter.json"
 file_path = os.path.join(directory, filename)
 with open(file_path) as json_file:
     bakeryRouter = json.load(json_file)
+
+directory = './abi/'
+filename = "protofiabi.json"
+file_path = os.path.join(directory, filename)
+with open(file_path) as json_file:
+    protofiabi = json.load(json_file)
+    
+directory = './abi/'
+filename = "protofirouter.json"
+file_path = os.path.join(directory, filename)
+with open(file_path) as json_file:
+    protofirouter = json.load(json_file)
+
     
 """""""""""""""""""""""""""
 // LOGGING
@@ -1578,7 +1591,42 @@ elif settings["EXCHANGE"] == 'spookyswap':
     rugdocchain = '&chain=ftm'
     modified = False
     settings['_EXCHANGE_BASE_SYMBOL'] = 'FTM'
-    settings['_STABLE_BASES'] = {'USDC':{ 'address': '0x04068da6c83afcfa0e13ba15a6696662335d5b75', 'multiplier' : 0}}
+    settings['_STABLE_BASES'] = {'USDC':{ 'address': '0x04068da6c83afcfa0e13ba15a6696662335d5b75', 'multiplier' : 0},
+                                 'USDT': {'address': '0x049d68029688eabf473097a2fc38ef61633a3c7a', 'multiplier': 0}}
+
+elif settings["EXCHANGE"] == 'protofi':
+    if settings['USECUSTOMNODE'] == 'true':
+        my_provider = settings['CUSTOMNODE']
+    else:
+        my_provider = "https://rpcapi.fantom.network"
+
+    if not my_provider:
+        printt_err('Custom node empty. Exiting')
+        exit(1)
+
+    if my_provider[0].lower() == 'h':
+        print(timestamp(), 'Using HTTPProvider')
+        client = Web3(Web3.HTTPProvider(my_provider))
+    elif my_provider[0].lower() == 'w':
+        print(timestamp(), 'Using WebsocketProvider')
+        client = Web3(Web3.WebsocketProvider(my_provider))
+    else:
+        print(timestamp(), 'Using IPCProvider')
+        client = Web3(Web3.IPCProvider(my_provider))
+
+    print(timestamp(), "FANTOM Chain Connected =", client.isConnected())
+    print(timestamp(), "Loading Smart Contracts...")
+    routerAddress = Web3.toChecksumAddress("0xF4C587a0972Ac2039BFF67Bc44574bB403eF5235")
+    factoryAddress = Web3.toChecksumAddress("0x39720E5Fe53BEEeb9De4759cb91d8E7d42c17b76")
+    routerContract = client.eth.contract(address=routerAddress, abi=protofirouter)
+    factoryContract = client.eth.contract(address=factoryAddress, abi=protofiabi)
+    weth = Web3.toChecksumAddress("0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83")
+    base_symbol = "FTM"
+    rugdocchain = '&chain=ftm'
+    modified = False
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'FTM'
+    settings['_STABLE_BASES'] = {'USDC':{ 'address': '0x04068da6c83afcfa0e13ba15a6696662335d5b75', 'multiplier' : 0},
+                                 'USDT': {'address': '0x049d68029688eabf473097a2fc38ef61633a3c7a', 'multiplier': 0}}
 
 elif settings["EXCHANGE"] == 'spiritswap':
     if settings['USECUSTOMNODE'] == 'true':
@@ -1611,8 +1659,8 @@ elif settings["EXCHANGE"] == 'spiritswap':
     rugdocchain = '&chain=ftm'
     modified = False
     settings['_EXCHANGE_BASE_SYMBOL'] = 'FTM'
-    settings['_STABLE_BASES'] = {'USDC':{ 'address': '0x04068da6c83afcfa0e13ba15a6696662335d5b75', 'multiplier' : 0}}
-
+    settings['_STABLE_BASES'] = {'USDC':{ 'address': '0x04068da6c83afcfa0e13ba15a6696662335d5b75', 'multiplier' : 0},
+                                 'USDT': {'address': '0x049d68029688eabf473097a2fc38ef61633a3c7a', 'multiplier': 0}}
 
 elif settings["EXCHANGE"] == 'quickswap':
     if settings['USECUSTOMNODE'] == 'true':
