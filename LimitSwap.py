@@ -424,31 +424,57 @@ def load_settings_file(settings_path, load_message=True):
     return bot_settings, settings
 
 
-def apprise_notification(message, title, parameter):
+def apprise_notification(token, parameter):
     printt_debug("ENTER pushsafer_notification")
-    apprise_parameter = settings['APPRISE_PARAMETER']
 
     apobj = apprise.Apprise()
-    apobj.add(apprise_parameter)
+
+    if settings['APPRISE_PARAMETERS'] == "":
+        printt_err("APPRISE_PARAMETERS setting is missing - please enter it")
+        return
+    
+    apprise_parameter = settings['APPRISE_PARAMETERS']
+    printt_debug("apprise_parameter:", apprise_parameter)
+    for key in apprise_parameter:
+        apobj.add(key)
     
     try:
-        if parameter == 'success':
-            # client.send_message(message, title, pushsafer_id, icon, ....... , priority)
-            # client.send_message(message, title, apprise_id, "20", "", "", "", "", "0", "1")
+        if parameter == 'buy_success':
+            message = "SUCCESS : your " + token['SYMBOL'] + " buy Tx is confirmed. Price:" + str("{:.10f}".format(token['_QUOTE']))
+            title = "BUY Success"
+            
+            apobj.notify(
+                body=message,
+                title=title,
+            )
+            
+        elif parameter == 'buy_failure':
+            message = "FAILURE : your " + token['SYMBOL'] + " buy Tx failed"
+            title = "BUY Failure"
+            
+            apobj.notify(
+                body=message,
+                title=title,
+            )
+
+        elif parameter == 'sell_success':
+            message = "SUCCESS : your " + token['SYMBOL'] + " sell Tx is confirmed. Price:" + str("{:.10f}".format(token['_QUOTE']))
+            title = "SELL Success"
+            
+            apobj.notify(
+                body=message,
+                title=title,
+            )
+
+        elif parameter == 'sell_failure':
+            message = "FAILURE : your " + token['SYMBOL'] + " sell Tx failed"
+            title = "SELL Failure"
 
             apobj.notify(
                 body=message,
                 title=title,
             )
             
-        if parameter == 'failure':
-            # client.send_message(message, title, pushsafer_id, icon, ....... , priority)
-            # client.send_message(message, title, apprise_id, "21", "", "", "", "", "0", "2")
-            
-            apobj.notify(
-                body=message,
-                title=title,
-            )
             
     except Exception as ee:
         printt_err("APPRISE - an Exception occured : check your logs")
@@ -4742,10 +4768,9 @@ def run():
                                 printt_err("- ... or your node is not working well")
                                 printt_err("-------------------------------")
 
-                                # Apprise notifiaction
+                                # Apprise notification
                                 if settings['ENABLE_APPRISE_NOTIFICATIONS'] == 'true':
-                                    message = "FAILURE : your " + token['SYMBOL'] + " buy Tx failed"
-                                    apprise_notification(message, "BUY failure", 'failure')
+                                    apprise_notification(token, 'buy_failure')
 
                                 # increment _FAILED_TRANSACTIONS amount
                                 token['_FAILED_TRANSACTIONS'] += 1
@@ -4774,10 +4799,9 @@ def run():
                                 printt_ok("You bought", token['_TOKEN_BALANCE'] - token['_PREVIOUS_TOKEN_BALANCE'], token['SYMBOL'], "tokens", write_to_log=True)
                                 printt_ok("----------------------------------", write_to_log=True)
                                 
-                                # Apprise notifiaction
+                                # Apprise notification
                                 if settings['ENABLE_APPRISE_NOTIFICATIONS'] == 'true':
-                                    message = "SUCCESS : your " + token['SYMBOL'] + " buy Tx is confirmed"
-                                    apprise_notification(message, "BUY success", 'success')
+                                    apprise_notification(token,'buy_success')
 
                                 # if user has chose the option "instantafterbuy", token is approved right after buy order is confirmed.
                                 if (settings['PREAPPROVE'] == 'instantafterbuy' or settings['PREAPPROVE'] == 'true'):
@@ -4882,10 +4906,9 @@ def run():
                                 # increment _FAILED_TRANSACTIONS amount
                                 token['_FAILED_TRANSACTIONS'] += 1
                                 
-                                # Apprise notifiaction
+                                # Apprise notification
                                 if settings['ENABLE_APPRISE_NOTIFICATIONS'] == 'true':
-                                    message = "FAILURE : your " + token['SYMBOL'] + " sell Tx failed"
-                                    apprise_notification(message, "SELL failure", 'failure')
+                                    apprise_notification(token,'sell_failure')
 
                                 
                                 # We ask the bot to check if your allowance is > to your balance.
@@ -4897,10 +4920,9 @@ def run():
                                 printt_ok("----------------------------------", write_to_log=True)
                                 printt_ok("SUCCESS : your sell Tx is confirmed    ", write_to_log=True)
                                 
-                                # Apprise notifiaction
+                                # Apprise notification
                                 if settings['ENABLE_APPRISE_NOTIFICATIONS'] == 'true':
-                                    message = "SUCCESS : your " + token['SYMBOL'] + " sell Tx is confirmed"
-                                    apprise_notification(message, "SELL success", 'success')
+                                    apprise_notification(token, 'sell_success')
 
                                 # Optional cooldown after SUCCESS sell, if you use XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX parameter
                                 if token['XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX'] != 0:
