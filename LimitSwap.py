@@ -2492,7 +2492,8 @@ def build_sell_conditions(token_dict, condition):
 
     # Check to see if the SELLPRICEINBASE is a percentage of the purchase
     if re.search('^(\d+\.){0,1}\d+%$', str(sell)):
-        token_dict['SELLPRICEINBASE'] = sell.replace("%","")
+        printt_debug("build_sell_conditions condition with %%%")
+        sell = sell.replace("%","")
         if condition == 'before_buy':
             printt_err("Be careful, updating sellprice with % in real-time WORKS ONLY FOR ONE TOKEN for the moment")
             printt_err("------------------------------------------------------------------------------------------")
@@ -2511,10 +2512,11 @@ def build_sell_conditions(token_dict, condition):
             printt_info("---------------------------------------------------------------------------")
     # Otherwise, don't adjust the sell price in base
     else:
+        printt_debug("build_sell_conditions condition without %%%")
         token_dict['_CALCULATED_SELLPRICEINBASE'] = sell
     # Check to see if the STOPLOSSPRICEINBASE is a percentage of the purchase
     if re.search('^(\d+\.){0,1}\d+%$', str(stop)):
-        token_dict['STOPLOSSPRICEINBASE'] = stop.replace("%","")
+        stop = stop.replace("%","")
         if condition == 'before_buy':
             printt_err("Be careful, updating stoplossprice with % in real-time WORKS ONLY FOR ONE TOKEN for the moment")
             printt_info("Since you have put a % in SELLPRICE, and bot did not buy yet, we will set STOPLOSSPRICE = 0.")
@@ -2530,7 +2532,13 @@ def build_sell_conditions(token_dict, condition):
     else:
         token_dict['_CALCULATED_STOPLOSSPRICEINBASE'] = stop
 
-        
+
+    printt_debug("1111 token_dict['_CALCULATED_SELLPRICEINBASE']    :", token_dict['_CALCULATED_SELLPRICEINBASE'])
+    printt_debug("1111 token_dict['_CALCULATED_STOPLOSSPRICEINBASE']:", token_dict['_CALCULATED_STOPLOSSPRICEINBASE'])
+    printt_debug(token_dict)
+
+    
+    
 def check_liquidity_amount(token, DECIMALS_OUT, DECIMALS_weth):
     # Function: check_liquidity_amount
     # ----------------------------
@@ -4824,6 +4832,9 @@ def run():
                                 printt_ok("----------------------------------", write_to_log=True)
                                 printt_ok("SUCCESS : your buy Tx is confirmed", write_to_log=True)
                                 printt_ok("", write_to_log=True)
+
+                                # Save previous token balance before recalculating
+                                token['_PREVIOUS_TOKEN_BALANCE'] = token['_TOKEN_BALANCE']
                                 
                                 # Re-calculate balances after buy()
                                 calculate_base_balance(token)
@@ -4864,6 +4875,8 @@ def run():
 
                                 # Build sell conditions for the token
                                 build_sell_conditions(token, 'after_buy')
+                                
+                                printt_debug(tokens)
 
                         else:
                             continue
