@@ -1819,6 +1819,7 @@ def build_extended_base_configuration(token_dict):
                         'BUYAMOUNTINBASE': token_dict['BUYAMOUNTINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
                         "BUYPRICEINBASE": token_dict['BUYPRICEINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
                         "SELLPRICEINBASE": token_dict['SELLPRICEINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
+                        "STOPLOSSPRICEINBASE": token_dict['STOPLOSSPRICEINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
                         "MINIMUM_LIQUIDITY_IN_DOLLARS": token_dict['MINIMUM_LIQUIDITY_IN_DOLLARS'],
                         "USECUSTOMBASEPAIR": "true",
                         "LIQUIDITYINNATIVETOKEN": "false",
@@ -1833,7 +1834,7 @@ def build_extended_base_configuration(token_dict):
         if not re.search('^(\d+\.){0,1}\d+(x|X|%)$', str(token_dict['SELLPRICEINBASE'])):
             new_token['SELLPRICEINBASE'] = token_dict['SELLPRICEINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier']
         if not re.search('^(\d+\.){0,1}\d+(x|X|%)$', str(token_dict['STOPLOSSPRICEINBASE'])):
-            new_token['STOPLOSSPRICEINBASE'] = token_dict['STOPLOSSPRICEINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
+            new_token['STOPLOSSPRICEINBASE'] = token_dict['STOPLOSSPRICEINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier']
             
         new_token_set.append(new_token)
         
@@ -2466,7 +2467,7 @@ def build_sell_conditions(token_dict, condition):
     
     sell = token_dict['SELLPRICEINBASE']
     stop = token_dict['STOPLOSSPRICEINBASE']
-    
+
     # Calculates cost per token
     # TODO : solve problem here https://t.me/LimitSwap/102375
     if float(token_dict['_TOKEN_BALANCE']) > 0:
@@ -2500,7 +2501,6 @@ def build_sell_conditions(token_dict, condition):
     # Otherwise, don't adjust the sell price in base
     else:
         token_dict['_CALCULATED_SELLPRICEINBASE'] = sell
-
     # Check to see if the STOPLOSSPRICEINBASE is a percentage of the purchase
     if re.search('^(\d+\.){0,1}\d+%$', str(stop)):
         stop = stop.replace("%","")
@@ -2518,7 +2518,7 @@ def build_sell_conditions(token_dict, condition):
     # Otherwise, don't adjust the sell price in base
     else:
         token_dict['_CALCULATED_STOPLOSSPRICEINBASE'] = stop
-        
+
         
 def check_liquidity_amount(token, DECIMALS_OUT, DECIMALS_weth):
     # Function: check_liquidity_amount
@@ -4880,6 +4880,7 @@ def run():
 
                     printt_debug("_TOKEN_BALANCE 3411", token['_TOKEN_BALANCE'], "for the token:",token['SYMBOL'])
                     # Looking to dump this token as soon as it drops <PUMP> percentage
+                    
                     if isinstance(command_line_args.pump, int) and command_line_args.pump > 0:
                         
                         if token['_COST_PER_TOKEN'] == 0 and token['_INFORMED_SELL'] == False:
@@ -4898,8 +4899,9 @@ def run():
                             if quote < minimum_price:
                                 printt_err(token['SYMBOL'], "has dropped", command_line_args.pump, "% from it's ATH - SELLING POSITION")
                                 price_conditions_met = True
-                                
-                    elif (token['_QUOTE'] > Decimal(token['_CALCULATED_SELLPRICEINBASE']) or token['_QUOTE'] < Decimal(token['_CALCULATED_STOPLOSSPRICEINBASE']))  and token['_TOKEN_BALANCE'] > 0:
+
+
+                    elif (token['_QUOTE'] > Decimal(token['_CALCULATED_SELLPRICEINBASE']) or token['_QUOTE'] < Decimal(token['_CALCULATED_STOPLOSSPRICEINBASE'])) and token['_TOKEN_BALANCE'] > 0:
                         price_conditions_met = True
                         
                     if price_conditions_met == True:
@@ -4989,6 +4991,7 @@ def run():
     
     except Exception as ee:
         printt_debug("Debug 4839 - an Exception occured")
+        logging.exception(ee)
         printt_debug("tokens_json_already_loaded: ", tokens_json_already_loaded)
         if tokens_json_already_loaded > 0:
             printt_debug("Debug 4841 - reload_tokens_file condition")
@@ -4997,7 +5000,6 @@ def run():
             printt_debug("4838 _COST_PER_TOKEN_saved:", _COST_PER_TOKEN_saved)
             reload_bot_settings(bot_settings)
             sleep(0.01)
-            logging.exception(ee)
             raise RestartAppError("Restarting LimitSwap")
         else:
             raise
