@@ -644,7 +644,7 @@ def load_tokens_file(tokens_path, load_message=True):
         '_TOKEN_BALANCE': 0,
         '_PREVIOUS_TOKEN_BALANCE': 0,
         '_BASE_BALANCE': 0,
-        '_BASE_PRICE': 0,
+        '_BASE_PRICE': calculate_base_price(),
         '_BASE_USED_FOR_TX': 0,
         '_PAIR_TO_DISPLAY': "Pair",
         '_CUSTOM_BASE_BALANCE': 0,
