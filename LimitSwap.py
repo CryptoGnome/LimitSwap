@@ -753,6 +753,8 @@ def reload_tokens_file(tokens_path, load_message=True):
     global _PREVIOUS_TOKEN_BALANCE_saved
     global set_of_new_tokens
 
+    set_of_new_tokens = []
+
     if load_message == True:
         print(timestamp(), "Reloading tokens from", tokens_path)
 
