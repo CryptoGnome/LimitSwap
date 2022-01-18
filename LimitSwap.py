@@ -287,9 +287,9 @@ def printt_sell_price(token_dict, token_price):
     # price_message = price_message + " ATH:" + "{0:.24f}".format(token_dict['_ALL_TIME_HIGH']) + " ATL:" + "{0:.24f}".format(token_dict['_ALL_TIME_LOW'])
 
     if token_dict['USECUSTOMBASEPAIR'] == 'false':
-        price_message = price_message + " - Token balance : " + str("{0:.4f}".format(token_dict['_TOKEN_BALANCE'])) + " (= " + "{0:.2f}".format(float(token_price) * float(token_dict['_BASE_PRICE']) * float(token_dict['_TOKEN_BALANCE'])) + " $)"
+        price_message = price_message + " - Token balance: " + str("{0:.4f}".format(token_dict['_TOKEN_BALANCE'])) + " (= " + "{0:.2f}".format(float(token_price) * float(token_dict['_BASE_PRICE']) * float(token_dict['_TOKEN_BALANCE'])) + " $)"
     else:
-        price_message = price_message + " - Token balance : " + str("{0:.4f}".format(token_dict['_TOKEN_BALANCE'])) + " (= " + "{0:.2f}".format(float(token_price) * float(token_dict['_TOKEN_BALANCE'])) + " " + token_dict['BASESYMBOL'] + ")"
+        price_message = price_message + " - Token balance: " + str("{0:.4f}".format(token_dict['_TOKEN_BALANCE'])) + " (= " + "{0:.2f}".format(float(token_price) * float(token_dict['_TOKEN_BALANCE'])) + " " + token_dict['BASESYMBOL'] + ")"
 
 
     if price_message == token_dict['_LAST_PRICE_MESSAGE'] and settings['VERBOSE_PRICING'] == 'false':
@@ -720,7 +720,9 @@ def load_tokens_file(tokens_path, load_message=True):
             for new_token_dict in build_extended_base_configuration(token):
                 set_of_new_tokens.append(new_token_dict)
         elif token['WATCH_STABLES_PAIRS'] == 'true':
+            printt("")
             printt_warn ("Ignoring WATCH_STABLES_PAIRS", "for", token['SYMBOL'], ": WATCH_STABLES_PAIRS = true and USECUSTOMBASEPAIR = true is unsupported.")
+            printt("")
 
 
         if token['USECUSTOMBASEPAIR'] == 'false':
@@ -2493,10 +2495,10 @@ def build_sell_conditions(token_dict, condition):
         sell = sell.replace("%","")
         if condition == 'before_buy':
             printt("")
-            printt_err("Be careful, updating sellprice with % in real-time WORKS ONLY FOR ONE TOKEN for the moment")
             printt_err("--------------------------------------------------------------------------------------------------")
+            printt_err("Be careful, updating sellprice with % in real-time WORKS ONLY FOR ONE TOKEN for the moment")
             printt_err("--> do NOT change your tokens.json if you have more than 1 token or if you use WATCH_STABLES_PAIRS")
-            printt_err("or close the bot after BUY order is made, or your calculated SELLPRICE will be lost!")
+            printt_err("    or close the bot after BUY order is made, or your calculated SELLPRICE will be lost!")
             printt_err("--------------------------------------------------------------------------------------------------")
             printt("")
             printt_info("Since you have put a % in SELLPRICE, and bot did not buy yet, we will set SELLPRICE = 99999 so as the bot not to sell if you stop and run it again.")
@@ -4611,6 +4613,7 @@ def run():
             token['_TOKEN_BALANCE'] = check_balance(token['ADDRESS'], token['SYMBOL'], display_quantity=False) / token['_CONTRACT_DECIMALS']
             token['_PREVIOUS_TOKEN_BALANCE'] = token['_TOKEN_BALANCE']
             if token['_TOKEN_BALANCE'] > 0:
+                printt("")
                 printt("Your wallet already owns : ", token['_TOKEN_BALANCE'], token['SYMBOL'], write_to_log=True)
                 if token['_TOKEN_BALANCE'] > float(token['MAXTOKENS']):
                     token['_REACHED_MAX_TOKENS'] = True
