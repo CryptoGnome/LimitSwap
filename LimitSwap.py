@@ -443,7 +443,7 @@ def apprise_notification(token, parameter):
     
     try:
         if parameter == 'buy_success':
-            message = "SUCCESS : your " + token['SYMBOL'] + " buy Tx is confirmed. Price:" + str("{:.10f}".format(token['_QUOTE']))
+            message = "Your " + token['SYMBOL'] + " buy Tx is confirmed. Price : " + str("{:.10f}".format(token['_QUOTE']))
             title = "BUY Success"
             
             apobj.notify(
@@ -452,7 +452,7 @@ def apprise_notification(token, parameter):
             )
             
         elif parameter == 'buy_failure':
-            message = "FAILURE : your " + token['SYMBOL'] + " buy Tx failed"
+            message = "Your " + token['SYMBOL'] + " buy Tx failed"
             title = "BUY Failure"
             
             apobj.notify(
@@ -461,7 +461,7 @@ def apprise_notification(token, parameter):
             )
 
         elif parameter == 'sell_success':
-            message = "SUCCESS : your " + token['SYMBOL'] + " sell Tx is confirmed. Price:" + str("{:.10f}".format(token['_QUOTE']))
+            message = "Your " + token['SYMBOL'] + " sell Tx is confirmed. Price : " + str("{:.10f}".format(token['_QUOTE']))
             title = "SELL Success"
             
             apobj.notify(
@@ -470,7 +470,7 @@ def apprise_notification(token, parameter):
             )
 
         elif parameter == 'sell_failure':
-            message = "FAILURE : your " + token['SYMBOL'] + " sell Tx failed"
+            message = "Your " + token['SYMBOL'] + " sell Tx failed"
             title = "SELL Failure"
 
             apobj.notify(
@@ -1569,7 +1569,7 @@ elif settings["EXCHANGE"] == 'spookyswap':
     if settings['USECUSTOMNODE'] == 'true':
         my_provider = settings['CUSTOMNODE']
     else:
-        my_provider = "https://rpcapi.fantom.network"
+        my_provider = "https://rpc.ftm.tools/"
 
     if not my_provider:
         printt_err('Custom node empty. Exiting')
@@ -1603,7 +1603,7 @@ elif settings["EXCHANGE"] == 'protofi':
     if settings['USECUSTOMNODE'] == 'true':
         my_provider = settings['CUSTOMNODE']
     else:
-        my_provider = "https://rpcapi.fantom.network"
+        my_provider = "https://rpc.ftm.tools/"
 
     if not my_provider:
         printt_err('Custom node empty. Exiting')
@@ -1637,7 +1637,7 @@ elif settings["EXCHANGE"] == 'spiritswap':
     if settings['USECUSTOMNODE'] == 'true':
         my_provider = settings['CUSTOMNODE']
     else:
-        my_provider = "https://rpcapi.fantom.network"
+        my_provider = "https://rpc.ftm.tools/"
     
     if not my_provider:
         printt_err('Custom node empty. Exiting')
@@ -2331,7 +2331,7 @@ def check_approval(token, address, allowance_to_compare_with, condition):
         return allowance_request
     
     else:
-        printt_ok("Token is already approved --> LimitSwap can sell this token ")
+        printt_ok("Token is already approved --> LimitSwap can use this token ")
         return actual_allowance
 
 
@@ -2535,7 +2535,7 @@ def wait_for_open_trade(token, inToken, outToken):
 
     tx_filter = client.eth.filter({"filter_params": "pending", "address": inToken})
     
-    list_of_methodId = ["0xc9567bf9", "0x8a8c523c", "0x0d295980", "0xbccce037", "0x4efac329", "0x7b9e987a", "0x6533e038", "0x8f70ccf7", "0xa6334231", "0x48dfea0a", "0xc818c280", "0xade87098", "0x0099d386", "0xfb201b1d"]
+    list_of_methodId = ["0xc9567bf9", "0x8a8c523c", "0x0d295980", "0xbccce037", "0x4efac329", "0x7b9e987a", "0x6533e038", "0x8f70ccf7", "0xa6334231", "0x48dfea0a", "0xc818c280", "0xade87098", "0x0099d386", "0xfb201b1d", "0x293230b8"]
 
     while openTrade == False:
     
@@ -2590,6 +2590,7 @@ def wait_for_open_trade(token, inToken, outToken):
     # https://etherscan.io/tx/0x5ef0fe0ffb7a6f12c0cdfa4e57f9e951b0577a90611008d864e72fdcde057fac
     # https://etherscan.io/tx/0xa2b0a8ae04254befd4c463f4abacc50ebe0e3c99b829e95f6e2a9353aab959cf
     # https://etherscan.io/tx/0x8a7e1fbcebb948307c726ba6a6d519c2b423ab62f6490ce451d54aa21152138b
+    # https://ftmscan.com/tx/0x4bc8d55aff81c5d202914508b1e7703012d7be998f24cdd476f945fe60451207
     # Function: enableTrading()
     # MethodID: 0x8a8c523c
 
@@ -2632,6 +2633,10 @@ def wait_for_open_trade(token, inToken, outToken):
     # https://bscscan.com/tx/0x037c3c2f37e5ba0cda7eb877799900ec2ab6d07969b4cbec6d1e6c89412c84db
     # Function: setBotProtectionDisableForever()
     # MethodID: 0xc818c280
+    
+    # https://bscscan.com/tx/0x037c3c2f37e5ba0cda7eb877799900ec2ab6d07969b4cbec6d1e6c89412c84db
+    # Function: startTrading()
+    # MethodID: 0x293230b8
 
 def get_tokens_purchased(tx_hash):
     # Function: get_tokens_purchased
