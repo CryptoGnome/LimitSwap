@@ -2594,6 +2594,7 @@ def wait_for_open_trade(token, inToken, outToken):
 
     # https://bscscan.com/tx/0x19cac49bf8319689a7620935bf9466e469317992b994ec9692697a9ef71e3ace
     # https://bscscan.com/tx/0xa98ae84de5aee32d216d734b790131a845548c7e5013085688dccd58c9b5b277
+    # https://bscscan.com/tx/0x5b834a448d4d6309b86fa1aa0fb83d621acfa0450eeb070fd841432f60e10b58
     # Function: tradingStatus
     # methodId = "0x0d295980"
 
@@ -2695,7 +2696,7 @@ def build_sell_conditions(token_dict, condition, show_message):
             printt_info(token_dict['SYMBOL'], " cost per token was: ", token_dict['_COST_PER_TOKEN'])
             printt_info("--> SELLPRICEINBASE = ", token_dict['SELLPRICEINBASE'],"*", token_dict['_COST_PER_TOKEN'], "= ", token_dict['_CALCULATED_SELLPRICEINBASE'])
             printt_info("")
-            printt_err("DO NOT CLOSE THE BOT OR THIS INFORMATION WILL BE LOST")
+            printt_err("DO NOT CLOSE THE BOT OR THIS INFORMATION WILL BE LOST", write_to_log=False)
     # Otherwise, don't adjust the sell price in base
     else:
         token_dict['_CALCULATED_SELLPRICEINBASE'] = sell
@@ -5018,7 +5019,7 @@ def run():
                                 # transaction is a SUCCESS
                                 printt_ok("----------------------------------", write_to_log=True)
                                 printt_ok("SUCCESS : your buy Tx is confirmed", write_to_log=True)
-                                printt_ok("", write_to_log=True)
+                                printt_ok("")
 
                                 # Save previous token balance before recalculating
                                 token['_PREVIOUS_TOKEN_BALANCE'] = token['_TOKEN_BALANCE']

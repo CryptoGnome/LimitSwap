@@ -20,8 +20,34 @@ There are 2 ways to install LimitSwap :
 
 &nbsp;
 
+### 1. Download the pre-compiled package for Windows users only
 
-### 1. Run The Python Code Locally 
+That we provide on the Release page : it's a .exe file that you can run on your computer.
+https://github.com/tsarbuig/LimitSwap/releases
+
+
+- [x] Download last Zip file, for instance :
+
+<img src="https://user-images.githubusercontent.com/70858574/145737351-c659185f-e1f5-4ede-b81e-3b03d0f900f9.png" width="200">
+
+- [x] Unzip it
+- [x] Open "tokens.json - Shortcut" and configure it for your needs
+- [x] Open "Start LimitSwap.cmd" --> it will configure your settings.json
+
+✅ ✅ ✅ And it's done! ✅ ✅ ✅
+
+&nbsp; 
+
+#### Pros and cons
+🟢 : very easy to setup
+
+🔴 : it's pre-compiled, so you cannot check the Source Code
+
+&nbsp;
+&nbsp;
+
+
+### 2. Run The Python Code Locally 
 Here are tutorials step-by-step: 
 
 &nbsp;
@@ -159,42 +185,49 @@ or
 
 ----------------------------------------
 
-Tutorial to be done... but it's pretty close from previous tutorials
+Tutorial is almost the same as [Windows tutorial](#for-windows-users) 
+
+Check Windows tutorial for detailed step-by-step
 
 ----------------------------------------
 
+1/ Install Python and don't forget to select "Add to path"
+
+2/ Install Visual Studio
+
+3/ Open Terminal, go to the directory where you unzipped the bot, and run command: 
+
+`pip install -r requirements.txt`  
+
 &nbsp;
-&nbsp;
-
-### 2. Download the pre-compiled package for Windows users only
-
-That we provide on the Release page : it's a .exe file that you can run on your computer.
-https://github.com/tsarbuig/LimitSwap/releases
-
-
-- [x] Download last Zip file, for instance :
-
-<img src="https://user-images.githubusercontent.com/70858574/145737351-c659185f-e1f5-4ede-b81e-3b03d0f900f9.png" width="200">
-
-- [x] Unzip it
-- [x] Open "tokens.json - Shortcut" and configure it for your needs
-- [x] Open "Start LimitSwap.cmd" --> it will configure your settings.json
 
 ✅ ✅ ✅ And it's done! ✅ ✅ ✅
 
-&nbsp; 
+----------------------------------------
 
-#### Pros and cons
-🟢 : very easy to setup
+**LAST PART : RUN THE BOT** 
 
-🔴 : it's pre-compiled, so you cannot check the Source Code
+----------------------------------------
+
+Open Terminal, go to the directory where you unzipped the bot, and run command: `python LimitSwap.py`  
 
 &nbsp;
+
+This allows you to use parameters. For example, if you have several .json files and you want to choose which one to use :
+
+`python LimitSwap.py -s settingsBSC.json -t tokensBSC.json`  
+
+or
+
+`python LimitSwap.py --benchmark`  
+
+&nbsp;&nbsp;
 &nbsp;
+
 
 
 ## Developers 🔧
-Want to help contribute to LimitSwap, reach out on telegram all you need to do is make changes or fix bugs and we will pay developer bounties in $LIMIT for helping make the bot batter!
+Want to help contribute to LimitSwap, reach out on telegram : any help is welcome to make the bot better  :)
 
 
 ## Links & Socials
