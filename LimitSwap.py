@@ -67,6 +67,9 @@ _PREVIOUS_TOKEN_BALANCE_saved = []
 # Global used for WATCH_STABLE_PAIRS
 set_of_new_tokens = []
 
+# Global used for RugDoc API
+rugdoc_accepted_tokens = []
+
 # color styles
 class style():  # Class of different text colours - default is white
     BLACK = '\033[30m'
@@ -712,9 +715,9 @@ def load_tokens_file(tokens_path, load_message=True):
     
         if token['WATCH_STABLES_PAIRS'] == 'true' and token['USECUSTOMBASEPAIR'] == 'false':
             if token['_COST_PER_TOKEN'] == 0 :
-                build_sell_conditions(token, 'before_buy')
+                build_sell_conditions(token, 'before_buy', 'hide_message')
             else:
-                build_sell_conditions(token, 'after_buy')
+                build_sell_conditions(token, 'after_buy', 'hide_message')
 
 
             for new_token_dict in build_extended_base_configuration(token):
@@ -899,9 +902,9 @@ def reload_tokens_file(tokens_path, load_message=True):
     
         if token['WATCH_STABLES_PAIRS'] == 'true' and token['USECUSTOMBASEPAIR'] == 'false':
             if token['_COST_PER_TOKEN'] == 0 :
-                build_sell_conditions(token, 'before_buy')
+                build_sell_conditions(token, 'before_buy', 'hide_message')
             else:
-                build_sell_conditions(token, 'after_buy')
+                build_sell_conditions(token, 'after_buy', 'hide_message')
 
 
             for new_token_dict in build_extended_base_configuration(token):
@@ -2441,37 +2444,45 @@ def check_pool(inToken, outToken, DECIMALS_OUT):
 
 
 def check_rugdoc_api(token):
-    # Use Rugdoc API to check if token is a honeypot or not
-    rugresponse = requests.get(
-        'https://honeypot.api.rugdoc.io/api/honeypotStatus.js?address=' + token['ADDRESS'] + rugdocchain)
-    # sending get request and saving the response as response object
-
-    if rugresponse.status_code == 200:
-        d = json.loads(rugresponse.content)
-        for key, value in interpretations.items():
-            if d["status"] in key:
-                honeypot_status = value
-                honeypot_code = key
-                printt(honeypot_status)
-                print(style.RESET + " ")
-
-    else:
-        printt_warn(
-            "Sorry, Rugdoc's API does not work on this token (Rugdoc does not work on ETH chain for instance)")
-
-    token['_RUGDOC_DECISION'] = ""
-    while token['_RUGDOC_DECISION'] != "y" and token['_RUGDOC_DECISION'] != "n":
-        printt("What is your decision?")
-        token['_RUGDOC_DECISION'] = input("                           Would you like to snipe this token? (y/n): ")
-
-    if token['_RUGDOC_DECISION'] == "y":
-        print(style.RESET + " ")
-        printt_ok("OK let's go!!")
-    else:
-        print(style.RESET + " ")
-        printt("DISABLING", token['SYMBOL'])
-        token['ENABLED'] = 'false'
-        token['_QUOTE'] = 0
+    
+    global rugdoc_accepted_tokens
+    
+    printt_debug("ENTER check_rugdoc_api")
+    
+    if token['ADDRESS'] not in rugdoc_accepted_tokens:
+        # Use Rugdoc API to check if token is a honeypot or not
+        rugresponse = requests.get(
+            'https://honeypot.api.rugdoc.io/api/honeypotStatus.js?address=' + token['ADDRESS'] + rugdocchain)
+        # sending get request and saving the response as response object
+    
+        if rugresponse.status_code == 200:
+            d = json.loads(rugresponse.content)
+            for key, value in interpretations.items():
+                if d["status"] in key:
+                    honeypot_status = value
+                    honeypot_code = key
+                    printt(honeypot_status)
+                    print(style.RESET + " ")
+    
+        else:
+            printt_warn(
+                "Sorry, Rugdoc's API does not work on this token (Rugdoc does not work on ETH chain for instance)")
+    
+        token['_RUGDOC_DECISION'] = ""
+        while token['_RUGDOC_DECISION'] != "y" and token['_RUGDOC_DECISION'] != "n":
+            printt("What is your decision?")
+            token['_RUGDOC_DECISION'] = input("                           Would you like to snipe this token? (y/n): ")
+    
+        if token['_RUGDOC_DECISION'] == "y":
+            rugdoc_accepted_tokens.append(token['ADDRESS'])
+            printt_debug(rugdoc_accepted_tokens)
+            print(style.RESET + " ")
+            printt_ok("OK let's go!!")
+        else:
+            print(style.RESET + " ")
+            printt("DISABLING", token['SYMBOL'])
+            token['ENABLED'] = 'false'
+            token['_QUOTE'] = 0
 
 
 def wait_for_open_trade(token, inToken, outToken):
@@ -2639,7 +2650,7 @@ def get_tokens_purchased(tx_hash):
     exit(0)
 
 
-def build_sell_conditions(token_dict, condition):
+def build_sell_conditions(token_dict, condition, show_message):
     # Function: build_sell_conditions
     # ----------------------------
     # This function is designed to be called anytime sell conditions need to be adjusted for a token
@@ -2668,14 +2679,15 @@ def build_sell_conditions(token_dict, condition):
     if re.search('^(\d+\.){0,1}\d+%$', str(sell)):
         sell = sell.replace("%","")
         if condition == 'before_buy':
-            printt("")
-            printt_err("--------------------------------------------------------------------------------------------------")
-            printt_err("Be careful, updating sellprice with % in real-time WORKS ONLY FOR ONE TOKEN for the moment")
-            printt_err("--> do NOT change your tokens.json if you have more than 1 token or if you use WATCH_STABLES_PAIRS")
-            printt_err("    or close the bot after BUY order is made, or your calculated SELLPRICE will be lost!")
-            printt_err("--------------------------------------------------------------------------------------------------")
-            printt("")
-            printt_info("Since you have put a % in SELLPRICE, and bot did not buy yet, we will set SELLPRICE = 99999 so as the bot not to sell if you stop and run it again.")
+            if show_message == "show_message":
+                printt("")
+                printt_err("--------------------------------------------------------------------------------------------------")
+                printt_err("Be careful, updating sellprice with % in real-time WORKS ONLY FOR ONE TOKEN for the moment")
+                printt_err("--> do NOT change your tokens.json if you have more than 1 token or if you use WATCH_STABLES_PAIRS")
+                printt_err("    or close the bot after BUY order is made, or your calculated SELLPRICE will be lost!")
+                printt_err("--------------------------------------------------------------------------------------------------")
+                printt("")
+                printt_info("Since you have put a % in SELLPRICE, and bot did not buy yet, we will set SELLPRICE = 99999 so as the bot not to sell if you stop and run it again.")
             token_dict['_CALCULATED_SELLPRICEINBASE'] = 99999
         else:
             token_dict['_CALCULATED_SELLPRICEINBASE'] = token_dict['_COST_PER_TOKEN'] * (float(sell) / 100)
@@ -2691,7 +2703,8 @@ def build_sell_conditions(token_dict, condition):
     if re.search('^(\d+\.){0,1}\d+%$', str(stop)):
         stop = stop.replace("%","")
         if condition == 'before_buy':
-            printt_info("Since you have put a % in SELLPRICE, and bot did not buy yet, we will set STOPLOSSPRICE = 0.")
+            if show_message == "show_message":
+                printt_info("Since you have put a % in STOPLOSSPRICE, and bot did not buy yet, we will set STOPLOSSPRICE = 0.")
             token_dict['_CALCULATED_STOPLOSSPRICEINBASE'] = 0
         else:
             token_dict['_CALCULATED_STOPLOSSPRICEINBASE'] = token_dict['_COST_PER_TOKEN'] * (float(stop) / 100)
@@ -4770,9 +4783,9 @@ def run():
             # Calculate sell price
             # If _COST_PER_TOKEN ==0, it means the bot did not buy token yet --> before_buy condition
             if token['_COST_PER_TOKEN'] == 0 :
-                build_sell_conditions(token, 'before_buy')
+                build_sell_conditions(token, 'before_buy', 'show_message')
             else:
-                build_sell_conditions(token, 'after_buy')
+                build_sell_conditions(token, 'after_buy', 'show_message')
                 
             printt_debug("token['_CALCULATED_SELLPRICEINBASE']:", token['_CALCULATED_SELLPRICEINBASE'])
             printt_debug("token['_CALCULATED_STOPLOSSPRICEINBASE']:", token['_CALCULATED_STOPLOSSPRICEINBASE'])
@@ -5050,7 +5063,7 @@ def run():
                                     printt("")
 
                                 # Build sell conditions for the token
-                                build_sell_conditions(token, 'after_buy')
+                                build_sell_conditions(token, 'after_buy', 'show_message')
                                 
                                 printt_debug(tokens)
 
