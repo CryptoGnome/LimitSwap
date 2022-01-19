@@ -1492,9 +1492,11 @@ elif settings["EXCHANGE"] == 'uniswaptestnet':
     routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
     factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
     weth = Web3.toChecksumAddress("0xc778417e063141139fce010982780140aa0cd5ab")
-    base_symbol = "ETH"
+    base_symbol = "ETHt"
     rugdocchain = '&chain=eth'
     modified = False
+    settings['_STABLE_BASES'] = {'USDT':{ 'address': '0x3b00ef435fa4fcff5c209a37d1f3dcff37c705ad', 'multiplier' : 0},
+                                 'USDC':{ 'address': '0x4dbcdf9b62e891a7cec5a2568c3f4faf9e8abe2b', 'multiplier' : 0}}
 
 elif settings["EXCHANGE"] == 'kuswap':
     if settings['USECUSTOMNODE'] == 'true':
@@ -1527,7 +1529,7 @@ elif settings["EXCHANGE"] == 'kuswap':
     rugdocchain = '&chain=kcc'
     modified = False
     settings['_EXCHANGE_BASE_SYMBOL'] = 'KCS'
-    settings['_STABLE_BASES'] = {'USD ':{ 'address': '0x0039f574ee5cc39bdd162e9a88e3eb1f111baf48', 'multiplier' : 0}}
+    settings['_STABLE_BASES'] = {'USD ': { 'address': '0x0039f574ee5cc39bdd162e9a88e3eb1f111baf48', 'multiplier' : 0}}
 
 
 elif settings["EXCHANGE"] == 'koffeeswap':
@@ -1561,7 +1563,7 @@ elif settings["EXCHANGE"] == 'koffeeswap':
     rugdocchain = '&chain=kcc'
     modified = True
     settings['_EXCHANGE_BASE_SYMBOL'] = 'KCS'
-    settings['_STABLE_BASES'] = {'USD ':{ 'address': '0x0039f574ee5cc39bdd162e9a88e3eb1f111baf48', 'multiplier' : 0}}
+    settings['_STABLE_BASES'] = {'USD ': { 'address': '0x0039f574ee5cc39bdd162e9a88e3eb1f111baf48', 'multiplier' : 0}}
 
 elif settings["EXCHANGE"] == 'spookyswap':
     if settings['USECUSTOMNODE'] == 'true':
@@ -1594,7 +1596,7 @@ elif settings["EXCHANGE"] == 'spookyswap':
     rugdocchain = '&chain=ftm'
     modified = False
     settings['_EXCHANGE_BASE_SYMBOL'] = 'FTM'
-    settings['_STABLE_BASES'] = {'USDC':{ 'address': '0x04068da6c83afcfa0e13ba15a6696662335d5b75', 'multiplier' : 0},
+    settings['_STABLE_BASES'] = {'USDC': {'address': '0x04068da6c83afcfa0e13ba15a6696662335d5b75', 'multiplier': 0},
                                  'USDT': {'address': '0x049d68029688eabf473097a2fc38ef61633a3c7a', 'multiplier': 0}}
 
 elif settings["EXCHANGE"] == 'protofi':
@@ -1628,7 +1630,7 @@ elif settings["EXCHANGE"] == 'protofi':
     rugdocchain = '&chain=ftm'
     modified = False
     settings['_EXCHANGE_BASE_SYMBOL'] = 'FTM'
-    settings['_STABLE_BASES'] = {'USDC':{ 'address': '0x04068da6c83afcfa0e13ba15a6696662335d5b75', 'multiplier' : 0},
+    settings['_STABLE_BASES'] = {'USDC': {'address': '0x04068da6c83afcfa0e13ba15a6696662335d5b75', 'multiplier': 0},
                                  'USDT': {'address': '0x049d68029688eabf473097a2fc38ef61633a3c7a', 'multiplier': 0}}
 
 elif settings["EXCHANGE"] == 'spiritswap':
@@ -1662,7 +1664,7 @@ elif settings["EXCHANGE"] == 'spiritswap':
     rugdocchain = '&chain=ftm'
     modified = False
     settings['_EXCHANGE_BASE_SYMBOL'] = 'FTM'
-    settings['_STABLE_BASES'] = {'USDC':{ 'address': '0x04068da6c83afcfa0e13ba15a6696662335d5b75', 'multiplier' : 0},
+    settings['_STABLE_BASES'] = {'USDC': {'address': '0x04068da6c83afcfa0e13ba15a6696662335d5b75', 'multiplier': 0},
                                  'USDT': {'address': '0x049d68029688eabf473097a2fc38ef61633a3c7a', 'multiplier': 0}}
 
 elif settings["EXCHANGE"] == 'quickswap':
@@ -1696,7 +1698,7 @@ elif settings["EXCHANGE"] == 'quickswap':
     rugdocchain = '&chain=poly'
     modified = False
     settings['_EXCHANGE_BASE_SYMBOL'] = 'MATIC'
-    settings['_STABLE_BASES'] = {'USDT':{ 'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier' : 0}}
+    settings['_STABLE_BASES'] = {'USDT': { 'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier' : 0}}
 
 elif settings["EXCHANGE"] == 'polygon-apeswap':
     if settings['USECUSTOMNODE'] == 'true':
@@ -1728,7 +1730,7 @@ elif settings["EXCHANGE"] == 'polygon-apeswap':
     rugdocchain = '&chain=poly'
     modified = False
     settings['_EXCHANGE_BASE_SYMBOL'] = 'MATIC'
-    settings['_STABLE_BASES'] = {'USDT':{ 'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier' : 0}}
+    settings['_STABLE_BASES'] = {'USDT': { 'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier' : 0}}
 
 elif settings["EXCHANGE"] == 'waultswap':
     if settings['USECUSTOMNODE'] == 'true':
@@ -1761,7 +1763,7 @@ elif settings["EXCHANGE"] == 'waultswap':
     rugdocchain = '&chain=poly'
     modified = False
     settings['_EXCHANGE_BASE_SYMBOL'] = 'MATIC'
-    settings['_STABLE_BASES'] = {'USDT':{ 'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier' : 0}}
+    settings['_STABLE_BASES'] = {'USDT': { 'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier' : 0}}
 
 elif settings["EXCHANGE"] == 'cronos-vvs':
     if settings['USECUSTOMNODE'] == 'true':
@@ -1793,7 +1795,7 @@ elif settings["EXCHANGE"] == 'cronos-vvs':
     rugdocchain = '&chain=cronos'
     modified = False
     settings['_EXCHANGE_BASE_SYMBOL'] = 'CRO'
-    settings['_STABLE_BASES'] = {'USDC':{ 'address': '0xc21223249ca28397b4b6541dffaecc539bff0c59', 'multiplier' : 0}}
+    settings['_STABLE_BASES'] = {'USDC': { 'address': '0xc21223249ca28397b4b6541dffaecc539bff0c59', 'multiplier' : 0}}
 
 elif settings["EXCHANGE"] == 'cronos-meerkat':
     if settings['USECUSTOMNODE'] == 'true':
@@ -1825,7 +1827,7 @@ elif settings["EXCHANGE"] == 'cronos-meerkat':
     rugdocchain = '&chain=cronos'
     modified = False
     settings['_EXCHANGE_BASE_SYMBOL'] = 'CRO'
-    settings['_STABLE_BASES'] = {'USDC':{ 'address': '0xc21223249ca28397b4b6541dffaecc539bff0c59', 'multiplier' : 0}}
+    settings['_STABLE_BASES'] = {'USDC': { 'address': '0xc21223249ca28397b4b6541dffaecc539bff0c59', 'multiplier' : 0}}
 
 elif settings["EXCHANGE"] == 'cronos-crona':
     if settings['USECUSTOMNODE'] == 'true':
@@ -2014,8 +2016,8 @@ def build_extended_base_configuration(token_dict):
                         "BASESYMBOL": stable_token,
                         "_BASE_PRICE": settings['_STABLE_BASES'][stable_token]['multiplier'],
                         "BASEADDRESS": settings['_STABLE_BASES'][stable_token]['address'],
-                        "_PAIR_SYMBOL" : token_dict['SYMBOL'] + '/' + stable_token,
-                        "_BUILT_BY_BOT" : True
+                        "_PAIR_SYMBOL": token_dict['SYMBOL'] + '/' + stable_token,
+                        "_BUILT_BY_BOT": True
                         })
         
         # If these keys have special character on them, they represent percentages and we shouldn't copy them.
@@ -2548,7 +2550,6 @@ def wait_for_open_trade(token, inToken, outToken):
 
             printt("Token price:", pprice)
         
-        
         try:
             for tx_event in tx_filter.get_new_entries():
 
@@ -2908,7 +2909,7 @@ def check_precise_price(inToken, outToken, DECIMALS_weth, DECIMALS_IN, DECIMALS_
         printt_debug("ENTER check_precise_price condition 2")
         # USECUSTOMBASEPAIR = true and token put in BASEADDRESS is WBNB / WETH (because outToken == weth)
         # or USECUSTOMBASEPAIR = false
-        pair_address = fetch_pair2(inToken, weth,factoryContract)
+        pair_address = fetch_pair2(inToken, weth, factoryContract)
         printt_debug("check_precise_price pair_address:", pair_address)
         pair_contract = getContractLP(pair_address)
         reserves = pair_contract.functions.getReserves().call()
@@ -3430,11 +3431,11 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
             # Base Pair different from weth
             
             # We display a warning message if user tries to swap with too much money
-            if (str(inToken).lower() == '0xe9e7cea3dedca5984780bafc599bd69add087d56' or str(
-                    inToken).lower() == '0x55d398326f99059ff775485246999027b3197955' or str(
-                inToken).lower() == '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d' or str(
-                inToken).lower() == '0xdac17f958d2ee523a2206206994597c13d831ec7' or str(
-                inToken).lower() == '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48') and (int(amount) / 1000000000000000000) > 2999:
+            if (str(inToken).lower() == '0xe9e7cea3dedca5984780bafc599bd69add087d56'
+                or str(inToken).lower() == '0x55d398326f99059ff775485246999027b3197955'
+                or str(inToken).lower() == '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d'
+                or str(inToken).lower() == '0xdac17f958d2ee523a2206206994597c13d831ec7'
+                or str(inToken).lower() == '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48') and (int(amount) / 1000000000000000000) > 2999:
                 printt_info("YOU ARE TRADING WITH VERY BIG AMOUNT, BE VERY CAREFUL YOU COULD LOSE MONEY!!! TEAM RECOMMEND NOT TO DO THAT")
             
             if routing.lower() == 'true':
@@ -3680,7 +3681,6 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
             printt_ok("Current Base token balance     :", base_balance_before_buy / DECIMALS, base_symbol, write_to_log=True)
             printt_ok("(be careful you must have enough to pay fees in addition to this)", write_to_log=True)
             printt_ok("-----------------------------------------------------------", write_to_log=True)
-            
             
             
             # THIS SECTION IS FOR MODIFIED CONTRACTS : EACH EXCHANGE NEEDS TO BE SPECIFIED
@@ -3944,7 +3944,7 @@ def buy(token_dict, inToken, outToken, pwd):
         sleep(token_dict['BUYAFTER_XXX_SECONDS'])
         
     if int(gaslimit) < 250000:
-        printt_info( "Your GASLIMIT parameter is too low : LimitSwap has forced it to 300000 otherwise your transaction would fail for sure. We advise you to raise it to 1000000.")
+        printt_info("Your GASLIMIT parameter is too low : LimitSwap has forced it to 300000 otherwise your transaction would fail for sure. We advise you to raise it to 1000000.")
         gaslimit = 300000
     
     # Define balance before BUY
@@ -4155,7 +4155,7 @@ def sell(token_dict, inToken, outToken):
             else:
                 if (balance - amount) >= moonbag:
                     # Example 2
-                    amount = int(Decimal(amount)) # just to show that we don't change it
+                    amount = int(Decimal(amount))
                     printt_debug("2563 amount :", amount)
                     printt_debug("2563 moonbag:", moonbag)
                     printt_debug("2563 balance:", balance)
@@ -4487,8 +4487,7 @@ def sell(token_dict, inToken, outToken):
                         # LIQUIDITYINNATIVETOKEN = false
                         # USECUSTOMBASEPAIR = true
                         # HASFEES = true
-                        if settings["EXCHANGE"].lower() == 'uniswap' or settings[
-                            "EXCHANGE"].lower() == 'uniswaptestnet':
+                        if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
                             # Special condition on Uniswap, to implement EIP-1559
                             printt_debug("sell condition 12", write_to_log=True)
                             transaction = routerContract.functions.swapExactTokensForTokensSupportingFeeOnTransferTokens(
@@ -4527,8 +4526,7 @@ def sell(token_dict, inToken, outToken):
                         # LIQUIDITYINNATIVETOKEN = false
                         # USECUSTOMBASEPAIR = true
                         # HASFEES = false
-                        if settings["EXCHANGE"].lower() == 'uniswap' or settings[
-                            "EXCHANGE"].lower() == 'uniswaptestnet':
+                        if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
                             # Special condition on Uniswap, to implement EIP-1559
                             printt_debug("sell condition 14", write_to_log=True)
                             transaction = routerContract.functions.swapExactTokensForTokens(
@@ -4620,8 +4618,7 @@ def sell(token_dict, inToken, outToken):
                     
                     else:
                         # HASFEES = false
-                        if settings["EXCHANGE"].lower() == 'uniswap' or settings[
-                            "EXCHANGE"].lower() == 'uniswaptestnet':
+                        if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
                             # Special condition on Uniswap, to implement EIP-1559
                             printt_debug("sell condition 18", write_to_log=True)
                             transaction = routerContract.functions.swapExactTokensForTokens(
