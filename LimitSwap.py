@@ -1619,7 +1619,7 @@ elif settings["EXCHANGE"] == 'protofi':
     routerAddress = Web3.toChecksumAddress("0xF4C587a0972Ac2039BFF67Bc44574bB403eF5235")
     factoryAddress = Web3.toChecksumAddress("0x39720E5Fe53BEEeb9De4759cb91d8E7d42c17b76")
     routerContract = client.eth.contract(address=routerAddress, abi=protofirouter)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=protofiabi)
+    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
     weth = Web3.toChecksumAddress("0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83")
     base_symbol = "FTM"
     rugdocchain = '&chain=ftm'
@@ -2086,7 +2086,7 @@ def decode_key():
 def auth():
     my_provider2 = 'https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161'
     client2 = Web3(Web3.HTTPProvider(my_provider2))
-    print(timestamp(), "Connected to Ethereum BlockChain =", client2.isConnected())
+    print(timestamp(), "Connected to ETH to check your LIMIT tokens =", client2.isConnected())
     address = Web3.toChecksumAddress("0x1712aad2c773ee04bdc9114b32163c058321cd85")
     abi = standardAbi
     balanceContract = client2.eth.contract(address=address, abi=abi)
@@ -2130,7 +2130,7 @@ def approve(address, amount):
         contract = client.eth.contract(address=Web3.toChecksumAddress(address), abi=standardAbi)
         transaction = contract.functions.approve(routerAddress, amount).buildTransaction({
             'gasPrice': Web3.toWei(gas, 'gwei'),
-            'gas': 300000,
+            'gas': 1000000,
             'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
             'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
         })
