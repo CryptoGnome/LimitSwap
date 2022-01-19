@@ -1,3 +1,7 @@
+#######################################################################################################################################
+# Variables																															  #
+#######################################################################################################################################
+
 .DEFAULT_GOAL = help
 g  =\033[32m
 r  =\033[31m
@@ -10,8 +14,15 @@ st =$(shell tput sgr0)
 VENV_NAME?=env
 PYTHON=${VENV_NAME}/bin/python
 HOME=$(shell pwd)
-.PHONY: help run  benchmark clean build start stop restart logs ssh
+.PHONY: help run benchmark clean build start stop restart logs ssh enable
 .PHONY: hello prepare_venv prepare_args prepare_args_vars install_dependencies start_container
+
+INSTANCE := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+$(eval $(INSTANCE):;@:)
+
+#######################################################################################################################################
+# Common targets																													  #
+#######################################################################################################################################
 
 hello:
 	@echo ""
@@ -39,10 +50,14 @@ help: hello
 	@echo "    ${g}logs${n}		Fetch the logs of the container"
 	@echo "    ${g}ssh${n}			Run a shell in the  container"
 
+#######################################################################################################################################
+# Local environment																													  #
+#######################################################################################################################################
+
 install_dependencies:
 	@test -d $(VENV_NAME) || echo "${b}[.] Installing dependencies${n}"; sudo apt-get update -qq >/dev/null && sudo apt-get install python3-dev build-essential python3-pip python3-venv virtualenv -y -qq >/dev/null
 
-prepare_venv: install-dependencies $(VENV_NAME)/bin/activate
+prepare_venv: install_dependencies $(VENV_NAME)/bin/activate
 	@echo "${g}[+] Virtual environment is ready${n}"
 
 $(VENV_NAME)/bin/activate: requirements.txt
@@ -53,13 +68,22 @@ $(VENV_NAME)/bin/activate: requirements.txt
 	touch $(VENV_NAME)/bin/activate	
 
 prepare_args_vars: 
-settings_arg=$(shell ( test ${settings} || test ${s} ) &&  echo settings/settings-${settings}${s}.json || echo settings.json)
-tokens_arg=$(shell ( test ${tokens} || test ${t} ) &&  echo tokens/tokens-${tokens}${t}.json || echo tokens.json)
+settings_arg=$(shell ( test ${settings} || test ${s} ) &&  echo ${settings}${s})
+tokens_arg=$(shell ( test ${tokens} || test ${t} ) &&  echo ${tokens}${t})
 
-prepare_args: prepare_args_vars
-	echo ${settings_arg} ${tokens_arg}
-	@test -f ${settings_arg}  || (echo "[!] Settings configuration file is not exist. Terminating..." && exit 1)
-	@test -f ${tokens_arg}  || (echo "[!] Tokens configuration file is not exist. Terminating..." && exit 1)
+prepare_args_str: prepare_args_vars
+settings_str=$(shell ( test ${settings} || test ${s} ) &&  echo settings/settings-${settings}${s}.json || echo settings.json)
+tokens_str=$(shell ( test ${tokens} || test ${t} ) &&  echo tokens/tokens-${tokens}${t}.json || echo tokens.json)
+
+prepare_args: prepare_args_str
+	@echo ${settings_arg} ${tokens_arg}
+	@echo ${settings_str} ${tokens_str}
+
+	echo ${settings_arg} | grep -q "," && echo "Found it with grep"; \
+
+
+	@test -f ${settings_str}  || (echo "[!] Settings configuration file is not exist. Terminating..." && exit 1)
+	@test -f ${tokens_str}  || (echo "[!] Tokens configuration file is not exist. Terminating..." && exit 1)
 
 run: hello prepare_venv prepare_args
 	@echo "${b}[.] Running bot${n}"
@@ -75,29 +99,107 @@ clean:
 	@rm -rf logs/*.log
 	@echo "${b}[+] Virtual environment and logs cleaned successfully${n}"
 
+
+#######################################################################################################################################
+# Instances configuration																											  #
+#######################################################################################################################################
+
+list: hello print_state
+
+status:
+	@echo ""
+	@echo "${y}$(bd)Working instances:$(st)"
+	@docker ps
+	@echo ""
+ 
+enable: hello check_enabled print_state
+	@echo ""
+	@test -d ${HOME}/env/enabled || mkdir -p ${HOME}/env/enabled
+	@test ! -f $(HOME)/env/enabled/${INSTANCE} && ( echo [.] Enabling ${INSTANCE} && touch $(HOME)/env/enabled/$(INSTANCE) ) || echo ${INSTANCE} instance already enabled 
+
+disable: hello check_enabled 
+	@echo ""
+	test -f $(HOME)/env/enabled/${INSTANCE} && ( echo [.] Disabling ${INSTANCE} && unlink $(HOME)/env/enabled/$(INSTANCE) ) || echo ${INSTANCE} instance already disabled
+	@make print_state
+
+init: hello
+	@echo "[.] Creating instance '${INSTANCE}'"
+	@test -d ${HOME}/instances/${INSTANCE} || mkdir -p ${HOME}/instances/${INSTANCE}
+	@( test -d ${HOME}/instances/${INSTANCE} && test ! -f ${HOME}/instances/${INSTANCE}/settings.json ) && \
+	( cp ${HOME}/settings.json ${HOME}/instances/${INSTANCE}/settings.json && cp ${HOME}/tokens.json ${HOME}/instances/${INSTANCE}/tokens.json && \
+	echo [.] Configuration files located in ${HOME}/instances/${INSTANCE}/ && \
+	echo [.] To enable instance use command: make enable ${INSTANCE} && \
+	echo [+] Instance '${INSTANCE}' successfully initialized! ) || \
+	echo [!] Instance '${INSTANCE}' already initialized!
+
+check_enabled:
+instances_available = $(shell ls $(HOME)/instances)
+instances_enabled = $(shell ls $(HOME)/env/enabled)
+
+
+print_state: check_enabled
+	@echo "${y}$(bd)Availabled instances:$(st)"
+	@for dir in $(instances_available); do \
+        echo $$dir; \
+    done
+
+	@echo "${y}$(bd)Enabled instances:$(st)"
+	@for dir in $(instances_enabled); do \
+        echo $$dir; \
+    done
+
+
+#######################################################################################################################################
+# Instances docker operations																										  #
+#######################################################################################################################################
+
 build: hello
-	@echo "${b}[.] Building docker image${n}"
-	@docker build -t limit_swap_v4 .
-	@echo "${b}[+] Docker image successfully built${n}"
+	@echo "${b}[.] Check if docker image exists${n}"
+	@test ! -z "$(shell docker images -q limit_swap 2> /dev/null)"  && echo "${b}[+] Image ${bd}limit_swap${st} ${b}exists${n}" || (echo "${b}[.] Building docker image${n}" && docker build -t limit_swap . && echo "${b}[+] Docker image successfully built${n}")
 
-start_container: prepare_args
-	@echo "${b}[.] Running the bot in container${n}"
-	docker run -d --rm --name limit_swap_v4 -v $(HOME)/${settings_arg}:/app/settings.json -v $(HOME)/${tokens_arg}:/app/tokens.json -v $(HOME)/logs:/app/logs limit_swap_v4
-	@echo "${b}[+] The bot in container successfully started${n}"
+prune: hello
+	@echo "${b}[.] Check if docker image exists${n}"
+	@test -z "$(shell docker images -q limit_swap 2> /dev/null)"  && echo "${b}[+] Image ${bd}limit_swap${st} ${b}does not exist${n}" || (docker rmi limit_swap  && echo "${b}[+] Docker image successfully deleted${n}")
 
-logs:
-	@echo "${b}[.] Fetching the logs of a container${n}"
-	@docker logs -f limit_swap_v4
+
+start: hello build
+	@test -z ${INSTANCE} && echo "[!] Enter Instance name 'make start NAME' OR use 'make start all' to start all"  || ( test "${INSTANCE}" = "all"  && ( make start_all && make status ) || ( make ${INSTANCE}_start && make status ) )
+
+start_all:
+	@for dir in $(instances_enabled); do \
+		str=_start; make $$dir$$str; \
+	done
+
+%_start: 
+	@echo ""
+	@echo "${b}[.] Running the bot in container for $*${n}"
+	@test "$(shell docker container inspect -f '{{.State.Status}}' limit_swap_$*)" = "running" && echo "[!] Container $* is already running. Skipping..." || ( echo "Container is not running" && docker run -d --rm --name limit_swap_$* -v $(HOME)/instances/$*/settings.json:/app/settings.json -v $(HOME)/instances/$*/tokens.json:/app/tokens.json -v $(HOME)/logs:/app/logs limit_swap )
+	@echo "${b}[+] Finished starting the bot in container for $*${n}"
+	@echo ""
+
+
+stop: hello
+	@test -z ${INSTANCE} && echo "[!] Enter Instance name 'make stop NAME' OR use 'make stop all' to stop all" || ( test "${INSTANCE}" = "all" && make stop_all || make ${INSTANCE}_stop  )
+	make status
+
+stop_all: 
+	@for dir in $(instances_enabled); do \
+        str=_stop; make $$dir$$str; \
+    done
+
+%_stop: 
+	@echo ""
+	@echo "${b}[.] Stopping the bot in container $* ${n}"
+	@test "$(shell docker container inspect -f '{{.State.Status}}' limit_swap_$* )" = "running" && docker stop limit_swap_$* || ( echo "[!] Container $* is not running. Skipping..." )
+	@echo "${b}[+] The bot in container successfully stopped${n}"
+	@echo ""
+
+logs: hello
+	@echo "${b}[.] Fetching the logs of a container for $(INSTANCE)${n}"
+	@docker logs -f limit_swap_$(INSTANCE)
 
 ssh: hello
 	@echo "${b}[.] Entering shell to the container${n}"
-	@docker exec -it limit_swap_v4 bash
+	@docker exec -it limit_swap_$(INSTANCE) bash
 
-stop: hello
-	@echo "${b}[.] Stopping the bot in  container${n}"
-	@docker stop limit_swap_v4
-	@echo "${b}[+] The bot in container successfully stopped${n}"
 
-start: hello start_container logs
-
-restart: stop start
