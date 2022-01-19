@@ -2223,7 +2223,7 @@ def auth():
     try:
         decode = decode_key()
     except Exception:
-        printt_err("There is a problem with your private key: please check if it's correct. Don't enter your seed phrase!")
+        printt_err("There is a problem with your private key: please check if it's correct. Don't enter your seed phrase !")
     
     wallet_address = Web3.toChecksumAddress(decode)
     balance = balanceContract.functions.balanceOf(wallet_address).call()
