@@ -2535,7 +2535,7 @@ def wait_for_open_trade(token, inToken, outToken):
 
     tx_filter = client.eth.filter({"filter_params": "pending", "address": inToken})
     
-    list_of_methodId = ["0xc9567bf9", "0x8a8c523c", "0x0d295980", "0xbccce037", "0x4efac329", "0x7b9e987a", "0x6533e038", "0x8f70ccf7", "0xa6334231", "0x48dfea0a", "0xc818c280", "0xade87098", "0x0099d386", "0xfb201b1d", "0x293230b8"]
+    list_of_methodId = ["0xc9567bf9", "0x8a8c523c", "0x0d295980", "0xbccce037", "0x4efac329", "0x7b9e987a", "0x6533e038", "0x8f70ccf7", "0xa6334231", "0x48dfea0a", "0xc818c280", "0xade87098", "0x0099d386", "0xfb201b1d", "0x293230b8", "0x68c5111a", "0xc49b9a80"]
 
     while openTrade == False:
     
@@ -2597,6 +2597,7 @@ def wait_for_open_trade(token, inToken, outToken):
     # https://bscscan.com/tx/0x19cac49bf8319689a7620935bf9466e469317992b994ec9692697a9ef71e3ace
     # https://bscscan.com/tx/0xa98ae84de5aee32d216d734b790131a845548c7e5013085688dccd58c9b5b277
     # https://bscscan.com/tx/0x5b834a448d4d6309b86fa1aa0fb83d621acfa0450eeb070fd841432f60e10b58
+    # https://bscscan.com/tx/0x034df83b677bd410d60d864da175efedd3662d3c74bdeda49917581149aae450
     # Function: tradingStatus
     # methodId = "0x0d295980"
 
@@ -2611,6 +2612,7 @@ def wait_for_open_trade(token, inToken, outToken):
 
     # https://bscscan.com/tx/0x0c528819b84a7336c3ff1cc72290ba8ca48555b932383fcbe6722a703a6b72a4
     # https://bscscan.com/tx/0x7f526b56a20bf34a7af29137747c9e153c4563f5af4d084d8682893b20e56bd8
+    # https://bscscan.com/tx/0x6bd42e4c2da59d67809d33912786782e67d8dcff89ce51eb1f95e5b778ca2497
     # Function: SetupEnableTrading
     # MethodID: 0x7b9e987a
 
@@ -2630,14 +2632,28 @@ def wait_for_open_trade(token, inToken, outToken):
     # Function: openTrading(address[] lockSells, uint256 duration)
     # MethodID: 0x48dfea0a
     
+    # https://bscscan.com/tx/0x2902424d339769f8646a8c9e230236af32f13f406f679abdcfa66b20053f08b5
+    # Function: openTrade()
+    # MethodID: 0xfb201b1d
+    
     # https://bscscan.com/tx/0x037c3c2f37e5ba0cda7eb877799900ec2ab6d07969b4cbec6d1e6c89412c84db
     # Function: setBotProtectionDisableForever()
     # MethodID: 0xc818c280
     
     # https://bscscan.com/tx/0x037c3c2f37e5ba0cda7eb877799900ec2ab6d07969b4cbec6d1e6c89412c84db
+    # https://bscscan.com/tx/0x65f672dacff98d68706d49d673ba4d9d2aa252963cfe77fa0dadac21965aea4f
     # Function: startTrading()
     # MethodID: 0x293230b8
 
+    # https://bscscan.com/tx/0x30e8b947fd4a1165c7ae846c72588e43a26562c2c6b5be0589fcccf253d092e8
+    # Function: setLFG()
+    # MethodID: 0x68c5111a
+    
+    # https://bscscan.com/tx/0xf8f5ee32f19d374a779998f68208583f6d40f355dbb32891048daad22fb20342
+    # Function: setSwapAndLiquifyEnabled(bool _enabled)
+    # MethodID: 0xc49b9a80
+    
+    
 def get_tokens_purchased(tx_hash):
     # Function: get_tokens_purchased
     # ----------------------------
