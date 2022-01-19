@@ -39,16 +39,26 @@ help: hello
 	@echo "    ${b}    [tokens] syntax${n}: 'make run t=moon' or 'make run tokens=moon' means file 'tokens/tokens-moon.json' will be used"
 	@echo "    ${b}    [arguments] syntax${n}: 'make run args='-v'' means bot will be started in Verbose mode. All command line arguments of application supported"
 	@echo "    ${g}benchmark${n}		Run benchmark mode"
-	@echo "    ${g}clean${n}		Remove virtual environment and clear logs"
+	@echo "    ${g}clean${n}		Remove virtual environment, instances status and clear logs"
 	@echo "    ${g}help${n}		Show this help output."
 	@echo ""
+	@echo "${y}$(bd)Instances commands:$(st)"
+	@echo "    ${g}init${n} NAME		Initialization of configuration for the instance"
+	@echo "    ${g}list${n}		List of instances configurations"
+	@echo "    ${g}enable${n} NAME		Enable instance configuration"
+	@echo "    ${g}disable${n} NAME	Disable instance configuration"
+
+	@echo ""
 	@echo "${y}$(bd)Docker commands:$(st)"
-	@echo "    ${g}build${n}		Build docker image"
-	@echo "    ${g}start${n}		Start docker container. Arguments from 'make run' supported"
-	@echo "    ${g}stop${n}		Stop docker container"
-	@echo "    ${g}restart${n}		Restart docker container"
-	@echo "    ${g}logs${n}		Fetch the logs of the container"
-	@echo "    ${g}ssh${n}			Run a shell in the  container"
+	@echo "    ${g}build${n} 		Build docker image. If image is not exist, it'll be built on 'make start'"
+	@echo "    ${g}start${n} NAME|all		Start docker container."
+	@echo "    ${g}stop${n} NAME|all 	Stop docker container"
+	@echo "    ${g}logs${n} NAME		Fetch the logs of the container"
+	@echo "    ${g}ssh${n} NAME			Run a shell in the  container"
+	@echo "    ${g}status${n} 		Instances status"
+	@echo "    ${g}prune${n} 		Remove docker image"
+
+
 
 #######################################################################################################################################
 # Local environment																													  #
@@ -79,7 +89,7 @@ prepare_args: prepare_args_str
 	@echo ${settings_arg} ${tokens_arg}
 	@echo ${settings_str} ${tokens_str}
 
-	echo ${settings_arg} | grep -q "," && echo "Found it with grep"; \
+#echo ${settings_arg} | grep -q "," && echo "Found it with grep"; \
 
 
 	@test -f ${settings_str}  || (echo "[!] Settings configuration file is not exist. Terminating..." && exit 1)
@@ -87,7 +97,7 @@ prepare_args: prepare_args_str
 
 run: hello prepare_venv prepare_args
 	@echo "${b}[.] Running bot${n}"
-	${PYTHON} LimitSwap.py -s $(settings_arg) -t ${tokens_arg} ${args}
+	${PYTHON} LimitSwap.py -s $(settings_str) -t ${tokens_str} ${args}
 
 benchmark: prepare_venv
 	@echo "${b}[.] Running benchmark${n}"
@@ -104,13 +114,17 @@ clean:
 # Instances configuration																											  #
 #######################################################################################################################################
 
-list: hello print_state
+init: hello
+	@echo "[.] Creating instance '${INSTANCE}'"
+	@test -d ${HOME}/instances/${INSTANCE} || mkdir -p ${HOME}/instances/${INSTANCE}
+	@( test -d ${HOME}/instances/${INSTANCE} && test ! -f ${HOME}/instances/${INSTANCE}/settings.json ) && \
+	( cp ${HOME}/settings.json ${HOME}/instances/${INSTANCE}/settings.json && cp ${HOME}/tokens.json ${HOME}/instances/${INSTANCE}/tokens.json && \
+	echo [.] Configuration files located in ${HOME}/instances/${INSTANCE}/ && \
+	echo [.] To enable instance use command: make enable ${INSTANCE} && \
+	echo [+] Instance '${INSTANCE}' successfully initialized! ) || \
+	echo [!] Instance '${INSTANCE}' already initialized!
 
-status:
-	@echo ""
-	@echo "${y}$(bd)Working instances:$(st)"
-	@docker ps
-	@echo ""
+list: hello print_state
  
 enable: hello check_enabled print_state
 	@echo ""
@@ -122,20 +136,9 @@ disable: hello check_enabled
 	test -f $(HOME)/env/enabled/${INSTANCE} && ( echo [.] Disabling ${INSTANCE} && unlink $(HOME)/env/enabled/$(INSTANCE) ) || echo ${INSTANCE} instance already disabled
 	@make print_state
 
-init: hello
-	@echo "[.] Creating instance '${INSTANCE}'"
-	@test -d ${HOME}/instances/${INSTANCE} || mkdir -p ${HOME}/instances/${INSTANCE}
-	@( test -d ${HOME}/instances/${INSTANCE} && test ! -f ${HOME}/instances/${INSTANCE}/settings.json ) && \
-	( cp ${HOME}/settings.json ${HOME}/instances/${INSTANCE}/settings.json && cp ${HOME}/tokens.json ${HOME}/instances/${INSTANCE}/tokens.json && \
-	echo [.] Configuration files located in ${HOME}/instances/${INSTANCE}/ && \
-	echo [.] To enable instance use command: make enable ${INSTANCE} && \
-	echo [+] Instance '${INSTANCE}' successfully initialized! ) || \
-	echo [!] Instance '${INSTANCE}' already initialized!
-
 check_enabled:
 instances_available = $(shell ls $(HOME)/instances)
 instances_enabled = $(shell ls $(HOME)/env/enabled)
-
 
 print_state: check_enabled
 	@echo "${y}$(bd)Availabled instances:$(st)"
@@ -161,7 +164,6 @@ prune: hello
 	@echo "${b}[.] Check if docker image exists${n}"
 	@test -z "$(shell docker images -q limit_swap 2> /dev/null)"  && echo "${b}[+] Image ${bd}limit_swap${st} ${b}does not exist${n}" || (docker rmi limit_swap  && echo "${b}[+] Docker image successfully deleted${n}")
 
-
 start: hello build
 	@test -z ${INSTANCE} && echo "[!] Enter Instance name 'make start NAME' OR use 'make start all' to start all"  || ( test "${INSTANCE}" = "all"  && ( make start_all && make status ) || ( make ${INSTANCE}_start && make status ) )
 
@@ -176,7 +178,6 @@ start_all:
 	@test "$(shell docker container inspect -f '{{.State.Status}}' limit_swap_$*)" = "running" && echo "[!] Container $* is already running. Skipping..." || ( echo "Container is not running" && docker run -d --rm --name limit_swap_$* -v $(HOME)/instances/$*/settings.json:/app/settings.json -v $(HOME)/instances/$*/tokens.json:/app/tokens.json -v $(HOME)/logs:/app/logs limit_swap )
 	@echo "${b}[+] Finished starting the bot in container for $*${n}"
 	@echo ""
-
 
 stop: hello
 	@test -z ${INSTANCE} && echo "[!] Enter Instance name 'make stop NAME' OR use 'make stop all' to stop all" || ( test "${INSTANCE}" = "all" && make stop_all || make ${INSTANCE}_stop  )
@@ -194,6 +195,12 @@ stop_all:
 	@echo "${b}[+] The bot in container successfully stopped${n}"
 	@echo ""
 
+status:
+	@echo ""
+	@echo "${y}$(bd)Working instances:$(st)"
+	@docker ps
+	@echo ""
+
 logs: hello
 	@echo "${b}[.] Fetching the logs of a container for $(INSTANCE)${n}"
 	@docker logs -f limit_swap_$(INSTANCE)
@@ -201,5 +208,3 @@ logs: hello
 ssh: hello
 	@echo "${b}[.] Entering shell to the container${n}"
 	@docker exec -it limit_swap_$(INSTANCE) bash
-
-
