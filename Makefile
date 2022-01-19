@@ -42,19 +42,19 @@ help: hello
 	@echo "    ${g}clean${n}		Remove virtual environment, instances status and clear logs"
 	@echo "    ${g}help${n}		Show this help output."
 	@echo ""
-	@echo "${y}$(bd)Instances commands:$(st)"
-	@echo "    ${g}init${n} NAME		Initialization of configuration for the instance"
+	@echo "${y}$(bd)Instances configuration commands:$(st)"
+	@echo "    ${g}init${n} ${b}[name]${n}		Initialization of configuration for the instance"
 	@echo "    ${g}list${n}		List of instances configurations"
-	@echo "    ${g}enable${n} NAME		Enable instance configuration"
-	@echo "    ${g}disable${n} NAME	Disable instance configuration"
+	@echo "    ${g}enable${n} ${b}[name]${n}	Enable instance configuration"
+	@echo "    ${g}disable${n} ${b}[name]${n}	Disable instance configuration"
 
 	@echo ""
 	@echo "${y}$(bd)Docker commands:$(st)"
 	@echo "    ${g}build${n} 		Build docker image. If image is not exist, it'll be built on 'make start'"
-	@echo "    ${g}start${n} NAME|all		Start docker container."
-	@echo "    ${g}stop${n} NAME|all 	Stop docker container"
-	@echo "    ${g}logs${n} NAME		Fetch the logs of the container"
-	@echo "    ${g}ssh${n} NAME			Run a shell in the  container"
+	@echo "    ${g}start${n} ${b}[name | all]${n}	Start docker container."
+	@echo "    ${g}stop${n}  ${b}[name | all]${n} 	Stop docker container"
+	@echo "    ${g}logs${n}  ${b}[name]${n}	Fetch the logs of the container"
+	@echo "    ${g}ssh${n}   ${b}[name]${n}	Run a shell in the  container"
 	@echo "    ${g}status${n} 		Instances status"
 	@echo "    ${g}prune${n} 		Remove docker image"
 
@@ -115,14 +115,14 @@ clean:
 #######################################################################################################################################
 
 init: hello
-	@echo "[.] Creating instance '${INSTANCE}'"
-	@test -d ${HOME}/instances/${INSTANCE} || mkdir -p ${HOME}/instances/${INSTANCE}
-	@( test -d ${HOME}/instances/${INSTANCE} && test ! -f ${HOME}/instances/${INSTANCE}/settings.json ) && \
+	@test -z ${INSTANCE} && ( echo "[!] Please add instance name. Syntax: 'make init [name]'") || ( \
+	echo "[.] Creating instance '${INSTANCE}'"; test -d ${HOME}/instances/${INSTANCE} || mkdir -p ${HOME}/instances/${INSTANCE} ;\
+	( test -d ${HOME}/instances/${INSTANCE} && test ! -f ${HOME}/instances/${INSTANCE}/settings.json ) && \
 	( cp ${HOME}/settings.json ${HOME}/instances/${INSTANCE}/settings.json && cp ${HOME}/tokens.json ${HOME}/instances/${INSTANCE}/tokens.json && \
 	echo [.] Configuration files located in ${HOME}/instances/${INSTANCE}/ && \
 	echo [.] To enable instance use command: make enable ${INSTANCE} && \
 	echo [+] Instance '${INSTANCE}' successfully initialized! ) || \
-	echo [!] Instance '${INSTANCE}' already initialized!
+	echo [!] Instance '${INSTANCE}' already initialized! 	)
 
 list: hello print_state
  
