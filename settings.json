@@ -22,6 +22,6 @@
 "VERBOSE_PRICING": "true", // set to false if you want a new price line to appear only when price change
 "SLOW_MODE": "false", // use this if you want the bot to make only 1 price check every 0.5s
 "ENABLE_APPRISE_NOTIFICATIONS": "true", // use this if you want to receive notifications with APPRISE API
-"APPRISE_PARAMETER": ["macosx://", "windows://"] // you can enter new parameters. Respect the format. Check https://github.com/caronc/apprise
+"APPRISE_PARAMETERS": ["macosx://", "windows://"] // you can enter new parameters. Respect the format. Check https://github.com/caronc/apprise
 }
 ]
