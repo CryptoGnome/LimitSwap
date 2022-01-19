@@ -1695,6 +1695,37 @@ elif settings["EXCHANGE"] == 'quickswap':
     settings['_EXCHANGE_BASE_SYMBOL'] = 'MATIC'
     settings['_STABLE_BASES'] = {'USDT':{ 'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier' : 0}}
 
+elif settings["EXCHANGE"] == 'polygon-apeswap':
+    if settings['USECUSTOMNODE'] == 'true':
+        my_provider = settings['CUSTOMNODE']
+    else:
+        my_provider = "https://polygon-rpc.com"
+    
+    if not my_provider:
+        printt_err('Custom node empty. Exiting')
+        exit(1)
+
+    if my_provider[0].lower() == 'h':
+        print(timestamp(), 'Using HTTPProvider')
+        client = Web3(Web3.HTTPProvider(my_provider))
+    elif my_provider[0].lower() == 'w':
+        print(timestamp(), 'Using WebsocketProvider')
+        client = Web3(Web3.WebsocketProvider(my_provider))
+    else:
+        print(timestamp(), 'Using IPCProvider')
+        client = Web3(Web3.IPCProvider(my_provider))
+    print(timestamp(), "Matic Chain Connected =", client.isConnected())
+    print(timestamp(), "Loading Smart Contracts...")
+    routerAddress = Web3.toChecksumAddress("0xC0788A3aD43d79aa53B09c2EaCc313A787d1d607")
+    factoryAddress = Web3.toChecksumAddress("0xCf083Be4164828f00cAE704EC15a36D711491284")
+    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
+    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
+    weth = Web3.toChecksumAddress("0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270")
+    base_symbol = "MATIC"
+    rugdocchain = '&chain=poly'
+    modified = False
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'MATIC'
+    settings['_STABLE_BASES'] = {'USDT':{ 'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier' : 0}}
 
 elif settings["EXCHANGE"] == 'waultswap':
     if settings['USECUSTOMNODE'] == 'true':
@@ -1729,6 +1760,101 @@ elif settings["EXCHANGE"] == 'waultswap':
     settings['_EXCHANGE_BASE_SYMBOL'] = 'MATIC'
     settings['_STABLE_BASES'] = {'USDT':{ 'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier' : 0}}
 
+elif settings["EXCHANGE"] == 'cronos-vvs':
+    if settings['USECUSTOMNODE'] == 'true':
+        my_provider = settings['CUSTOMNODE']
+    else:
+        my_provider = "https://evm-cronos.crypto.org"
+    
+    if not my_provider:
+        printt_err('Custom node empty. Exiting')
+        exit(1)
+
+    if my_provider[0].lower() == 'h':
+        print(timestamp(), 'Using HTTPProvider')
+        client = Web3(Web3.HTTPProvider(my_provider))
+    elif my_provider[0].lower() == 'w':
+        print(timestamp(), 'Using WebsocketProvider')
+        client = Web3(Web3.WebsocketProvider(my_provider))
+    else:
+        print(timestamp(), 'Using IPCProvider')
+        client = Web3(Web3.IPCProvider(my_provider))
+    print(timestamp(), "Cronos Chain Connected =", client.isConnected())
+    print(timestamp(), "Loading Smart Contracts...")
+    routerAddress = Web3.toChecksumAddress("0x145863Eb42Cf62847A6Ca784e6416C1682b1b2Ae")
+    factoryAddress = Web3.toChecksumAddress("0x3b44b2a187a7b3824131f8db5a74194d0a42fc15")
+    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
+    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
+    weth = Web3.toChecksumAddress("0x5C7F8A570d578ED84E63fdFA7b1eE72dEae1AE23")
+    base_symbol = "CRO"
+    rugdocchain = '&chain=cronos'
+    modified = False
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'CRO'
+    settings['_STABLE_BASES'] = {'USDC':{ 'address': '0xc21223249ca28397b4b6541dffaecc539bff0c59', 'multiplier' : 0}}
+
+elif settings["EXCHANGE"] == 'cronos-meerkat':
+    if settings['USECUSTOMNODE'] == 'true':
+        my_provider = settings['CUSTOMNODE']
+    else:
+        my_provider = "https://evm-cronos.crypto.org"
+    
+    if not my_provider:
+        printt_err('Custom node empty. Exiting')
+        exit(1)
+
+    if my_provider[0].lower() == 'h':
+        print(timestamp(), 'Using HTTPProvider')
+        client = Web3(Web3.HTTPProvider(my_provider))
+    elif my_provider[0].lower() == 'w':
+        print(timestamp(), 'Using WebsocketProvider')
+        client = Web3(Web3.WebsocketProvider(my_provider))
+    else:
+        print(timestamp(), 'Using IPCProvider')
+        client = Web3(Web3.IPCProvider(my_provider))
+    print(timestamp(), "Cronos Chain Connected =", client.isConnected())
+    print(timestamp(), "Loading Smart Contracts...")
+    routerAddress = Web3.toChecksumAddress("0x145677FC4d9b8F19B5D56d1820c48e0443049a30")
+    factoryAddress = Web3.toChecksumAddress("0xd590cC180601AEcD6eeADD9B7f2B7611519544f4")
+    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
+    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
+    weth = Web3.toChecksumAddress("0x5c7f8a570d578ed84e63fdfa7b1ee72deae1ae23")
+    base_symbol = "CRO"
+    rugdocchain = '&chain=cronos'
+    modified = False
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'CRO'
+    settings['_STABLE_BASES'] = {'USDC':{ 'address': '0xc21223249ca28397b4b6541dffaecc539bff0c59', 'multiplier' : 0}}
+
+elif settings["EXCHANGE"] == 'cronos-crona':
+    if settings['USECUSTOMNODE'] == 'true':
+        my_provider = settings['CUSTOMNODE']
+    else:
+        my_provider = "https://evm-cronos.crypto.org"
+    
+    if not my_provider:
+        printt_err('Custom node empty. Exiting')
+        exit(1)
+
+    if my_provider[0].lower() == 'h':
+        print(timestamp(), 'Using HTTPProvider')
+        client = Web3(Web3.HTTPProvider(my_provider))
+    elif my_provider[0].lower() == 'w':
+        print(timestamp(), 'Using WebsocketProvider')
+        client = Web3(Web3.WebsocketProvider(my_provider))
+    else:
+        print(timestamp(), 'Using IPCProvider')
+        client = Web3(Web3.IPCProvider(my_provider))
+    print(timestamp(), "Cronos Chain Connected =", client.isConnected())
+    print(timestamp(), "Loading Smart Contracts...")
+    routerAddress = Web3.toChecksumAddress("0xcd7d16fB918511BF7269eC4f48d61D79Fb26f918")
+    factoryAddress = Web3.toChecksumAddress("0x73A48f8f521EB31c55c0e1274dB0898dE599Cb11")
+    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
+    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
+    weth = Web3.toChecksumAddress("0x5c7f8a570d578ed84e63fdfa7b1ee72deae1ae23")
+    base_symbol = "CRO"
+    rugdocchain = '&chain=cronos'
+    modified = False
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'CRO'
+    settings['_STABLE_BASES'] = {'USDC':{ 'address': '0xc21223249ca28397b4b6541dffaecc539bff0c59', 'multiplier' : 0}}
 
 def get_password():
     # Function: get_password
