@@ -1,1 +1,11 @@
+# System directories and caches
 .idea
+.docker
+.env
+
+# Instances configuration files
+instances/
+Library/
+
+# Application logs
+/logs/*.log
