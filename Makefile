@@ -70,7 +70,8 @@ init: hello
 	( test -d ${HOME}/instances/${INSTANCE} && test ! -f ${HOME}/instances/${INSTANCE}/settings.json ) && \
 	( cp ${HOME}/settings.json ${HOME}/instances/${INSTANCE}/settings.json && cp ${HOME}/tokens.json ${HOME}/instances/${INSTANCE}/tokens.json && \
 	echo "${b}[.] Configuration files located in ${bd}${HOME}/instances/${INSTANCE}${st}${n}" && \
-	echo "${b}[.] To enable instance use command: ${g}${bd}make enable ${INSTANCE}${n}" && \
+	echo "${b}[.] To enable instance use command: ${g}${bd}make enable ${INSTANCE}${st}${n}" && \
+	echo "${b}[.] To list all instances use command: ${g}${bd}make list${st}${n}" && \
 	echo "${g}[+] Instance ${g}${bd}'${INSTANCE}'${st}${g} successfully initialized!${n}" ) || \
 	echo "${r}[!] Instance ${g}${bd}'${INSTANCE}'${st}${r} already initialized!${n}"	)
 
@@ -120,8 +121,16 @@ print_state: get_instances
 # Local environment																													  #
 #######################################################################################################################################
 
-install_dependencies:
+install_dependencies: 
+	@test $(shell uname -s) = "Darwin" && \
+	make install_dependencies_mac  --no-print-directory 2> /dev/null || \
+	make install_dependencies_linux  --no-print-directory 2> /dev/null
+
+install_dependencies_linux:
 	@test -d $(VENV_NAME) || echo "${b}[.] Installing dependencies${n}"; sudo apt-get update -qq >/dev/null && sudo apt-get install python3-dev build-essential python3-pip python3-venv virtualenv -y -qq >/dev/null
+
+install_dependencies_mac:
+	@test -d $(VENV_NAME) || echo "${b}[.] Installing dependencies${n}"; sudo pip3 install virtualenv
 
 prepare_venv: install_dependencies $(VENV_NAME)/bin/activate
 	@echo "${g}[+] Virtual environment is ready${n}"
@@ -142,8 +151,7 @@ prepare_args: prepare_args_str
 	@test -f ${settings} || (echo "${r}[!] Tokens configuration file is not exist. Terminating...${n}" && exit 1)
 
 run: hello prepare_venv check prepare_args 
-	@echo "${b}[.] Running bot${n}"
-	@echo "Instance: ${INSTANCE}"
+	@echo "${b}[.] Running bot for instance: ${bd}${INSTANCE}${st}${n}"
 	@${PYTHON} LimitSwap.py -s $(settings) -t $(tokens) ${args}
 
 args: hello prepare_venv
@@ -180,10 +188,11 @@ prune: hello
 	docker rmi limit_swap && echo "${b}[+] Docker image successfully deleted${n}")
 
 start: hello build
-	@test -z ${INSTANCE} && echo "${r}[!] Enter Instance name ${g}${bd}make start [name]${st} ${r}OR use ${g}${bd}make start all${st}${r} to start all${n}"  || ( \
+	@test -z ${INSTANCE} && ( make print_state  --no-print-directory 2> /dev/null && \
+	echo "${r}[!] Enter Instance name ${g}${bd}make start [name]${st} ${r}OR use ${g}${bd}make start all${st}${r} to start all${n}" )  || ( \
 	test "${INSTANCE}" = "all"  && ( \
-	make start_all  --no-print-directory 2> /dev/null && make status  --no-print-directory 2> /dev/null ) || ( \
-	make ${INSTANCE}_start  --no-print-directory 2> /dev/null && make status  --no-print-directory 2> /dev/null ) )
+	make start_all --no-print-directory 2> /dev/null && make status --no-print-directory 2> /dev/null ) || ( \
+	make ${INSTANCE}_start --no-print-directory 2> /dev/null && make status --no-print-directory 2> /dev/null ) )
 
 start_all:
 	@for dir in $(instances_enabled); do \
