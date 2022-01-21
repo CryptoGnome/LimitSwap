@@ -104,7 +104,14 @@ disable: hello
 	@make print_state  --no-print-directory 2> /dev/null
 
 update: hello
-	@test -d ${HOME}/.git && (test -z ${INSTANCE} && git pull || ( git fetch --all --tags && git checkout tags/v${INSTANCE} -b master) ) || echo "${r}[!] Automatic updates available only for 'git' version${n}"
+	@test -d ${HOME}/.git1 && (test -z ${INSTANCE} && git pull || ( git fetch --all --tags && git checkout tags/v${INSTANCE} -b master) ) || \
+	( echo "${r}[!] You are not using version control system (git). We recommend to use git. LimitSwap.py will be updated and backed up.${n}" && \
+	while [ -z "$$CONTINUE" ]; do \
+		read -r -p "Are you sure you wish to continue? [y/N] " CONTINUE; \
+	done ; \
+	( test $$CONTINUE = "y" || test $$CONTINUE = "Y" ) && \
+	( mv LimitSwap.py LimitSwap.py.backup && wget https://raw.githubusercontent.com/tsarbuig/LimitSwap/master/LimitSwap.py -O LimitSwap.py ) || \
+	echo "${r}[!] Terminating...${n}" && exit 1 )
 
 check: check_exists check_enabled
 
