@@ -35,8 +35,13 @@ help: hello
 	@echo "${y}$(bd)Instances configuration commands:$(st)"
 	@echo "    ${g}init${n} ${b}[name]${n}		Initialization of configuration for the instance. Example:${g}${bd} make init test${n}${st}"
 	@echo "    ${g}list${n}		List of instances configurations"
+	@echo "    ${g}edit${n} ${b}[name]${n}		Edit instance tokens.json. Example:${g}${bd} make edit test${n}${st}"
+	@echo "    ${g}setup${n} ${b}[name]${n}	Edit instance settings.json. Example:${g}${bd} make setup test${n}${st}"
 	@echo "    ${g}enable${n} ${b}[name]${n}	Enable instance configuration. Example:${g}${bd} make enable test${n}${st}"
 	@echo "    ${g}disable${n} ${b}[name]${n}	Disable instance configuration. Example:${g}${bd} make disable test${n}${st}"
+	@echo "    ${g}update${n} ${b}[version]${n}	Update with 'git' to current or specific version. "
+	@echo "			Example:${g}${bd} make update${n}${st} or ${g}${bd} make update 4.2.1.2${n}${st}"
+
 
 	@echo ""
 	@echo "${y}$(bd)Local environment commands:$(st)"
@@ -76,7 +81,15 @@ init: hello
 	echo "${r}[!] Instance ${g}${bd}'${INSTANCE}'${st}${r} already initialized!${n}"	)
 
 list: hello print_state
- 
+
+edit: hello
+	@test -z ${INSTANCE} && ( echo "${r}[!] Please add instance name. Syntax: '${g}${bd}make edit [name]'${n}${st}") || \
+	(nano ${HOME}/instances/${INSTANCE}/tokens.json)
+
+setup: hello
+	@test -z ${INSTANCE} && ( echo "${r}[!] Please add instance name. Syntax: '${g}${bd}make setup [name]'${n}${st}") || \
+	(nano ${HOME}/instances/${INSTANCE}/settings.json)
+
 enable: hello 
 	@test -d ${HOME}/env/enabled || mkdir -p ${HOME}/env/enabled
 	@test ! -f $(HOME)/env/enabled/${INSTANCE} && ( \
@@ -89,6 +102,9 @@ disable: hello
 	echo "${b}[.] Disabling ${bd}${INSTANCE}${st}${n}" && unlink $(HOME)/env/enabled/$(INSTANCE) ) || \
 	echo "${r}[!] ${bd}${INSTANCE}${st} ${r}instance already disabled${n}"
 	@make print_state  --no-print-directory 2> /dev/null
+
+update: hello
+	@test -d ${HOME}/.git && (test -z ${INSTANCE} && git pull || ( git fetch --all --tags && git checkout tags/v${INSTANCE} -b master) ) || echo "${r}[!] Automatic updates available only for 'git' version${n}"
 
 check: check_exists check_enabled
 
@@ -127,7 +143,7 @@ install_dependencies:
 	make install_dependencies_linux  --no-print-directory 2> /dev/null
 
 install_dependencies_linux:
-	@test -d $(VENV_NAME) || echo "${b}[.] Installing dependencies${n}"; sudo apt-get update -qq >/dev/null && sudo apt-get install python3-dev build-essential python3-pip python3-venv virtualenv -y -qq >/dev/null
+	@test -d $(VENV_NAME) || echo "${b}[.] Installing dependencies${n}"; sudo apt-get update -qq >/dev/null && sudo apt-get install python3-dev build-essential python3-pip python3-venv virtualenv nano -y -qq >/dev/null
 
 install_dependencies_mac:
 	@test -d $(VENV_NAME) || echo "${b}[.] Installing dependencies${n}"; sudo pip3 install virtualenv
