@@ -2498,35 +2498,30 @@ def wait_for_open_trade(token, inToken, outToken):
         printt("It works with 2 ways:", write_to_log=True)
         printt("1/ Bot will scan mempool to detect Enable Trading functions", write_to_log=True)
         printt("2/ Bot will wait for price to move before making a BUY order", write_to_log=True)
-        printt(" ", write_to_log=True)
-        printt("---- Why those 2 ways ? ----", write_to_log=True)
-        printt("Because we need to enter in the code the functions used by the teams to make trading open", write_to_log=True)
-        printt("And there is a LOT of ways to do that, so we cannot be 100% to detect it in the mempool", write_to_log=True)
-        printt(" ", write_to_log=True)
-        printt_err("---- WE NEED YOUR HELP FOR THAT ----", write_to_log=True)
-        printt_err("To detect Enable Trading in mempool, we need to enter in the code the functions used by the teams to make trading open:", write_to_log=True)
-        printt(" ", write_to_log=True)
-        printt("Please give us some examples of function used here: https://github.com/tsarbuig/LimitSwap/issues/1", write_to_log=True)
-        printt(" ", write_to_log=True)
-        printt(" ", write_to_log=True)
+        printt(" ", write_to_log=False)
+        printt("---- Why those 2 ways ? ----", write_to_log=False)
+        printt("Because we need to enter in the code the functions used by the teams to make trading open", write_to_log=False)
+        printt("And there is a LOT of ways to do that, so we cannot be 100% to detect it in the mempool", write_to_log=False)
+        printt(" ", write_to_log=False)
+        printt(" ", write_to_log=False)
         printt_err("---- BE CAREFUL ----", write_to_log=True)
         printt_err("to make WAIT_FOR_OPEN_TRADE work, you need to SNIPE ON THE SAME LIQUIDITY PAIR that liquidity added by the team:", write_to_log=True)
         printt(" ", write_to_log=True)
-        printt("Explanation : if you try to snipe in BUSD and liquidity is in BNB, price will move because of price movement between BUSD and BNB", write_to_log=True)
-        printt("--> if liquidity is in BNB or ETH, use LIQUIDITYINNATIVETOKEN = true and USECUSTOMBASEPAIR = false", write_to_log=True)
-        printt(" ", write_to_log=True)
-        printt("When you will have read all this message and understood how it works, enter the value 'true_no_message' or 'true_after_buy_tx_failed_no_message' in your WAIT_FOR_OPEN_TRADE setting", write_to_log=True)
-        printt(" ", write_to_log=True)
+        printt("Explanation : if you try to snipe in BUSD and liquidity is in BNB, price will move because of price movement between BUSD and BNB", write_to_log=False)
+        printt("--> if liquidity is in BNB or ETH, use LIQUIDITYINNATIVETOKEN = true and USECUSTOMBASEPAIR = false", write_to_log=False)
+        printt(" ", write_to_log=False)
+        printt("When you will have read all this message and understood how it works, enter the value 'true_no_message' or 'true_after_buy_tx_failed_no_message' in your WAIT_FOR_OPEN_TRADE setting", write_to_log=False)
+        printt(" ", write_to_log=False)
         printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
 
     if token['WAIT_FOR_OPEN_TRADE'] == 'mempool' or token['WAIT_FOR_OPEN_TRADE'] == 'mempool_after_buy_tx_failed':
         printt("It will scan mempool to detect Enable Trading functions", write_to_log=True)
-        printt(" ", write_to_log=True)
-        printt_err("---- WE NEED YOUR HELP FOR THAT ----", write_to_log=True)
-        printt_err("To detect Enable Trading in mempool, we need to enter in the code the functions used by the teams to make trading open:", write_to_log=True)
-        printt(" ", write_to_log=True)
-        printt("Please give us some examples of function used here: https://github.com/tsarbuig/LimitSwap/issues/1", write_to_log=True)
-        printt(" ", write_to_log=True)
+        printt(" ", write_to_log=False)
+        printt_err("---- WE NEED YOUR HELP FOR THAT ----", write_to_log=False)
+        printt_err("To detect Enable Trading in mempool, we need to enter in the code the functions used by the teams to make trading open:", write_to_log=False)
+        printt(" ", write_to_log=False)
+        printt("Please give us some examples of function used here: https://github.com/tsarbuig/LimitSwap/issues/1", write_to_log=False)
+        printt(" ", write_to_log=False)
         printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
 
     openTrade = False
@@ -2544,8 +2539,8 @@ def wait_for_open_trade(token, inToken, outToken):
     
             if pprice != float(token['_PREVIOUS_QUOTE']):
                 token['_TRADING_IS_ON'] = True
-                printt_ok("Token price:", pprice, "--> IT HAS MOVED :)")
-                printt_ok("PRICE HAS MOVED --> trading is enabled --> Bot will buy")
+                printt_ok("Token price:", pprice, "--> IT HAS MOVED :)", write_to_log=True)
+                printt_ok("PRICE HAS MOVED --> trading is enabled --> Bot will buy", write_to_log=True)
                 break
 
             printt("Token price:", pprice)
@@ -2561,8 +2556,8 @@ def wait_for_open_trade(token, inToken, outToken):
                     openTrade = True
                     token['_GAS_IS_CALCULATED'] = True
                     token['_GAS_TO_USE'] = int(txHashDetails.gasPrice) / 1000000000
-                    printt_ok("OPEN TRADE FUNCTION DETECTED --> Trading is enabled --> Bot will buy")
-                    printt_ok("MethodID: ", txFunction, " Block: ", tx_event['blockNumber'], " Found Signal", "in txHash:", txHash.hex())
+                    printt_ok("OPEN TRADE FUNCTION DETECTED --> Trading is enabled --> Bot will buy", write_to_log=True)
+                    printt_ok("MethodID: ", txFunction, " Block: ", tx_event['blockNumber'], " Found Signal", "in txHash:", txHash.hex(), write_to_log=True)
                     printt_ok("GAS will be the same as liquidity adding event. GAS=", token['_GAS_TO_USE'])
                     break
                 else:
