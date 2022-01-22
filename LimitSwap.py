@@ -5101,7 +5101,7 @@ def run():
                     # if ALWAYS_CHECK_BALANCE parameter is used, bot will check balance all the time
                     if token['ALWAYS_CHECK_BALANCE'] == 'true':
                         printt_debug("3815 ALWAYS_CHECK_BALANCE is ON")
-                        token['_TOKEN_BALANCE'] = check_balance(token['ADDRESS'], token['SYMBOL'],display_quantity=False)
+                        token['_TOKEN_BALANCE'] = check_balance(token['ADDRESS'], token['SYMBOL'],display_quantity=False) / token['_CONTRACT_DECIMALS']
 
                     printt_debug("_TOKEN_BALANCE 3411", token['_TOKEN_BALANCE'], "for the token:",token['SYMBOL'])
                     # Looking to dump this token as soon as it drops <PUMP> percentage
@@ -5201,7 +5201,7 @@ def run():
                                 # token['ENABLED'] = 'false'
                                 
                                 # We re-calculate _TOKEN_BALANCE after the sell() order is made
-                                token['_TOKEN_BALANCE'] = check_balance(token['ADDRESS'], token['SYMBOL'], display_quantity=True)
+                                token['_TOKEN_BALANCE'] = check_balance(token['ADDRESS'], token['SYMBOL'], display_quantity=True) / token['_CONTRACT_DECIMALS']
                                 printt_ok("----------------------------------", write_to_log=True)
                 
                                 # Check if MAXTOKENS is still reached or not
