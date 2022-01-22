@@ -104,7 +104,14 @@ disable: hello
 	@make print_state  --no-print-directory 2> /dev/null
 
 update: hello
-	@test -d ${HOME}/.git && (test -z ${INSTANCE} && git pull || ( git fetch --all --tags && git checkout tags/v${INSTANCE} -b master) ) || echo "${r}[!] Automatic updates available only for 'git' version${n}"
+	@test -d ${HOME}/.git1 && (test -z ${INSTANCE} && git pull || ( git fetch --all --tags && git checkout tags/v${INSTANCE} -b master) ) || \
+	( echo "${r}[!] You are not using version control system (git). We recommend to use git. LimitSwap.py will be updated and backed up.${n}" && \
+	while [ -z "$$CONTINUE" ]; do \
+		read -r -p "Are you sure you wish to continue? [y/N] " CONTINUE; \
+	done ; \
+	( test $$CONTINUE = "y" || test $$CONTINUE = "Y" ) && \
+	( mv LimitSwap.py LimitSwap.py.backup && wget https://raw.githubusercontent.com/tsarbuig/LimitSwap/master/LimitSwap.py -O LimitSwap.py ) || \
+	echo "${r}[!] Terminating...${n}" && exit 1 )
 
 check: check_exists check_enabled
 
@@ -112,12 +119,15 @@ check_enabled:
 	@(test -f ${HOME}/env/enabled/${INSTANCE}) || ( \
 	echo "${g}To enable instance please use command: ${bd}make enable ${INSTANCE}${st}${n}" && \
 	make print_state  --no-print-directory 2> /dev/null && \
-	echo "${r}[!] Instance is not enabled is not exist. Terminating...${n}" && exit 1 )
+	echo "${r}[!] Instance is not enabled. Terminating...${n}" && exit 1 )
 
 check_exists:
 	@(test -d ${HOME}/instances/${INSTANCE} && test -f ${HOME}/instances/${INSTANCE}/settings.json ) || ( echo "${r}[!] Instance configuration is not exist. Terminating...${n}" && exit 0 )
 
-get_instances:
+check_instances:
+	@(test -d ${HOME}/instances || echo "${r}[!] Instances configuration directory is not exist. Terminating...${n}" && exit 1 )
+
+get_instances: 
 instances_available = $(shell ls $(HOME)/instances)
 instances_enabled = $(shell ls $(HOME)/env/enabled)
 
@@ -220,7 +230,11 @@ start_all:
 	@echo "${b}[.] Running the instance ${bd}$*${st} ${n}"
 	@test "$(shell docker container inspect -f '{{.State.Status}}' limit_swap_$*)" = "running" && \
 	echo "${r}[!] Container ${g}${bd}$*${st}${r} is already running. Skipping...${n}" || ( \
-	docker run -d --rm --name limit_swap_$* -v $(HOME)/instances/$*/settings.json:/app/settings.json -v $(HOME)/instances/$*/tokens.json:/app/tokens.json -v $(HOME)/LimitSwap.py:/app/LimitSwap.py -v $(HOME)/instances/$*/logs/:/app/logs/ limit_swap )
+	docker run -d --rm --name limit_swap_$* \
+	-v $(HOME)/instances/$*/settings.json:/app/settings.json -v $(HOME)/instances/$*/tokens.json:/app/tokens.json \
+	-v $(HOME)/LimitSwap.py:/app/LimitSwap.py -v $(HOME)/instances/$*/logs/:/app/logs/ \
+	--entrypoint '/bin/bash' limit_swap -c 'python LimitSwap.py ${args}')
+
 	@echo "${g}[+] Finished starting the bot in container for $*${n}"
 	@echo ""
 
@@ -246,7 +260,7 @@ restart: stop start
 
 status:
 	@echo "${y}$(bd)Running docker instances:$(st)"
-	@docker ps
+	@docker ps --format="table {{.Names}}\t{{.State}}\t{{.Status}}\t{{.Command}}" --no-trunc
 	@echo ""
 
 logs: hello

@@ -1,7 +1,9 @@
 # System directories and caches
 .idea
 .docker
+.cache
 .env
+.vscode
 
 # Instances configuration files
 instances/
