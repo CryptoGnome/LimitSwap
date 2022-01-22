@@ -2645,6 +2645,7 @@ def wait_for_open_trade(token, inToken, outToken):
     # MethodID: 0x68c5111a
     
     # https://bscscan.com/tx/0xf8f5ee32f19d374a779998f68208583f6d40f355dbb32891048daad22fb20342
+    # https://etherscan.io/tx/0x5a3b4a425e97b7f02b3ffa26d8dbf16abeef3d864b41b79276fc450506ad0254
     # Function: setSwapAndLiquifyEnabled(bool _enabled)
     # MethodID: 0xc49b9a80
     
@@ -2767,6 +2768,7 @@ def check_liquidity_amount(token, DECIMALS_OUT, DECIMALS_weth):
         liquidity_amount = check_pool(inToken, weth, token['_BASE_DECIMALS'])
         liquidity_amount_in_dollars = float(liquidity_amount) * float(token['_BASE_PRICE'])
         printt("Current", token['SYMBOL'], "Liquidity =", "{:.2f}".format(liquidity_amount_in_dollars), "$")
+        printt("")
         
         if float(token['MINIMUM_LIQUIDITY_IN_DOLLARS']) <= float(liquidity_amount_in_dollars):
             printt_ok("MINIMUM_LIQUIDITY_IN_DOLLARS parameter =", int(token['MINIMUM_LIQUIDITY_IN_DOLLARS']), " --> Enough liquidity detected : Buy Signal Found!")
@@ -4597,8 +4599,7 @@ def sell(token_dict, inToken, outToken):
                     
                     if fees.lower() == 'true':
                         # HASFEES = true
-                        if settings["EXCHANGE"].lower() == 'uniswap' or settings[
-                            "EXCHANGE"].lower() == 'uniswaptestnet':
+                        if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
                             # Special condition on Uniswap, to implement EIP-1559
                             printt_debug("sell condition 16", write_to_log=True)
                             transaction = routerContract.functions.swapExactTokensForTokensSupportingFeeOnTransferTokens(
@@ -5206,9 +5207,10 @@ def run():
                                 # Check if MAXTOKENS is still reached or not
                                 if token['_TOKEN_BALANCE'] < Decimal(token['MAXTOKENS']):
                                     token['_REACHED_MAX_TOKENS'] = False
+                                    printt_info("Your balance < MAXTOKENS for", token['SYMBOL'], "token --> BUY re-enabled", write_to_log=True)
                                 else:
                                     token['_REACHED_MAX_TOKENS'] = True
-                                    printt_info("You are still above MAXTOKENS for", token['SYMBOL'], "token --> trade disabled", write_to_log=True)
+                                    printt_info("You are still above MAXTOKENS for", token['SYMBOL'], "token --> BUY disabled", write_to_log=True)
 
                 else:
                     if settings['VERBOSE_PRICING'] == 'true':
