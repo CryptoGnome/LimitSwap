@@ -2190,6 +2190,27 @@ def decimals(address):
     return DECIMALS
 
 
+@lru_cache(maxsize=None)
+def decimals_fix_for_special_tokens(outToken):
+    # Function: decimals_fix_for_special_tokens
+    # ----------------------------
+    # Used on check_pool()
+    # We use this function because it has cache, to improve speed
+    #
+    # always returns 1000000000000000000, with exceptions :
+    # - on MATIC, if outToken = USDT
+    #
+    # I know it's ugly : I don't understand why I don't have to do that on USDT on ETH, for instance... If anyone know you're welcome :)
+    
+    
+    DECIMALS_IN = 1000000000000000000
+
+    if outToken == "0xc2132D05D31c914a87C6611C10748AEb04B58e8F":
+        DECIMALS_IN = 1000000
+        
+    return  DECIMALS_IN
+
+
 def check_logs():
     print(timestamp(), "Quickly Checking Log Size")
     with open(file_name) as f:
@@ -2410,12 +2431,10 @@ def check_pool(inToken, outToken, DECIMALS_OUT):
     # be careful, we cannot put cache and use fetch_pair, because we need to detect when pair_address != 0x0000000000000000000000000000000000000000
     # pair_address = fetch_pair2(inToken, outToken, factoryContract) --> we don't do that until we're sure
 
-    DECIMALS_IN = 1000000000000000000
+    DECIMALS_IN = decimals_fix_for_special_tokens(outToken)
     
-    if outToken == "0xc2132D05D31c914a87C6611C10748AEb04B58e8F":
-        DECIMALS_IN = 1000000
-    printt_debug("DECIMALS_IN : ", DECIMALS_IN)
-    printt_debug("DECIMALS_OUT: ", DECIMALS_OUT)
+    printt_debug("check_pool DECIMALS_IN : ", DECIMALS_IN)
+    printt_debug("check_pool DECIMALS_OUT: ", DECIMALS_OUT)
 
     pair_address = factoryContract.functions.getPair(inToken, outToken).call()
     if pair_address == '0x0000000000000000000000000000000000000000':
