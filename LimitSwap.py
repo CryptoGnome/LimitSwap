@@ -3978,8 +3978,8 @@ def buy(token_dict, inToken, outToken, pwd):
     
     if balance > Decimal(amount) or token_dict['KIND_OF_SWAP'] == 'tokens':
         
-        if base_symbol == "ETH" and token_dict['_GAS_IS_CALCULATED'] != True:
-            # We calculate the GAS only for ETH, because it changes at every block on ETH.
+        if (base_symbol == "ETH" or base_symbol == "MATIC") and token_dict['_GAS_IS_CALCULATED'] != True:
+            # We calculate the GAS only for ETH and MATIC, because it changes at every block.
             # On other blockchains, it's almost constant so ne need for it
             #
             # If WAIT_FOR_OPEN_TRADE was used and detected openTrading transaction in mempool :
@@ -4088,7 +4088,7 @@ def sell(token_dict, inToken, outToken):
         
         # Calculate how much gas we should use for this token --> this is done on ETH only, since Gas is almost constant on other chains
         # For the other chains, Gas was calculated at bot launch
-        if base_symbol == "ETH":
+        if base_symbol == "ETH" or base_symbol == "MATIC":
             calculate_gas(token_dict)
             printt_debug("gas: 2380", token_dict['_GAS_TO_USE'])
             gas = token_dict['_GAS_TO_USE']
