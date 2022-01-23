@@ -2411,7 +2411,9 @@ def check_pool(inToken, outToken, DECIMALS_OUT):
     # pair_address = fetch_pair2(inToken, outToken, factoryContract) --> we don't do that until we're sure
 
     DECIMALS_IN = 1000000000000000000
-
+    
+    if outToken == "0xc2132D05D31c914a87C6611C10748AEb04B58e8F":
+        DECIMALS_IN = 1000000
     printt_debug("DECIMALS_IN : ", DECIMALS_IN)
     printt_debug("DECIMALS_OUT: ", DECIMALS_OUT)
 

@@ -110,7 +110,7 @@ update: hello
 		read -r -p "Are you sure you wish to continue? [y/N] " CONTINUE; \
 	done ; \
 	( test $$CONTINUE = "y" || test $$CONTINUE = "Y" ) && \
-	( mv LimitSwap.py LimitSwap.py.backup && wget https://raw.githubusercontent.com/tsarbuig/LimitSwap/master/LimitSwap.py -O LimitSwap.py ) || \
+	( mv LimitSwap.py LimitSwap.py.backup && wget https://raw.githubusercontent.com/tsarbuig/LimitSwap/master/LimitSwap.py -O LimitSwap.py && wget https://raw.githubusercontent.com/tsarbuig/LimitSwap/master/requirements.txt -O requirements.txt ) || \
 	echo "${r}[!] Terminating...${n}" && exit 1 )
 
 check: check_exists check_enabled
