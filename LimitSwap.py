@@ -5299,6 +5299,9 @@ try:
         if command_line_args.slow_mode or settings['SLOW_MODE'] == 'true':
             printt_info("RUNNING IN SLOW MODE = price check every 0.5s")
             cooldown = 0.50
+        elif settings['SLOW_MODE'] == 'super_slow':
+            printt_info("RUNNING IN SUPER SLOW MODE = price check every 3s")
+            cooldown = 3
         else:
             cooldown = 0.01
         runLoop()
