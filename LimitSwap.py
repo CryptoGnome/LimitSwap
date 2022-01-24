@@ -61,7 +61,7 @@ repeated_message_quantity = 0
 tokens_json_already_loaded = 0
 
 # Global used to save program_defined_values before update of tokens.json
-_TOKENS_saved = []
+_TOKENS_saved = {}
 
 # Global used for WATCH_STABLE_PAIRS
 set_of_new_tokens = []
@@ -766,12 +766,13 @@ def reload_tokens_file(tokens_path, load_message=True):
 
 
     if load_message == True:
-        print(timestamp(), "Reloading tokens from", tokens_path)
+        printt("")
+        printt("Reloading tokens from", tokens_path)
 
     with open(tokens_path, ) as js_file:
         t = jsmin(js_file.read())
     tokens = json.loads(t)
-    
+
     required_user_settings = [
         'ADDRESS',
         'BUYAMOUNTINBASE',
@@ -855,9 +856,6 @@ def reload_tokens_file(tokens_path, load_message=True):
         '_PAIR_SYMBOL': ''
     }
     
-    # create an indice to count how many tokens we've done below
-    indice = 0
-
     for token in tokens:
     
         # Keys that must be set
@@ -914,45 +912,44 @@ def reload_tokens_file(tokens_path, load_message=True):
             printt_warn("Ignoring WATCH_STABLES_PAIRS", "for", token['SYMBOL'], ": WATCH_STABLES_PAIRS = true and USECUSTOMBASEPAIR = true is unsupported.")
 
         token.update({
-            '_LIQUIDITY_READY': _TOKENS_saved[indice]['_LIQUIDITY_READY'],
-            '_LIQUIDITY_CHECKED': _TOKENS_saved[indice]['_LIQUIDITY_CHECKED'],
-            '_INFORMED_SELL': _TOKENS_saved[indice]['_INFORMED_SELL'],
-            '_REACHED_MAX_TOKENS': _TOKENS_saved[indice]['_REACHED_MAX_TOKENS'],
-            '_TRADING_IS_ON': _TOKENS_saved[indice]['_TRADING_IS_ON'],
-            '_RUGDOC_DECISION': _TOKENS_saved[indice]['_RUGDOC_DECISION'],
-            '_GAS_TO_USE': _TOKENS_saved[indice]['_GAS_TO_USE'],
-            '_GAS_IS_CALCULATED': _TOKENS_saved[indice]['_GAS_IS_CALCULATED'],
-            '_FAILED_TRANSACTIONS': _TOKENS_saved[indice]['_FAILED_TRANSACTIONS'],
-            '_SUCCESS_TRANSACTIONS': _TOKENS_saved[indice]['_SUCCESS_TRANSACTIONS'],
-            '_REACHED_MAX_SUCCESS_TX': _TOKENS_saved[indice]['_REACHED_MAX_SUCCESS_TX'],
+            '_LIQUIDITY_READY': _TOKENS_saved[token['SYMBOL']]['_LIQUIDITY_READY'],
+            '_LIQUIDITY_CHECKED': _TOKENS_saved[token['SYMBOL']]['_LIQUIDITY_CHECKED'],
+            '_INFORMED_SELL': _TOKENS_saved[token['SYMBOL']]['_INFORMED_SELL'],
+            '_REACHED_MAX_TOKENS': _TOKENS_saved[token['SYMBOL']]['_REACHED_MAX_TOKENS'],
+            '_TRADING_IS_ON': _TOKENS_saved[token['SYMBOL']]['_TRADING_IS_ON'],
+            '_RUGDOC_DECISION': _TOKENS_saved[token['SYMBOL']]['_RUGDOC_DECISION'],
+            '_GAS_TO_USE': _TOKENS_saved[token['SYMBOL']]['_GAS_TO_USE'],
+            '_GAS_IS_CALCULATED': _TOKENS_saved[token['SYMBOL']]['_GAS_IS_CALCULATED'],
+            '_FAILED_TRANSACTIONS': _TOKENS_saved[token['SYMBOL']]['_FAILED_TRANSACTIONS'],
+            '_SUCCESS_TRANSACTIONS': _TOKENS_saved[token['SYMBOL']]['_SUCCESS_TRANSACTIONS'],
+            '_REACHED_MAX_SUCCESS_TX': _TOKENS_saved[token['SYMBOL']]['_REACHED_MAX_SUCCESS_TX'],
             # set _TOKEN_BALANCE to 0 to avoid divide by 0 when calculating COST_PER_TOKEN
             # TODO : to fix it
             '_TOKEN_BALANCE': 0,
-            '_PREVIOUS_TOKEN_BALANCE': _TOKENS_saved[indice]['_PREVIOUS_TOKEN_BALANCE'],
-            '_BASE_BALANCE': _TOKENS_saved[indice]['_BASE_BALANCE'],
-            '_BASE_PRICE': _TOKENS_saved[indice]['_BASE_PRICE'],
-            '_BASE_USED_FOR_TX': _TOKENS_saved[indice]['_BASE_USED_FOR_TX'],
-            '_PAIR_TO_DISPLAY': _TOKENS_saved[indice]['_PAIR_TO_DISPLAY'],
-            '_CUSTOM_BASE_BALANCE': _TOKENS_saved[indice]['_CUSTOM_BASE_BALANCE'],
-            '_QUOTE': _TOKENS_saved[indice]['_QUOTE'],
-            '_PREVIOUS_QUOTE': _TOKENS_saved[indice]['_PREVIOUS_QUOTE'],
-            '_ALL_TIME_HIGH': _TOKENS_saved[indice]['_ALL_TIME_HIGH'],
-            '_COST_PER_TOKEN': _TOKENS_saved[indice]['_COST_PER_TOKEN'],
-            '_CALCULATED_SELLPRICEINBASE': _TOKENS_saved[indice]['_CALCULATED_SELLPRICEINBASE'],
-            '_CALCULATED_STOPLOSSPRICEINBASE': _TOKENS_saved[indice]['_CALCULATED_STOPLOSSPRICEINBASE'],
-            '_ALL_TIME_LOW': _TOKENS_saved[indice]['_ALL_TIME_LOW'],
-            '_CONTRACT_DECIMALS': _TOKENS_saved[indice]['_CONTRACT_DECIMALS'],
-            '_BASE_DECIMALS': _TOKENS_saved[indice]['_BASE_DECIMALS'],
-            '_WETH_DECIMALS': _TOKENS_saved[indice]['_WETH_DECIMALS'],
-            '_LAST_PRICE_MESSAGE': _TOKENS_saved[indice]['_LAST_PRICE_MESSAGE'],
-            '_LAST_MESSAGE': _TOKENS_saved[indice]['_LAST_MESSAGE'],
-            '_FIRST_SELL_QUOTE': _TOKENS_saved[indice]['_FIRST_SELL_QUOTE'],
-            '_BUILT_BY_BOT': _TOKENS_saved[indice]['_BUILT_BY_BOT'],
-            '_EXCHANGE_BASE_SYMBOL': _TOKENS_saved[indice]['_EXCHANGE_BASE_SYMBOL'],
-            '_PAIR_SYMBOL': _TOKENS_saved[indice]['_PAIR_SYMBOL']
+            '_PREVIOUS_TOKEN_BALANCE': _TOKENS_saved[token['SYMBOL']]['_PREVIOUS_TOKEN_BALANCE'],
+            '_BASE_BALANCE': _TOKENS_saved[token['SYMBOL']]['_BASE_BALANCE'],
+            '_BASE_PRICE': _TOKENS_saved[token['SYMBOL']]['_BASE_PRICE'],
+            '_BASE_USED_FOR_TX': _TOKENS_saved[token['SYMBOL']]['_BASE_USED_FOR_TX'],
+            '_PAIR_TO_DISPLAY': _TOKENS_saved[token['SYMBOL']]['_PAIR_TO_DISPLAY'],
+            '_CUSTOM_BASE_BALANCE': _TOKENS_saved[token['SYMBOL']]['_CUSTOM_BASE_BALANCE'],
+            '_QUOTE': _TOKENS_saved[token['SYMBOL']]['_QUOTE'],
+            '_PREVIOUS_QUOTE': _TOKENS_saved[token['SYMBOL']]['_PREVIOUS_QUOTE'],
+            '_ALL_TIME_HIGH': _TOKENS_saved[token['SYMBOL']]['_ALL_TIME_HIGH'],
+            '_COST_PER_TOKEN': _TOKENS_saved[token['SYMBOL']]['_COST_PER_TOKEN'],
+            '_CALCULATED_SELLPRICEINBASE': _TOKENS_saved[token['SYMBOL']]['_CALCULATED_SELLPRICEINBASE'],
+            '_CALCULATED_STOPLOSSPRICEINBASE': _TOKENS_saved[token['SYMBOL']]['_CALCULATED_STOPLOSSPRICEINBASE'],
+            '_ALL_TIME_LOW': _TOKENS_saved[token['SYMBOL']]['_ALL_TIME_LOW'],
+            '_CONTRACT_DECIMALS': _TOKENS_saved[token['SYMBOL']]['_CONTRACT_DECIMALS'],
+            '_BASE_DECIMALS': _TOKENS_saved[token['SYMBOL']]['_BASE_DECIMALS'],
+            '_WETH_DECIMALS': _TOKENS_saved[token['SYMBOL']]['_WETH_DECIMALS'],
+            '_LAST_PRICE_MESSAGE': _TOKENS_saved[token['SYMBOL']]['_LAST_PRICE_MESSAGE'],
+            '_LAST_MESSAGE': _TOKENS_saved[token['SYMBOL']]['_LAST_MESSAGE'],
+            '_FIRST_SELL_QUOTE': _TOKENS_saved[token['SYMBOL']]['_FIRST_SELL_QUOTE'],
+            '_BUILT_BY_BOT': _TOKENS_saved[token['SYMBOL']]['_BUILT_BY_BOT'],
+            '_EXCHANGE_BASE_SYMBOL': _TOKENS_saved[token['SYMBOL']]['_EXCHANGE_BASE_SYMBOL'],
+            '_PAIR_SYMBOL': _TOKENS_saved[token['SYMBOL']]['_PAIR_SYMBOL']
         })
         
-        indice = indice + 1
     # Add any tokens generated by "WATCH_STABLES_PAIRS" to the tokens list.
     for token_dict in set_of_new_tokens:
         tokens.append(token_dict)
@@ -2749,7 +2746,7 @@ def build_sell_conditions(token_dict, condition, show_message):
             token_dict['_COST_PER_TOKEN'] = float(token_dict['_BASE_USED_FOR_TX']) / float(token_dict['BUYAMOUNTINTOKEN'])
         else:
             printt_err("Wrong value in KIND_OF_SWAP parameter")
-    printt_debug(token_dict['SYMBOL'], " cost per token was: ", token_dict['_COST_PER_TOKEN'])
+    printt_debug(token_dict['SYMBOL'], "cost per token was: ", token_dict['_COST_PER_TOKEN'])
 
     # Check to see if the SELLPRICEINBASE is a percentage of the purchase
     if re.search('^(\d+\.){0,1}\d+%$', str(sell)):
@@ -2760,7 +2757,7 @@ def build_sell_conditions(token_dict, condition, show_message):
                 printt_err("    DO NOT CLOSE THE BOT after BUY order is made, or your calculated SELLPRICE will be lost!")
                 printt_err("--------------------------------------------------------------------------------------------------")
                 printt("")
-                printt_info("Since you have put a % in SELLPRICE, and bot did not buy yet, we will set SELLPRICE = 99999 so as the bot not to sell if you stop and run it again.")
+                printt_info(token_dict['SYMBOL'],": since you have put a % in SELLPRICE, and bot did not buy yet, we will set SELLPRICE = 99999 so as the bot not to sell if you stop and run it again.")
             token_dict['_CALCULATED_SELLPRICEINBASE'] = 99999
         else:
             token_dict['_CALCULATED_SELLPRICEINBASE'] = token_dict['_COST_PER_TOKEN'] * (float(sell) / 100)
@@ -4803,7 +4800,6 @@ def benchmark():
 def run():
     global tokens_json_already_loaded
     global _TOKENS_saved
-    global _PREVIOUS_TOKEN_BALANCE_saved
     
     tokens_json_already_loaded = tokens_json_already_loaded + 1
     try:
@@ -4871,7 +4867,6 @@ def run():
                 printt("Your wallet already owns : ", token['_TOKEN_BALANCE'], token['SYMBOL'], write_to_log=True)
                 if token['_TOKEN_BALANCE'] >= float(token['MAXTOKENS']):
                     token['_REACHED_MAX_TOKENS'] = True
-                    printt("")
                     printt_warn("You have reached MAXTOKENS for token ", token['SYMBOL'], "--> bot stops to buy", write_to_log=True)
                     printt("")
                 else:
@@ -5278,8 +5273,13 @@ def run():
         printt_debug("tokens_json_already_loaded: ", tokens_json_already_loaded)
         if tokens_json_already_loaded > 0:
             printt_debug("Debug 4841 - reload_tokens_file condition")
-            # storing "tokens" values
-            _TOKENS_saved = tokens
+            
+            # Before changing tokens, we store them in a dict, to be able to re-use the internal values like "COST_PER_TOKEN"
+            # The key to re-use them will be token['SYMBOL']
+            #
+            _TOKENS_saved = {}
+            for token in tokens:
+                _TOKENS_saved[token['SYMBOL']] = token
 
             reload_bot_settings(bot_settings)
             sleep(0.01)
