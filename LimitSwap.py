@@ -2553,7 +2553,7 @@ def wait_for_open_trade(token, inToken, outToken):
 
     if token['WAIT_FOR_OPEN_TRADE'] == 'true' or token['WAIT_FOR_OPEN_TRADE'] == 'true_after_buy_tx_failed':
         printt("It works with 2 ways:", write_to_log=True)
-        printt("1/ Bot will scan mempool to detect Enable Trading functions and Pinksale launch", write_to_log=True)
+        printt("1/ Bot will scan mempool to detect Enable Trading functions", write_to_log=True)
         printt("2/ Bot will wait for price to move before making a BUY order", write_to_log=True)
         printt(" ", write_to_log=False)
         printt("---- Why those 2 ways ? ----", write_to_log=False)
