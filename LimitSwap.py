@@ -1243,7 +1243,7 @@ if settings["EXCHANGE"] == 'pangolin':
 
     if not my_provider:
         printt_err('Custom node empty. Exiting')
-    exit(1)
+        exit(1)
 
     if my_provider[0].lower() == 'h':
         print(timestamp(), 'Using HTTPProvider')
