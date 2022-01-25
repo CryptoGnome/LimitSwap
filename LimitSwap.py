@@ -2573,11 +2573,6 @@ def wait_for_open_trade(token, inToken, outToken):
 
     if token['WAIT_FOR_OPEN_TRADE'] == 'mempool' or token['WAIT_FOR_OPEN_TRADE'] == 'mempool_after_buy_tx_failed':
         printt("It will scan mempool to detect Enable Trading functions", write_to_log=True)
-        printt(" ", write_to_log=False)
-        printt_err("---- WE NEED YOUR HELP FOR THAT ----", write_to_log=False)
-        printt_err("To detect Enable Trading in mempool, we need to enter in the code the functions used by the teams to make trading open:", write_to_log=False)
-        printt(" ", write_to_log=False)
-        printt("Please give us some examples of function used here: https://github.com/tsarbuig/LimitSwap/issues/1", write_to_log=False)
         printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
     
     if token['WAIT_FOR_OPEN_TRADE'] == 'pinksale':
