@@ -580,6 +580,7 @@ def load_tokens_file(tokens_path, load_message=True):
         'GASPRIORITY_FOR_ETH_ONLY': 1.5,
         'STOPLOSSPRICEINBASE': 0,
         'BUYCOUNT': 0,
+        'PINKSALE_PRESALE_ADDRESS': "",
         '_STABLE_BASES': {}
     }
     
@@ -816,6 +817,7 @@ def reload_tokens_file(tokens_path, load_message=True):
         'GASPRIORITY_FOR_ETH_ONLY': 1.5,
         'STOPLOSSPRICEINBASE': 0,
         'BUYCOUNT': 0,
+        'PINKSALE_PRESALE_ADDRESS': "",
         '_STABLE_BASES': {}
     }
     
@@ -2543,14 +2545,15 @@ def check_rugdoc_api(token):
 
 def wait_for_open_trade(token, inToken, outToken):
     printt_debug("ENTER wait_for_open_trade")
-
+    
+    printt(" ", write_to_log=False)
     printt("-----------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
     printt("WAIT_FOR_OPEN_TRADE is enabled", write_to_log=True)
     printt("", write_to_log=True)
 
     if token['WAIT_FOR_OPEN_TRADE'] == 'true' or token['WAIT_FOR_OPEN_TRADE'] == 'true_after_buy_tx_failed':
         printt("It works with 2 ways:", write_to_log=True)
-        printt("1/ Bot will scan mempool to detect Enable Trading functions", write_to_log=True)
+        printt("1/ Bot will scan mempool to detect Enable Trading functions and Pinksale launch", write_to_log=True)
         printt("2/ Bot will wait for price to move before making a BUY order", write_to_log=True)
         printt(" ", write_to_log=False)
         printt("---- Why those 2 ways ? ----", write_to_log=False)
@@ -2575,16 +2578,27 @@ def wait_for_open_trade(token, inToken, outToken):
         printt_err("To detect Enable Trading in mempool, we need to enter in the code the functions used by the teams to make trading open:", write_to_log=False)
         printt(" ", write_to_log=False)
         printt("Please give us some examples of function used here: https://github.com/tsarbuig/LimitSwap/issues/1", write_to_log=False)
-        printt(" ", write_to_log=False)
+        printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
+    
+    if token['WAIT_FOR_OPEN_TRADE'] == 'pinksale':
+        printt("It will scan mempool to detect Pinksale launch", write_to_log=True)
         printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
 
     openTrade = False
     
     token['_PREVIOUS_QUOTE'] = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], int(token['_CONTRACT_DECIMALS']), int(token['_BASE_DECIMALS']))
 
-    tx_filter = client.eth.filter({"filter_params": "pending", "address": inToken})
+    # If we look for Pinksale sales, we look into the Presale Address's transactions for 0x4bb278f3 methodID
+    if token['WAIT_FOR_OPEN_TRADE'] == 'pinksale':
+        tx_filter = client.eth.filter({"filter_params": "pending", "address": Web3.toChecksumAddress(token['PINKSALE_PRESALE_ADDRESS'])})
+    else:
+        tx_filter = client.eth.filter({"filter_params": "pending", "address": inToken})
     
-    list_of_methodId = ["0xc9567bf9", "0x8a8c523c", "0x0d295980", "0xbccce037", "0x4efac329", "0x7b9e987a", "0x6533e038", "0x8f70ccf7", "0xa6334231", "0x48dfea0a", "0xc818c280", "0xade87098", "0x0099d386", "0xfb201b1d", "0x293230b8", "0x68c5111a", "0xc49b9a80"]
+    if token['WAIT_FOR_OPEN_TRADE'] == 'pinksale':
+        # Function: finalize() - check examples below
+        list_of_methodId = ["0x4bb278f3"]
+    else:
+        list_of_methodId = ["0xc9567bf9", "0x8a8c523c", "0x0d295980", "0xbccce037", "0x4efac329", "0x7b9e987a", "0x6533e038", "0x8f70ccf7", "0xa6334231", "0x48dfea0a", "0xc818c280", "0xade87098", "0x0099d386", "0xfb201b1d", "0x293230b8", "0x68c5111a", "0xc49b9a80"]
 
     while openTrade == False:
     
@@ -2620,9 +2634,19 @@ def wait_for_open_trade(token, inToken, outToken):
             printt_err("Wait_for_open_trade Error. It can happen with Public node : private node is recommended. Still, let's continue.")
             continue
             
-    # Examples of tokens and functions used
+            
+    # Examples of tokens used on pinkSale launch
     #
+    # https://bscscan.com/tx/0x5f0e7fb04ed0c0fe76c959b8f16a9af1f77adfc494a13b11ea3f40d3cfd299d5
+    # https://bscscan.com/tx/0xc770f1ca17f7e606e62a910017e5f9eb902af2f650d69743649431e152741b8d
+    # https://bscscan.com/tx/0x7bfbecc5d58b19e64ea52c7ce68b6482295b93f9ac885a2c699891e5c9c27216
+    # https://snowtrace.io/tx/0xbef367a437c758a82640b3e63de9556ecf2d3153e56868130f9cd0901cd24e1d
+    # Function: finalize() ***
+    # MethodID: 0x4bb278f3
 
+
+    # Examples of tokens and functions used for openTrading
+    #
     # https://bscscan.com/tx/0x468008dd3439b1802784f11a29dd82f195a2a239e381fa83c29dcc39b85024fb
     # https://etherscan.io/tx/0xfe242a303b80301d8b173b1c54fa80de222263252682b9507d3cba79342f2e19
     # https://etherscan.io/tx/0x80ce8f1f2be8c40db151d40d8571ec42dcb550f088abdfed5dce7bfc67d8a935
@@ -5004,7 +5028,7 @@ def run():
                         #   If the option is selected, bot wait for trading_is_on == True to create a BUY order
                         #
     
-                        if token['WAIT_FOR_OPEN_TRADE'].lower() == 'true' or token['WAIT_FOR_OPEN_TRADE'].lower() == 'true_no_message' or token['WAIT_FOR_OPEN_TRADE'] == 'mempool':
+                        if token['WAIT_FOR_OPEN_TRADE'].lower() == 'true' or token['WAIT_FOR_OPEN_TRADE'].lower() == 'true_no_message' or token['WAIT_FOR_OPEN_TRADE'] == 'mempool' or token['WAIT_FOR_OPEN_TRADE'] == 'pinksale':
                             wait_for_open_trade(token, inToken, outToken)
     
                         printt_debug(token)
