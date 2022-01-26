@@ -1733,7 +1733,10 @@ elif settings["EXCHANGE"] == 'quickswap':
     rugdocchain = '&chain=poly'
     modified = False
     settings['_EXCHANGE_BASE_SYMBOL'] = 'MATIC'
-    settings['_STABLE_BASES'] = {'USDT': { 'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier' : 0}}
+    settings['_STABLE_BASES'] = {'USDT': {'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier': 0},
+                                 'USDC': {'address': '0x2791bca1f2de4661ed88a30c99a7a9449aa84174', 'multiplier': 0}}
+
+
 
 elif settings["EXCHANGE"] == 'polygon-apeswap':
     if settings['USECUSTOMNODE'] == 'true':
@@ -1765,7 +1768,8 @@ elif settings["EXCHANGE"] == 'polygon-apeswap':
     rugdocchain = '&chain=poly'
     modified = False
     settings['_EXCHANGE_BASE_SYMBOL'] = 'MATIC'
-    settings['_STABLE_BASES'] = {'USDT': { 'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier' : 0}}
+    settings['_STABLE_BASES'] = {'USDT': {'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier': 0},
+                                 'USDC': {'address': '0x2791bca1f2de4661ed88a30c99a7a9449aa84174', 'multiplier': 0}}
 
 elif settings["EXCHANGE"] == 'waultswap':
     if settings['USECUSTOMNODE'] == 'true':
@@ -1798,7 +1802,8 @@ elif settings["EXCHANGE"] == 'waultswap':
     rugdocchain = '&chain=poly'
     modified = False
     settings['_EXCHANGE_BASE_SYMBOL'] = 'MATIC'
-    settings['_STABLE_BASES'] = {'USDT': { 'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier' : 0}}
+    settings['_STABLE_BASES'] = {'USDT': {'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier': 0},
+                                 'USDC': {'address': '0x2791bca1f2de4661ed88a30c99a7a9449aa84174', 'multiplier': 0}}
 
 elif settings["EXCHANGE"] == 'cronos-vvs':
     if settings['USECUSTOMNODE'] == 'true':
@@ -2237,12 +2242,12 @@ def decimals_fix_for_special_tokens(outToken):
     #
     # I know it's ugly : I don't understand why I don't have to do that on USDT on ETH, for instance... If anyone know you're welcome :)
     
+    printt_debug("ENTER decimals_fix_for_special_tokens")
     
     DECIMALS_IN = 1000000000000000000
 
     if outToken == "0xc2132D05D31c914a87C6611C10748AEb04B58e8F":
         DECIMALS_IN = 1000000
-        
     return  DECIMALS_IN
 
 
@@ -2593,7 +2598,7 @@ def wait_for_open_trade(token, inToken, outToken):
         # Function: finalize() - check examples below
         list_of_methodId = ["0x4bb278f3"]
     else:
-        list_of_methodId = ["0xc9567bf9", "0x8a8c523c", "0x0d295980", "0xbccce037", "0x4efac329", "0x7b9e987a", "0x6533e038", "0x8f70ccf7", "0xa6334231", "0x48dfea0a", "0xc818c280", "0xade87098", "0x0099d386", "0xfb201b1d", "0x293230b8", "0x68c5111a", "0xc49b9a80"]
+        list_of_methodId = ["0xc9567bf9", "0x8a8c523c", "0x0d295980", "0xbccce037", "0x4efac329", "0x7b9e987a", "0x6533e038", "0x8f70ccf7", "0xa6334231", "0x48dfea0a", "0xc818c280", "0xade87098", "0x0099d386", "0xfb201b1d", "0x293230b8", "0x68c5111a", "0xc49b9a80", "0xc00f04d1", "0xcd2a11be", "0xa0ac5e19", "0x1d97b7cd", "0xf275f64b", "0x5e83ae76", "0x82aa7c68"]
 
     while openTrade == False:
     
@@ -2722,6 +2727,7 @@ def wait_for_open_trade(token, inToken, outToken):
     # Function: setSwapAndLiquifyEnabled(bool _enabled)
     # MethodID: 0xc49b9a80
     
+    # many examples here : https://www.4byte.directory/signatures/?sort=text_signature&page=10003
     
 def get_tokens_purchased(tx_hash):
     # Function: get_tokens_purchased
