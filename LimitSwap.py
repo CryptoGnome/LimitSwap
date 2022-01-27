@@ -5211,7 +5211,19 @@ def run():
                         printt_ok("", write_to_log=True)
                         printt_ok("Sell price in", token['_PAIR_TO_DISPLAY'], ":", log_price, write_to_log=True)
                         printt_ok("--------------------------------------------------------------")
-                        
+
+                        #
+                        # LIQUIDITY CHECK
+                        #   If the option is selected
+                        #
+
+                        if token["MINIMUM_LIQUIDITY_IN_DOLLARS"] != 0:
+                            liquidity_result = check_liquidity_amount(token, token['_BASE_DECIMALS'], token['_WETH_DECIMALS'])
+                            if liquidity_result == 0:
+                                continue
+                            else:
+                                pass
+
                         tx = sell(token, inToken, outToken)
                         
                         if tx != False:
