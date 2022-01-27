@@ -4073,7 +4073,7 @@ def buy(token_dict, inToken, outToken, pwd):
 
         gaslimit = int(gaslimit)
         slippage = int(slippage)
-        amount = int(float(amount) * 1000000000000000000)
+        amount = int(float(amount) * token_dict['_BASE_DECIMALS'])
         buynumber = 0
 
         if multiplebuys.lower() == 'true':
@@ -4861,6 +4861,7 @@ def run():
                 token['_BASE_DECIMALS'] = int(decimals(token['BASEADDRESS']))
             else:
                 token['_BASE_DECIMALS'] = int(decimals(weth))
+            printt_debug("token['_BASE_DECIMALS']    :", token['_BASE_DECIMALS'])
 
             token['_WETH_DECIMALS'] = int(decimals(weth))
             printt_debug("token['_WETH_DECIMALS']    :", token['_WETH_DECIMALS'])
