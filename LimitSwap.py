@@ -641,6 +641,8 @@ def load_tokens_file(tokens_path, load_message=True):
         '_INFORMED_SELL': False,
         '_REACHED_MAX_TOKENS': False,
         '_TRADING_IS_ON': False,
+        '_IN_TOKEN': "",
+        '_OUT_TOKEN': "",
         '_RUGDOC_DECISION': "",
         '_GAS_TO_USE': 0,
         '_GAS_IS_CALCULATED': False,
@@ -2847,7 +2849,7 @@ def check_liquidity_amount(token, DECIMALS_OUT, DECIMALS_weth):
         printt("")
         
         if float(token['MINIMUM_LIQUIDITY_IN_DOLLARS']) <= float(liquidity_amount_in_dollars):
-            printt_ok("MINIMUM_LIQUIDITY_IN_DOLLARS parameter =", int(token['MINIMUM_LIQUIDITY_IN_DOLLARS']), " --> Enough liquidity detected : Buy Signal Found!")
+            printt_ok("MINIMUM_LIQUIDITY_IN_DOLLARS parameter =", int(token['MINIMUM_LIQUIDITY_IN_DOLLARS']), " --> Enough liquidity detected : let's go!")
             return 1
         
         # This position isn't looking good. Inform the user, disable the token and break out of this loop
@@ -2887,7 +2889,7 @@ def check_liquidity_amount(token, DECIMALS_OUT, DECIMALS_weth):
         printt("Current", token['SYMBOL'], "Liquidity =", "{:.6f}".format(liquidity_amount_in_dollars), "$")
         
         if float(token['MINIMUM_LIQUIDITY_IN_DOLLARS']) <= float(liquidity_amount_in_dollars):
-            printt_ok("MINIMUM_LIQUIDITY_IN_DOLLARS parameter =", int(token['MINIMUM_LIQUIDITY_IN_DOLLARS']), " --> Enough liquidity detected : Buy Signal Found!")
+            printt_ok("MINIMUM_LIQUIDITY_IN_DOLLARS parameter =", int(token['MINIMUM_LIQUIDITY_IN_DOLLARS']), " --> Enough liquidity detected : let's go!")
             return 1
         
         # This position isn't looking good. Inform the user, disable the token and break out of this loop
