@@ -5414,3 +5414,4 @@ except Exception as e:
     printt_err("ERROR. Please go to /log folder and open your logs: you will find more details.")
     logging.exception(e)
     logger1.exception(e)
+    sys.exit()
