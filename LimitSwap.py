@@ -2287,7 +2287,7 @@ def approve(address, amount):
     eth_balance = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
     
     if base_symbol == "ETH":
-        minimumbalance = 0
+        minimumbalance = 0.05
     else:
         minimumbalance = 0.01
     
@@ -3239,7 +3239,7 @@ def calculate_base_balance(token):
     # STEP 1 - Determine if wallet has minimum base balance
     # Bot will get your balance, and show an error if there is a problem with your node.
     if base_symbol == "ETH":
-        minimumbalance = 0
+        minimumbalance = 0.05
     else:
         minimumbalance = 0.03
 
