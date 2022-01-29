@@ -1106,7 +1106,7 @@ printt("************************************************************************
 
 # Check for version
 #
-version = '4.2.1.3'
+version = '4.2.1.4'
 printt("YOUR BOT IS CURRENTLY RUNNING VERSION ", version, write_to_log=True)
 check_release()
 
@@ -2232,30 +2232,6 @@ def decimals(address):
         logging.exception(ve)
         print("Please check your SELLPRICE values. ERROR in checking decimals")
     return DECIMALS
-
-
-@lru_cache(maxsize=None)
-def decimals_fix_for_special_tokens(outToken):
-    # Function: decimals_fix_for_special_tokens
-    # ----------------------------
-    # Used on check_pool()
-    # We use this function because it has cache, to improve speed
-    #
-    # always returns 1000000000000000000, with exceptions :
-    # - on MATIC, if outToken = USDT or USDC
-    #
-    # I know it's ugly : I don't understand why I don't have to do that on USDT on ETH, for instance... If anyone know you're welcome :)
-    
-    printt_debug("ENTER decimals_fix_for_special_tokens")
-    
-    DECIMALS_IN = token['_BASE_DECIMALS']
-    printt_debug("DECIMALS_IN:", DECIMALS_IN)
-    if outToken.lower() == "0xc2132d05d31c914a87c6611c10748aeb04b58e8f":
-        DECIMALS_IN = 1000000
-    if outToken.lower() == "0x2791bca1f2de4661ed88a30c99a7a9449aa84174":
-        DECIMALS_IN = 1000000
-        
-    return  DECIMALS_IN
 
 
 def check_logs():
