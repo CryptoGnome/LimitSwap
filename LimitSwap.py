@@ -2167,7 +2167,7 @@ def parse_wallet_settings(settings, pwd):
     else:
         decision = ""
         while decision != "y" and decision != "n":
-            decision = input(style.BLUE + "\nWould you like to add a 2nd wallet to use MULTIPLEBUYS feature ? (y/n): ")
+            decision = input(style.BLUE + "\nWould you like to add a 2nd wallet to use MULTIPLEBUYS feature? (y/n): ")
         
         if decision == "y":
             print(style.RESET + " ")
