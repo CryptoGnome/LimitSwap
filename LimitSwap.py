@@ -4873,10 +4873,23 @@ def run():
         #   then run the rugdoctor check and prompt the user if they want to continue trading
         #   the token
         #
-        # TODO PRUNE: Prune tokens if the user doesn't want to trade them. Exit only if we don't have any more tokens left
-        # TODO ARG: Implement an argument that auto accepts or prunes tokens that are rejected/accepted by the rugdoc check
         for token in tokens:
     
+            # tokens.json values logic control
+            if token['MULTIPLEBUYS'].lower() == 'true' and token['KIND_OF_SWAP'].lower() == 'tokens':
+                printt_err("MULTIPLEBUYS is only compatible with KIND_OF_SWAP = base... Sorry.")
+                sys.exit()
+
+            if token['LIQUIDITYINNATIVETOKEN'].lower() == 'false' and token['USECUSTOMBASEPAIR'].lower() == 'false':
+                printt_err("You have selected LIQUIDITYINNATIVETOKEN = false , so you must choose USECUSTOMBASEPAIR = true")
+                printt_err("Please read Wiki carefully, it's very important you can lose money!!")
+                sys.exit()
+
+            if token['KIND_OF_SWAP'].lower() == 'tokens' and token['MAX_BASE_AMOUNT_PER_EXACT_TOKENS_TRANSACTION'] == 0:
+                printt_err("You have selected KIND_OF_SWAP = tokens, so you must enter a value in MAX_BASE_AMOUNT_PER_EXACT_TOKENS_TRANSACTION")
+                sys.exit()
+
+
             # Set the checksum addressed for the addresses we're working with
             # _IN_TOKEN is the token you want to BUY (example : CAKE)
             token['_IN_TOKEN'] = Web3.toChecksumAddress(token['ADDRESS'])
