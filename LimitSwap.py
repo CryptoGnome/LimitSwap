@@ -5133,9 +5133,14 @@ def run():
                                 printt_err("-------------------------------")
 
                                 # Apprise notification
-                                if settings['ENABLE_APPRISE_NOTIFICATIONS'] == 'true':
-                                    apprise_notification(token, 'buy_failure')
-
+                                try:
+                                    if settings['ENABLE_APPRISE_NOTIFICATIONS'] == 'true':
+                                        apprise_notification(token, 'buy_failure')
+                                except Exception as e:
+                                    printt_err("An error occured when using Apprise notification --> check your settings.")
+                                    logging.exception(e)
+                                    logger1.exception(e)
+                                    
                                 # increment _FAILED_TRANSACTIONS amount
                                 token['_FAILED_TRANSACTIONS'] += 1
                                 printt_debug("3813 _FAILED_TRANSACTIONS:", token['_FAILED_TRANSACTIONS'])
@@ -5167,8 +5172,14 @@ def run():
                                 printt_ok("----------------------------------", write_to_log=True)
                                 
                                 # Apprise notification
-                                if settings['ENABLE_APPRISE_NOTIFICATIONS'] == 'true':
-                                    apprise_notification(token,'buy_success')
+                                try:
+                                    if settings['ENABLE_APPRISE_NOTIFICATIONS'] == 'true':
+                                        apprise_notification(token, 'buy_success')
+                                except Exception as e:
+                                    printt_err("An error occured when using Apprise notification --> check your settings.")
+                                    logging.exception(e)
+                                    logger1.exception(e)
+
 
                                 # if user has chose the option "instantafterbuy", token is approved right after buy order is confirmed.
                                 if (settings['PREAPPROVE'] == 'instantafterbuy' or settings['PREAPPROVE'] == 'true'):
@@ -5294,10 +5305,14 @@ def run():
                                 token['_FAILED_TRANSACTIONS'] += 1
                                 
                                 # Apprise notification
-                                if settings['ENABLE_APPRISE_NOTIFICATIONS'] == 'true':
-                                    apprise_notification(token,'sell_failure')
+                                try:
+                                    if settings['ENABLE_APPRISE_NOTIFICATIONS'] == 'true':
+                                        apprise_notification(token, 'sell_failure')
+                                except Exception as e:
+                                    printt_err("An error occured when using Apprise notification --> check your settings.")
+                                    logging.exception(e)
+                                    logger1.exception(e)
 
-                                
                                 # We ask the bot to check if your allowance is > to your balance.
                                 check_approval(token, token['_IN_TOKEN'], token['_TOKEN_BALANCE'] * 1000000000000000000, 'txfail')
 
@@ -5308,8 +5323,13 @@ def run():
                                 printt_ok("SUCCESS : your sell Tx is confirmed    ", write_to_log=True)
                                 
                                 # Apprise notification
-                                if settings['ENABLE_APPRISE_NOTIFICATIONS'] == 'true':
-                                    apprise_notification(token, 'sell_success')
+                                try:
+                                    if settings['ENABLE_APPRISE_NOTIFICATIONS'] == 'true':
+                                        apprise_notification(token, 'sell_success')
+                                except Exception as e:
+                                    printt_err("An error occured when using Apprise notification --> check your settings.")
+                                    logging.exception(e)
+                                    logger1.exception(e)
 
                                 # Optional cooldown after SUCCESS sell, if you use XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX parameter
                                 if token['XXX_SECONDS_COOLDOWN_AFTER_SELL_SUCCESS_TX'] != 0:
