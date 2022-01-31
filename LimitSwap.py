@@ -1306,7 +1306,7 @@ if settings['EXCHANGE'] == 'pinkswap':
     factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
     
     weth = Web3.toChecksumAddress("0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c")
-    base_symbol = "BNB"
+    base_symbol = "BNB "
     rugdocchain = '&chain=bsc'
     modified = False
     
@@ -1346,7 +1346,7 @@ if settings['EXCHANGE'] == 'biswap':
     factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
     
     weth = Web3.toChecksumAddress("0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c")
-    base_symbol = "BNB"
+    base_symbol = "BNB "
     rugdocchain = '&chain=bsc'
     modified = False
     settings['_EXCHANGE_BASE_SYMBOL'] = 'BNB '
@@ -1385,7 +1385,7 @@ elif settings['EXCHANGE'].lower() == 'babyswap':
     factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
 
     weth = Web3.toChecksumAddress("0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c")
-    base_symbol = "BNB"
+    base_symbol = "BNB "
     rugdocchain = '&chain=bsc'
     modified = False
     settings['_EXCHANGE_BASE_SYMBOL'] = 'BNB '
@@ -1424,7 +1424,7 @@ if settings['EXCHANGE'] == 'bakeryswap':
     factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
 
     weth = Web3.toChecksumAddress("0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c")
-    base_symbol = "BNB"
+    base_symbol = "BNB "
     rugdocchain = '&chain=bsc'
     modified = True
     settings['_EXCHANGE_BASE_SYMBOL'] = 'BNB '
@@ -1463,7 +1463,7 @@ if settings['EXCHANGE'] == 'apeswap':
     
     weth = Web3.toChecksumAddress("0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c")
     busd = Web3.toChecksumAddress("0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56")
-    base_symbol = "BNB"
+    base_symbol = "BNB "
     rugdocchain = '&chain=bsc'
     modified = False
     settings['_EXCHANGE_BASE_SYMBOL'] = 'BNB '
@@ -1498,11 +1498,11 @@ elif settings["EXCHANGE"] == 'uniswap':
     routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
     factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
     weth = Web3.toChecksumAddress("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2")
-    base_symbol = "ETH"
+    base_symbol = "ETH "
     rugdocchain = '&chain=eth'
     modified = False
 
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'ETH'
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'ETH '
     settings['_STABLE_BASES'] = {'USDT':{ 'address': '0xdac17f958d2ee523a2206206994597c13d831ec7', 'multiplier' : 0},
                                  'USDC':{ 'address': '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', 'multiplier' : 0}}
 
@@ -1634,10 +1634,10 @@ elif settings["EXCHANGE"] == 'spookyswap':
     routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
     factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
     weth = Web3.toChecksumAddress("0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83")
-    base_symbol = "FTM"
+    base_symbol = "FTM "
     rugdocchain = '&chain=ftm'
     modified = False
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'FTM'
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'FTM '
     settings['_STABLE_BASES'] = {'USDC': {'address': '0x04068da6c83afcfa0e13ba15a6696662335d5b75', 'multiplier': 0},
                                  'USDT': {'address': '0x049d68029688eabf473097a2fc38ef61633a3c7a', 'multiplier': 0}}
 
@@ -1668,10 +1668,10 @@ elif settings["EXCHANGE"] == 'protofi':
     routerContract = client.eth.contract(address=routerAddress, abi=protofirouter)
     factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
     weth = Web3.toChecksumAddress("0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83")
-    base_symbol = "FTM"
+    base_symbol = "FTM "
     rugdocchain = '&chain=ftm'
     modified = False
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'FTM'
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'FTM '
     settings['_STABLE_BASES'] = {'USDC': {'address': '0x04068da6c83afcfa0e13ba15a6696662335d5b75', 'multiplier': 0},
                                  'USDT': {'address': '0x049d68029688eabf473097a2fc38ef61633a3c7a', 'multiplier': 0}}
 
@@ -1702,10 +1702,10 @@ elif settings["EXCHANGE"] == 'spiritswap':
     routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
     factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
     weth = Web3.toChecksumAddress("0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83")
-    base_symbol = "FTM"
+    base_symbol = "FTM "
     rugdocchain = '&chain=ftm'
     modified = False
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'FTM'
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'FTM '
     settings['_STABLE_BASES'] = {'USDC': {'address': '0x04068da6c83afcfa0e13ba15a6696662335d5b75', 'multiplier': 0},
                                  'USDT': {'address': '0x049d68029688eabf473097a2fc38ef61633a3c7a', 'multiplier': 0}}
 
@@ -1740,8 +1740,8 @@ elif settings["EXCHANGE"] == 'quickswap':
     rugdocchain = '&chain=poly'
     modified = False
     settings['_EXCHANGE_BASE_SYMBOL'] = 'MATIC'
-    settings['_STABLE_BASES'] = {'USDT': {'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier': 0},
-                                 'USDC': {'address': '0x2791bca1f2de4661ed88a30c99a7a9449aa84174', 'multiplier': 0}}
+    settings['_STABLE_BASES'] = {'USDT ': {'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier': 0},
+                                 'USDC ': {'address': '0x2791bca1f2de4661ed88a30c99a7a9449aa84174', 'multiplier': 0}}
 
 elif settings["EXCHANGE"] == 'polygon-apeswap':
     if settings['USECUSTOMNODE'] == 'true':
@@ -1773,8 +1773,8 @@ elif settings["EXCHANGE"] == 'polygon-apeswap':
     rugdocchain = '&chain=poly'
     modified = False
     settings['_EXCHANGE_BASE_SYMBOL'] = 'MATIC'
-    settings['_STABLE_BASES'] = {'USDT': {'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier': 0},
-                                 'USDC': {'address': '0x2791bca1f2de4661ed88a30c99a7a9449aa84174', 'multiplier': 0}}
+    settings['_STABLE_BASES'] = {'USDT ': {'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier': 0},
+                                 'USDC ': {'address': '0x2791bca1f2de4661ed88a30c99a7a9449aa84174', 'multiplier': 0}}
 
 elif settings["EXCHANGE"] == 'waultswap':
     if settings['USECUSTOMNODE'] == 'true':
@@ -1807,8 +1807,8 @@ elif settings["EXCHANGE"] == 'waultswap':
     rugdocchain = '&chain=poly'
     modified = False
     settings['_EXCHANGE_BASE_SYMBOL'] = 'MATIC'
-    settings['_STABLE_BASES'] = {'USDT': {'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier': 0},
-                                 'USDC': {'address': '0x2791bca1f2de4661ed88a30c99a7a9449aa84174', 'multiplier': 0}}
+    settings['_STABLE_BASES'] = {'USDT ': {'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier': 0},
+                                 'USDC ': {'address': '0x2791bca1f2de4661ed88a30c99a7a9449aa84174', 'multiplier': 0}}
 
 elif settings["EXCHANGE"] == 'cronos-vvs':
     if settings['USECUSTOMNODE'] == 'true':
@@ -2087,20 +2087,39 @@ def build_extended_base_configuration(token_dict):
     # Giving values for the stables pair
     for stable_token in settings['_STABLE_BASES']:
         new_token = token_dict.copy()
-        new_token.update({
-                        'BUYAMOUNTINBASE': token_dict['BUYAMOUNTINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
-                        "BUYPRICEINBASE": token_dict['BUYPRICEINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
-                        "SELLPRICEINBASE": float(token_dict['_CALCULATED_SELLPRICEINBASE']) * float(settings['_STABLE_BASES'][stable_token]['multiplier']),
-                        "STOPLOSSPRICEINBASE": float(token_dict['_CALCULATED_STOPLOSSPRICEINBASE']) * float(settings['_STABLE_BASES'][stable_token]['multiplier']),
-                        "MINIMUM_LIQUIDITY_IN_DOLLARS": token_dict['MINIMUM_LIQUIDITY_IN_DOLLARS'],
-                        "USECUSTOMBASEPAIR": "true",
-                        "LIQUIDITYINNATIVETOKEN": "false",
-                        "BASESYMBOL": stable_token,
-                        "_BASE_PRICE": settings['_STABLE_BASES'][stable_token]['multiplier'],
-                        "BASEADDRESS": settings['_STABLE_BASES'][stable_token]['address'],
-                        "_PAIR_SYMBOL": token_dict['SYMBOL'] + '/' + stable_token,
-                        "_BUILT_BY_BOT": True
-                        })
+        
+        # special condition if SELLPRICE = 99999 (if sell price is in %, at bot launch)
+        # you keep 99999 instead of re-calculating it with base price, to make the price more beautiful on the screen
+        if token_dict['_CALCULATED_SELLPRICEINBASE'] == 99999:
+            new_token.update({
+                'BUYAMOUNTINBASE': token_dict['BUYAMOUNTINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
+                "BUYPRICEINBASE": token_dict['BUYPRICEINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
+                "SELLPRICEINBASE": token_dict['_CALCULATED_SELLPRICEINBASE'],
+                "STOPLOSSPRICEINBASE": token_dict['_CALCULATED_STOPLOSSPRICEINBASE'],
+                "MINIMUM_LIQUIDITY_IN_DOLLARS": token_dict['MINIMUM_LIQUIDITY_IN_DOLLARS'],
+                "USECUSTOMBASEPAIR": "true",
+                "LIQUIDITYINNATIVETOKEN": "false",
+                "BASESYMBOL": stable_token,
+                "_BASE_PRICE": settings['_STABLE_BASES'][stable_token]['multiplier'],
+                "BASEADDRESS": settings['_STABLE_BASES'][stable_token]['address'],
+                "_PAIR_SYMBOL": token_dict['SYMBOL'] + '/' + stable_token,
+                "_BUILT_BY_BOT": True
+            })
+        else:
+            new_token.update({
+                            'BUYAMOUNTINBASE': token_dict['BUYAMOUNTINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
+                            "BUYPRICEINBASE": token_dict['BUYPRICEINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
+                            "SELLPRICEINBASE": float(token_dict['_CALCULATED_SELLPRICEINBASE']) * float(settings['_STABLE_BASES'][stable_token]['multiplier']),
+                            "STOPLOSSPRICEINBASE": float(token_dict['_CALCULATED_STOPLOSSPRICEINBASE']) * float(settings['_STABLE_BASES'][stable_token]['multiplier']),
+                            "MINIMUM_LIQUIDITY_IN_DOLLARS": token_dict['MINIMUM_LIQUIDITY_IN_DOLLARS'],
+                            "USECUSTOMBASEPAIR": "true",
+                            "LIQUIDITYINNATIVETOKEN": "false",
+                            "BASESYMBOL": stable_token,
+                            "_BASE_PRICE": settings['_STABLE_BASES'][stable_token]['multiplier'],
+                            "BASEADDRESS": settings['_STABLE_BASES'][stable_token]['address'],
+                            "_PAIR_SYMBOL": token_dict['SYMBOL'] + '/' + stable_token,
+                            "_BUILT_BY_BOT": True
+                            })
         
         # If these keys have special character on them, they represent percentages and we shouldn't copy them.
         if not re.search('^(\d+\.){0,1}\d+(x|X|%)$', str(token_dict['SELLPRICEINBASE'])):
@@ -2324,7 +2343,7 @@ def approve(address, amount):
     
     eth_balance = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
     
-    if base_symbol == "ETH":
+    if base_symbol == "ETH ":
         minimumbalance = 0.05
     else:
         minimumbalance = 0.01
@@ -3142,7 +3161,7 @@ def calculate_base_price():
         basePrice = Decimal(500)
         printt_debug("BNBt PRICE: ", "{:.6f}".format(basePrice))
 
-    elif base_symbol == "ETH":
+    elif base_symbol == "ETH ":
         DECIMALS_STABLES = 1000000
         DECIMALS_ETH = 1000000000000000000
 
@@ -3182,7 +3201,7 @@ def calculate_base_price():
         basePrice = Decimal(80)
         printt_debug("BNBt PRICE: ", "{:.6f}".format(basePrice))
 
-    elif base_symbol == "FTM":
+    elif base_symbol == "FTM ":
         DECIMALS_STABLES = 1000000
         DECIMALS_ETH = 1000000000000000000
     
@@ -3290,7 +3309,7 @@ def calculate_base_balance(token):
 
     # STEP 1 - Determine if wallet has minimum base balance
     # Bot will get your balance, and show an error if there is a problem with your node.
-    if base_symbol == "ETH":
+    if base_symbol == "ETH ":
         minimumbalance = 0.05
     else:
         minimumbalance = 0.03
@@ -4022,6 +4041,9 @@ def buy(token_dict, inToken, outToken, pwd):
     
     # Map variables until all code is cleaned up.
     amount = token_dict['BUYAMOUNTINBASE']
+    # force it to zero if user has an empty field, if he uses KIND_OF_SWAP = tokens
+    if amount == '':
+        amount = 0
     slippage = token_dict['SLIPPAGE']
     gaslimit = token_dict['GASLIMIT']
     boost = token_dict['BOOSTPERCENT']
@@ -4074,7 +4096,7 @@ def buy(token_dict, inToken, outToken, pwd):
     
     if balance > Decimal(amount) or token_dict['KIND_OF_SWAP'] == 'tokens':
         
-        if (base_symbol == "ETH" or base_symbol == "MATIC") and token_dict['_GAS_IS_CALCULATED'] != True:
+        if (base_symbol == "ETH " or base_symbol == "MATIC") and token_dict['_GAS_IS_CALCULATED'] != True:
             # We calculate the GAS only for ETH and MATIC, because it changes at every block.
             # On other blockchains, it's almost constant so ne need for it
             #
@@ -4184,7 +4206,7 @@ def sell(token_dict, inToken, outToken):
         
         # Calculate how much gas we should use for this token --> this is done on ETH only, since Gas is almost constant on other chains
         # For the other chains, Gas was calculated at bot launch
-        if base_symbol == "ETH" or base_symbol == "MATIC":
+        if base_symbol == "ETH " or base_symbol == "MATIC":
             calculate_gas(token_dict)
             printt_debug("gas: 2380", token_dict['_GAS_TO_USE'])
             gas = token_dict['_GAS_TO_USE']
@@ -4789,7 +4811,7 @@ def benchmark():
 # Check RPC Node latency
     k = 0
     if my_provider[0].lower() == 'h' or my_provider[0].lower() == 'w':
-        provider = my_provider.replace('wss://', 'https://')
+        provider = my_provider.replace('wss://', 'https://').replace('ws://', 'https://')
         for i in range(5):
             response = requests.post(provider)
             k = k + response.elapsed.total_seconds()
