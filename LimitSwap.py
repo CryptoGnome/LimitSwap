@@ -5423,8 +5423,14 @@ def runLoop():
             printt_err("ERROR. Please go to /log folder and open your logs: you will find more details.")
             logging.exception(e)
             logger1.exception(e)
-            sys.exit()
-
+            printt("Restarting LimitSwap")
+            # Restart Logic
+            timeout = 10
+            nonce = 0
+            while nonce<=timeout:
+                print(".........Restart Cooldown left " + str(timeout - nonce) + " seconds.............")
+                nonce += 1
+                sleep(1)
 
 
 try:
@@ -5469,4 +5475,10 @@ except Exception as e:
     printt_err("ERROR. Please go to /log folder and open your logs: you will find more details.")
     logging.exception(e)
     logger1.exception(e)
-    sys.exit()
+    # Restart Logic
+    timeout = 10
+    nonce = 0
+    while nonce <= timeout:
+        print(".........Restart Cooldown left " + str(timeout - nonce) + " seconds.............")
+        nonce += 1
+        sleep(1)
