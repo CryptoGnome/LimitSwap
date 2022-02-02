@@ -1612,7 +1612,7 @@ elif settings["EXCHANGE"] == 'spookyswap':
     if settings['USECUSTOMNODE'] == 'true':
         my_provider = settings['CUSTOMNODE']
     else:
-        my_provider = "https://rpcapi.fantom.network"
+        my_provider = "https://rpc.ftm.tools/"
 
     if not my_provider:
         printt_err('Custom node empty. Exiting')
