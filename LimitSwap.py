@@ -1166,7 +1166,7 @@ if settings['EXCHANGE'].lower() == 'pancakeswaptestnet':
         my_provider = settings['CUSTOMNODE']
         print(timestamp(), 'Using custom node.')
     else:
-        my_provider = "https://data-seed-prebsc-1-s2.binance.org:8545"
+        my_provider = "https://data-seed-prebsc-2-s3.binance.org:8545"
     
     if not my_provider:
         print(timestamp(), 'Custom node empty. Exiting')
@@ -5303,11 +5303,11 @@ def run():
                     if price_conditions_met == True:
                         log_price = "{:.18f}".format(token['_QUOTE'])
                         logging.info("Sell Signal Found @" + str(log_price))
-                        printt_ok("--------------------------------------------------------------")
-                        printt_ok("Sell Signal Found =-= Sell Signal Found =-= Sell Signal Found ")
-                        printt_ok("", write_to_log=True)
-                        printt_ok("Sell price in", token['_PAIR_TO_DISPLAY'], ":", log_price, write_to_log=True)
-                        printt_ok("--------------------------------------------------------------")
+                        printt_warn("--------------------------------------------------------------")
+                        printt_warn("Sell Signal Found =-= Sell Signal Found =-= Sell Signal Found ")
+                        printt_warn("", write_to_log=True)
+                        printt_warn("Sell price in", token['_PAIR_TO_DISPLAY'], ":", log_price, write_to_log=True)
+                        printt_warn("--------------------------------------------------------------")
 
                         #
                         # LIQUIDITY CHECK
@@ -5361,8 +5361,8 @@ def run():
                                 printt_debug("3095 _FAILED_TRANSACTIONS:", token['_FAILED_TRANSACTIONS'])
                             else:
                                 # transaction is a SUCCESS
-                                printt_ok("----------------------------------", write_to_log=True)
-                                printt_ok("SUCCESS : your sell Tx is confirmed    ", write_to_log=True)
+                                printt_warn("----------------------------------", write_to_log=True)
+                                printt_warn("SUCCESS : your sell Tx is confirmed    ", write_to_log=True)
                                 
                                 # Apprise notification
                                 try:
@@ -5394,7 +5394,7 @@ def run():
                                 
                                 # We re-calculate _TOKEN_BALANCE after the sell() order is made
                                 token['_TOKEN_BALANCE'] = check_balance(token['ADDRESS'], token['SYMBOL'], display_quantity=True) / token['_CONTRACT_DECIMALS']
-                                printt_ok("----------------------------------", write_to_log=True)
+                                printt_warn("----------------------------------", write_to_log=True)
                 
                                 # Check if MAXTOKENS is still reached or not
                                 if token['_TOKEN_BALANCE'] < Decimal(token['MAXTOKENS']):
