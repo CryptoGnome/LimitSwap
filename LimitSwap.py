@@ -20,10 +20,6 @@ import cryptocode, re, pwinput
 import argparse
 import signal
 import apprise
-import asyncio
-import uvloop
-loop = uvloop.new_event_loop()
-asyncio.set_event_loop(loop)
 
 
 # DEVELOPER CONSIDERATIONS
