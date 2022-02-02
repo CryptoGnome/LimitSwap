@@ -7,6 +7,7 @@ from jsmin import jsmin
 from decimal import Decimal
 import os
 import web3
+from web3.middleware import geth_poa_middleware
 from web3.exceptions import ABIFunctionNotFound, TransactionNotFound, BadFunctionCallOutput
 import logging
 from datetime import datetime
@@ -19,6 +20,10 @@ import cryptocode, re, pwinput
 import argparse
 import signal
 import apprise
+import asyncio
+import uvloop
+loop = uvloop.new_event_loop()
+asyncio.set_event_loop(loop)
 
 
 # DEVELOPER CONSIDERATIONS
@@ -1611,7 +1616,7 @@ elif settings["EXCHANGE"] == 'spookyswap':
     if settings['USECUSTOMNODE'] == 'true':
         my_provider = settings['CUSTOMNODE']
     else:
-        my_provider = "https://rpc.ftm.tools/"
+        my_provider = "https://rpcapi.fantom.network"
 
     if not my_provider:
         printt_err('Custom node empty. Exiting')
@@ -1942,6 +1947,9 @@ elif settings["EXCHANGE"] == 'viperswap':
     settings['_EXCHANGE_BASE_SYMBOL'] = 'WONE'
     settings['_STABLE_BASES'] = {'BUSD': {'address': '0xe176ebe47d621b984a73036b9da5d834411ef734', 'multiplier'  : 0},
                                  'USDT': {'address': '0x3c2b8be99c50593081eaa2a724f0b8285f5aba8f', 'multiplier' : 0}}
+
+# Necessary to scan mempool
+client.middleware_onion.inject(geth_poa_middleware, layer=0)
 
 def get_password():
     # Function: get_password
@@ -2624,11 +2632,14 @@ def wait_for_open_trade(token, inToken, outToken):
     token['_PREVIOUS_QUOTE'] = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], int(token['_CONTRACT_DECIMALS']), int(token['_BASE_DECIMALS']))
 
     # If we look for Pinksale sales, we look into the Presale Address's transactions for 0x4bb278f3 methodID
-    if token['WAIT_FOR_OPEN_TRADE'] == 'pinksale':
-        tx_filter = client.eth.filter({"filter_params": "pending", "address": Web3.toChecksumAddress(token['PINKSALE_PRESALE_ADDRESS'])})
-    else:
-        tx_filter = client.eth.filter({"filter_params": "pending", "address": inToken})
-    
+    try:
+        if token['WAIT_FOR_OPEN_TRADE'] == 'pinksale':
+            tx_filter = client.eth.filter({"filter_params": "pending", "address": Web3.toChecksumAddress(token['PINKSALE_PRESALE_ADDRESS'])})
+        else:
+            tx_filter = client.eth.filter({"filter_params": "pending", "address": inToken})
+    except Exception as e:
+        printt_err("Mempool scan error... It can happen with Public node : upgrade to a private node. Restarting, but little hope...")
+
     if token['WAIT_FOR_OPEN_TRADE'] == 'pinksale':
         # Function: finalize() - check examples below
         list_of_methodId = ["0x4bb278f3"]
@@ -2666,7 +2677,7 @@ def wait_for_open_trade(token, inToken, outToken):
                 else:
                     printt("Found something in mempool - MethodID: ", txFunction, " Block: ", tx_event['blockNumber'])
         except Exception as e:
-            printt_err("Wait_for_open_trade Error. It can happen with Public node : private node is recommended. Still, let's continue.")
+            printt_err("Mempool scan error... It can happen with Public node : upgrade to a private node. Restarting, but little hope...")
             continue
             
             
