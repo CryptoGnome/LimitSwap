@@ -2334,6 +2334,8 @@ def auth():
         decode = decode_key()
     except Exception:
         printt_err("There is a problem with your private key: please check if it's correct. Don't enter your seed phrase !")
+        sleep(10)
+        sys.exit()
     
     wallet_address = Web3.toChecksumAddress(decode)
     balance = balanceContract.functions.balanceOf(wallet_address).call()
