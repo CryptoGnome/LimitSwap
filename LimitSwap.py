@@ -281,21 +281,21 @@ def printt_sell_price(token_dict, token_price):
     printt_debug("_PREVIOUS_QUOTE :", token_dict['_PREVIOUS_QUOTE'], "for token:", token_dict['SYMBOL'])
     
     if token_dict['USECUSTOMBASEPAIR'] == 'false':
-        price_message = " ".join([token_dict['_PAIR_SYMBOL'], "Price:", "{0:.24f}".format(token_price), base_symbol, "- Buy:", str(token_dict['BUYPRICEINBASE'])])
+        price_message = f'{token_dict["_PAIR_SYMBOL"]} Price: {token_price:.24f} {base_symbol} - Buy: {str(token_dict["BUYPRICEINBASE"])}'
     
     else:
-        price_message = " ".join([token_dict['_PAIR_SYMBOL'], "Price:", "{0:.24f}".format(token_price), token_dict['BASESYMBOL'] + "- Buy:", str(token_dict['BUYPRICEINBASE'])])
-    
-    price_message = " ".join([price_message, "Sell:", str(token_dict['_CALCULATED_SELLPRICEINBASE']), "Stop:" + str(token_dict['_CALCULATED_STOPLOSSPRICEINBASE'])])
+        price_message = f'{token_dict["_PAIR_SYMBOL"]} Price: {token_price:.24f} {token_dict["BASESYMBOL"]} - Buy: {str(token_dict["BUYPRICEINBASE"])}'
+
+    price_message = f'{price_message} Sell: {str(token_dict["_CALCULATED_SELLPRICEINBASE"])} Stop: {str(token_dict["_CALCULATED_STOPLOSSPRICEINBASE"])}'
     # price_message = price_message + " ATH:" + "{0:.24f}".format(token_dict['_ALL_TIME_HIGH']) + " ATL:" + "{0:.24f}".format(token_dict['_ALL_TIME_LOW'])
 
     if token_dict['USECUSTOMBASEPAIR'] == 'false':
-        price_message = " ".join([price_message, "- Token balance:", str("{0:.4f}".format(token_dict['_TOKEN_BALANCE'])), "(=", "{0:.2f}".format(float(token_price) * float(token_dict['_BASE_PRICE']) * float(token_dict['_TOKEN_BALANCE'])), "$)"])
+        price_message = f'{price_message} - Token balance: {token_dict["_TOKEN_BALANCE"]:.4f} (= {float(token_price) * float(token_dict["_BASE_PRICE"]) * float(token_dict["_TOKEN_BALANCE"]):.2f} $)'
     else:
-        price_message = " ".join([price_message, "- Token balance:", str("{0:.4f}".format(token_dict['_TOKEN_BALANCE'])), "(=", "{0:.2f}".format(float(token_price) * float(token_dict['_TOKEN_BALANCE'])), " ", token_dict['BASESYMBOL'], ")"])
+        price_message = f'{price_message} - Token balance: {token_dict["_TOKEN_BALANCE"]:.4f} (= {float(token_price) * float(token_dict["_TOKEN_BALANCE"]):.2f} {token_dict["BASESYMBOL"]})'
 
     if token_dict['_REACHED_MAX_TOKENS'] == True:
-        price_message = " ".join([price_message,  '\033[31m', "- MAXTOKENS reached", '\033[0m'])
+        price_message = f'{price_message}\033[31m - MAXTOKENS reached \033[0m'
 
     if price_message == token_dict['_LAST_PRICE_MESSAGE'] and settings['VERBOSE_PRICING'] == 'false':
         bot_settings['_NEED_NEW_LINE'] = False
