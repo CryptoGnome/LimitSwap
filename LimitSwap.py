@@ -281,21 +281,21 @@ def printt_sell_price(token_dict, token_price):
     printt_debug("_PREVIOUS_QUOTE :", token_dict['_PREVIOUS_QUOTE'], "for token:", token_dict['SYMBOL'])
     
     if token_dict['USECUSTOMBASEPAIR'] == 'false':
-        price_message = token_dict['_PAIR_SYMBOL'] + " Price: " + "{0:.24f}".format(token_price) + " " + base_symbol + " - Buy:" + str(token_dict['BUYPRICEINBASE'])
+        price_message = " ".join([token_dict['_PAIR_SYMBOL'], "Price:", "{0:.24f}".format(token_price), base_symbol, "- Buy:", str(token_dict['BUYPRICEINBASE'])])
     
     else:
-        price_message = token_dict['_PAIR_SYMBOL'] + " Price: " + "{0:.24f}".format(token_price) + " " + token_dict['BASESYMBOL'] + " - Buy:" + str(token_dict['BUYPRICEINBASE'])
+        price_message = " ".join([token_dict['_PAIR_SYMBOL'], "Price:", "{0:.24f}".format(token_price), token_dict['BASESYMBOL'] + "- Buy:", str(token_dict['BUYPRICEINBASE'])])
     
-    price_message = price_message + " Sell:" + str(token_dict['_CALCULATED_SELLPRICEINBASE']) + " Stop:" + str(token_dict['_CALCULATED_STOPLOSSPRICEINBASE'])
+    price_message = " ".join([price_message, "Sell:", str(token_dict['_CALCULATED_SELLPRICEINBASE']), "Stop:" + str(token_dict['_CALCULATED_STOPLOSSPRICEINBASE'])])
     # price_message = price_message + " ATH:" + "{0:.24f}".format(token_dict['_ALL_TIME_HIGH']) + " ATL:" + "{0:.24f}".format(token_dict['_ALL_TIME_LOW'])
 
     if token_dict['USECUSTOMBASEPAIR'] == 'false':
-        price_message = price_message + " - Token balance: " + str("{0:.4f}".format(token_dict['_TOKEN_BALANCE'])) + " (= " + "{0:.2f}".format(float(token_price) * float(token_dict['_BASE_PRICE']) * float(token_dict['_TOKEN_BALANCE'])) + " $)"
+        price_message = " ".join([price_message, "- Token balance:", str("{0:.4f}".format(token_dict['_TOKEN_BALANCE'])), "(=", "{0:.2f}".format(float(token_price) * float(token_dict['_BASE_PRICE']) * float(token_dict['_TOKEN_BALANCE'])), "$)"])
     else:
-        price_message = price_message + " - Token balance: " + str("{0:.4f}".format(token_dict['_TOKEN_BALANCE'])) + " (= " + "{0:.2f}".format(float(token_price) * float(token_dict['_TOKEN_BALANCE'])) + " " + token_dict['BASESYMBOL'] + ")"
+        price_message = " ".join([price_message, "- Token balance:", str("{0:.4f}".format(token_dict['_TOKEN_BALANCE'])), "(=", "{0:.2f}".format(float(token_price) * float(token_dict['_TOKEN_BALANCE'])), " ", token_dict['BASESYMBOL'], ")"])
 
     if token_dict['_REACHED_MAX_TOKENS'] == True:
-        price_message = price_message +  '\033[31m' + " - MAXTOKENS reached" + '\033[0m'
+        price_message = " ".join([price_message,  '\033[31m', "- MAXTOKENS reached", '\033[0m'])
 
     if price_message == token_dict['_LAST_PRICE_MESSAGE'] and settings['VERBOSE_PRICING'] == 'false':
         bot_settings['_NEED_NEW_LINE'] = False
@@ -2381,8 +2381,7 @@ def approve(address, amount):
             tx_hash = client.toHex(client.keccak(signed_txn.rawTransaction))
             return tx_hash
     else:
-        printt_err(
-            "You have less than 0.05 ETH or 0.01 BNB/FTM/MATIC/etc. token in your wallet, bot needs more to cover fees : please add some more in your wallet")
+        printt_err("You have less than 0.05 ETH or 0.01 BNB/FTM/MATIC/etc. token in your wallet, bot needs more to cover fees : please add some more in your wallet")
         sleep(10)
         sys.exit()
 
@@ -5440,6 +5439,8 @@ def runLoop():
                 print(".........Restart Cooldown left " + str(timeout - nonce) + " seconds.............")
                 nonce += 1
                 sleep(1)
+                if nonce > timeout:
+                    runLoop()
 
 
 try:
@@ -5491,3 +5492,5 @@ except Exception as e:
         print(".........Restart Cooldown left " + str(timeout - nonce) + " seconds.............")
         nonce += 1
         sleep(1)
+        if nonce > timeout:
+            runLoop()
