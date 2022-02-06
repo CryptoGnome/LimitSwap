@@ -21,6 +21,10 @@
 "PASSWORD_ON_CHANGE": "false", // set this to true if you want the bot to ask for your PK password if you update tokens.json in real time
 "VERBOSE_PRICING": "true", // set to false if you want a new price line to appear only when price change
 "SLOW_MODE": "false", // use this if you want the bot to make only 1 price check every 0.5s
+
+"START_BUY_AFTER_TIMESTAMP": "not used", // bot will pause BUY until time reach this timestamp. Use https://www.unixtimestamp.com/ to define value
+"START_SELL_AFTER_TIMESTAMP": "not used", // bot will pause SELL until time reach this timestamp. Use https://www.unixtimestamp.com/ to define value
+
 "ENABLE_APPRISE_NOTIFICATIONS": "true", // use this if you want to receive notifications with APPRISE API
 "APPRISE_PARAMETERS": ["macosx://", "windows://"] // you can enter new parameters. Respect the format. Check https://github.com/caronc/apprise
 }

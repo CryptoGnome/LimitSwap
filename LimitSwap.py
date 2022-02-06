@@ -2,6 +2,7 @@
 from toolz.functoolz import do
 from web3 import Web3
 from time import sleep, time
+import pause
 import json
 from jsmin import jsmin
 from decimal import Decimal
@@ -391,6 +392,8 @@ def load_settings_file(settings_path, load_message=True):
         'USECUSTOMNODE',
         'PASSWORD_ON_CHANGE',
         'SLOW_MODE',
+        'START_BUY_AFTER_TIMESTAMP',
+        'START_SELL_AFTER_TIMESTAMP',
         'ENABLE_APPRISE_NOTIFICATIONS'
     ]
     
@@ -2504,12 +2507,6 @@ def getReserves_with_cache(pair_contract):
     return pair_contract.functions.getReserves().call()
 
 
-def sync(inToken, outToken):
-    pair = fetch_pair2(inToken, outToken, factoryContract)
-    syncContract = client.eth.contract(address=Web3.toChecksumAddress(pair), abi=lpAbi)
-    sync = syncContract.functions.sync().call()
-
-
 def check_pool(inToken, outToken, LIQUIDITY_DECIMALS):
     # This function is made to calculate Liquidity of a token
     printt_debug("ENTER check_pool")
@@ -3698,9 +3695,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
                         'from': Web3.toChecksumAddress(walletused),
                         'nonce': client.eth.getTransactionCount(walletused)
                     })
-    
-    sync(inToken, outToken)
-    
+        
     if buynumber == 0:
         # No need to decrypt PRIVATEKEY because it was already decrypted in parse_wallet_settings()
         # Leave it like that because it's also used in Pre-Approve
@@ -4331,7 +4326,6 @@ def sell(token_dict, inToken, outToken):
 
         if custom.lower() == 'false':
             # USECUSTOMBASEPAIR = false
-            sync(inToken, weth)
             
             amount_out = routerContract.functions.getAmountsOut(amount, [inToken, weth]).call()[-1]
             
@@ -4511,7 +4505,6 @@ def sell(token_dict, inToken, outToken):
             # USECUSTOMBASEPAIR = true
             if outToken == weth:
                 # if user has set WETH or WBNB as Custom base pair
-                sync(inToken, outToken)
                 amount_out = routerContract.functions.getAmountsOut(amount, [inToken, weth]).call()[-1]
                 
                 if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
@@ -4615,7 +4608,6 @@ def sell(token_dict, inToken, outToken):
             
             
             else:
-                sync(inToken, outToken)
                 
                 if routing.lower() == 'false' and outToken != weth:
                     # LIQUIDITYINNATIVETOKEN = false
@@ -4796,7 +4788,6 @@ def sell(token_dict, inToken, outToken):
                                 'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
                             })
         
-        sync(inToken, outToken)
         signed_txn = client.eth.account.signTransaction(transaction, private_key=settings['PRIVATEKEY'])
         
         try:
@@ -5000,6 +4991,13 @@ def run():
         tokens_file_modified_time = os.path.getmtime(command_line_args.tokens)
         first_liquidity_check = True
         
+        # if START_BUY_AFTER_TIMESTAMP setting is a number, then wait until it's reached
+        if re.search(r'^[0-9]+$', str(settings['START_BUY_AFTER_TIMESTAMP'])):
+            printt_info("")
+            printt_info("Bot will wait until timestamp=", settings['START_BUY_AFTER_TIMESTAMP'], "before buying. Use https://www.unixtimestamp.com/ to define value")
+            printt_info("")
+            pause.until(int(settings['START_BUY_AFTER_TIMESTAMP']))
+            
         while True:
             # Check to see if the tokens file has changed every 10 iterations
             if load_token_file_increment > 1:
@@ -5223,7 +5221,6 @@ def run():
                                     logging.exception(e)
                                     logger1.exception(e)
 
-
                                 # if user has chose the option "instantafterbuy", token is approved right after buy order is confirmed.
                                 if (settings['PREAPPROVE'] == 'instantafterbuy' or settings['PREAPPROVE'] == 'true'):
                                     check_approval(token, token['ADDRESS'], token['_TOKEN_BALANCE'] * DECIMALS, 'preapprove')
@@ -5232,6 +5229,14 @@ def run():
                                 if token['XXX_SECONDS_COOLDOWN_AFTER_BUY_SUCCESS_TX'] != 0:
                                     printt_info("Bot will wait", token['XXX_SECONDS_COOLDOWN_AFTER_BUY_SUCCESS_TX'], "seconds after BUY, due to XXX_SECONDS_COOLDOWN_AFTER_BUY_SUCCESS_TX parameter", write_to_log=True)
                                     sleep(token['XXX_SECONDS_COOLDOWN_AFTER_BUY_SUCCESS_TX'])
+
+                                # if START_SELL_AFTER_TIMESTAMP setting is a number, then wait until it's reached
+                                if re.search(r'^[0-9]+$', str(settings['START_SELL_AFTER_TIMESTAMP'])):
+                                    printt_info("")
+                                    printt_info("Bot will wait until timestamp=", settings['START_SELL_AFTER_TIMESTAMP'], "before selling. Use https://www.unixtimestamp.com/ to define value")
+                                    printt_info("")
+
+                                    pause.until(int(settings['START_SELL_AFTER_TIMESTAMP']))
 
                                 # increment _SUCCESS_TRANSACTIONS amount
                                 token['_SUCCESS_TRANSACTIONS'] += 1
