@@ -2811,7 +2811,7 @@ def build_sell_conditions(token_dict, condition, show_message):
             token_dict['_COST_PER_TOKEN'] = float(token_dict['_BASE_USED_FOR_TX']) / float(token_dict['BUYAMOUNTINTOKEN'])
         else:
             printt_err("Wrong value in KIND_OF_SWAP parameter")
-    printt_debug(token_dict['SYMBOL'], "cost per token was: ", token_dict['_COST_PER_TOKEN'])
+    printt_info(token_dict['SYMBOL'], "cost per token was: ", token_dict['_COST_PER_TOKEN'], write_to_log=True)
 
     # Check to see if the SELLPRICEINBASE is a percentage of the purchase
     if re.search('^(\d+\.){0,1}\d+%$', str(sell)):
@@ -2827,7 +2827,7 @@ def build_sell_conditions(token_dict, condition, show_message):
         else:
             token_dict['_CALCULATED_SELLPRICEINBASE'] = token_dict['_COST_PER_TOKEN'] * (float(sell) / 100)
             printt_info("")
-            printt_info(token_dict['SYMBOL'], " cost per token was: ", token_dict['_COST_PER_TOKEN'])
+            printt_info(token_dict['SYMBOL'], " cost per token was: ", token_dict['_COST_PER_TOKEN'], write_to_log=True)
             printt_info("--> SELLPRICEINBASE = ", token_dict['SELLPRICEINBASE'],"*", token_dict['_COST_PER_TOKEN'], "= ", token_dict['_CALCULATED_SELLPRICEINBASE'])
     # Otherwise, don't adjust the sell price in base
     else:
@@ -4150,7 +4150,11 @@ def buy(token_dict, inToken, outToken, pwd):
     
     else:
         printt_debug(token_dict)
-        printt_err("You don't have enough", token_dict['BASESYMBOL'], "in your wallet to make the BUY order of", token_dict['SYMBOL'], "--> bot do not buy", )
+        if token['USECUSTOMBASEPAIR'].lower() == 'false':
+            printt_err("You don't have enough", base_symbol, "in your wallet to make the BUY order of", token_dict['SYMBOL'], "--> bot do not buy", )
+        else:
+            printt_err("You don't have enough", token_dict['BASESYMBOL'], "in your wallet to make the BUY order of", token_dict['SYMBOL'], "--> bot do not buy", )
+
         calculate_base_balance(token_dict)
         return False
 
@@ -4909,6 +4913,10 @@ def run():
             if token['KIND_OF_SWAP'].lower() == 'tokens' and token['MAX_BASE_AMOUNT_PER_EXACT_TOKENS_TRANSACTION'] == 0:
                 printt_err("You have selected KIND_OF_SWAP = tokens, so you must enter a value in MAX_BASE_AMOUNT_PER_EXACT_TOKENS_TRANSACTION")
                 sys.exit()
+                
+            if token['KIND_OF_SWAP'].lower() == 'tokens' and token['USECUSTOMBASEPAIR'] == 'true':
+                printt_err("Sorry, KIND_OF_SWAP = tokens is only available for USECUSTOMBASEPAIR = false. Exiting.")
+                sys.exit()
 
 
             # Set the checksum addressed for the addresses we're working with
@@ -5058,7 +5066,7 @@ def run():
                             # Setting a minimum of 0.1 quantity of liquidity, to avoid users being scammed
                             if pool > 0.1:
                                 token['_LIQUIDITY_READY'] = True
-                                printt_ok("Found", "{0:.4f}".format(pool), "liquidity for", token['_PAIR_SYMBOL'])
+                                printt_ok("Found", "{0:.4f}".format(pool), "liquidity for", token['_PAIR_SYMBOL'], write_to_log=True)
                                 if first_liquidity_check == True and command_line_args.reject_already_existing_liquidity:
                                     printt("Rejecting", token['_PAIR_SYMBOL'], "because it already had liquidity.")
                                     token['ENABLED'] = 'false'
