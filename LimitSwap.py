@@ -938,9 +938,7 @@ def reload_tokens_file(tokens_path, load_message=True):
             '_FAILED_TRANSACTIONS': _TOKENS_saved[token['SYMBOL']]['_FAILED_TRANSACTIONS'],
             '_SUCCESS_TRANSACTIONS': _TOKENS_saved[token['SYMBOL']]['_SUCCESS_TRANSACTIONS'],
             '_REACHED_MAX_SUCCESS_TX': _TOKENS_saved[token['SYMBOL']]['_REACHED_MAX_SUCCESS_TX'],
-            # set _TOKEN_BALANCE to 0 to avoid divide by 0 when calculating COST_PER_TOKEN
-            # TODO : to fix it
-            '_TOKEN_BALANCE': 0,
+            '_TOKEN_BALANCE': _TOKENS_saved[token['SYMBOL']]['_TOKEN_BALANCE'],
             '_PREVIOUS_TOKEN_BALANCE': _TOKENS_saved[token['SYMBOL']]['_PREVIOUS_TOKEN_BALANCE'],
             '_BASE_BALANCE': _TOKENS_saved[token['SYMBOL']]['_BASE_BALANCE'],
             '_BASE_PRICE': _TOKENS_saved[token['SYMBOL']]['_BASE_PRICE'],
