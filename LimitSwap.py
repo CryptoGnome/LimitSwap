@@ -3406,8 +3406,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
         walletused = settings['WALLETADDRESS4']
     if buynumber == 4:
         walletused = settings['WALLETADDRESS5']
-    
-    
+
     if custom.lower() == 'false':
         # if USECUSTOMBASEPAIR = false
         
@@ -3422,7 +3421,6 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
             # LIQUIDITYINNATIVETOKEN = true
             # USECUSTOMBASEPAIR = false
             amount_out = routerContract.functions.getAmountsOut(amount, [weth, outToken]).call()[-1]
-            
             if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
                 amountOutMin = 0
             else:
@@ -4053,7 +4051,7 @@ def buy(token_dict, inToken, outToken, pwd):
     # force it to zero if user has an empty field, if he uses KIND_OF_SWAP = tokens
     if amount == '':
         amount = 0
-    slippage = token_dict['SLIPPAGE']
+    slippage = float(token_dict['SLIPPAGE'])
     gaslimit = token_dict['GASLIMIT']
     boost = token_dict['BOOSTPERCENT']
     fees = token_dict["HASFEES"]
@@ -4127,7 +4125,6 @@ def buy(token_dict, inToken, outToken, pwd):
             return False
 
         gaslimit = int(gaslimit)
-        slippage = int(slippage)
         amount = int(float(amount) * token_dict['_BASE_DECIMALS'])
         buynumber = 0
 
@@ -4172,7 +4169,7 @@ def sell(token_dict, inToken, outToken):
     amount = token_dict['SELLAMOUNTINTOKENS']
     moonbag = token_dict['MOONBAG']
     gas = token_dict['_GAS_TO_USE']
-    slippage = token_dict['SLIPPAGE']
+    slippage = float(token_dict['SLIPPAGE'])
     gaslimit = token_dict['GASLIMIT']
     boost = token_dict['BOOSTPERCENT']
     fees = token_dict["HASFEES"]
@@ -4236,7 +4233,6 @@ def sell(token_dict, inToken, outToken):
             return False
 
         
-        slippage = int(slippage)
         gaslimit = int(gaslimit)
         moonbag = int(Decimal(moonbag) * DECIMALS)
         printt_debug("2500 amount :", amount)
