@@ -2817,7 +2817,6 @@ def build_sell_conditions(token_dict, condition, show_message):
             token_dict['_COST_PER_TOKEN'] = float(token_dict['_BASE_USED_FOR_TX']) / float(token_dict['BUYAMOUNTINTOKEN'])
         else:
             printt_err("Wrong value in KIND_OF_SWAP parameter")
-    printt_info(token_dict['SYMBOL'], "cost per token was: ", token_dict['_COST_PER_TOKEN'])
 
     # Check to see if the SELLPRICEINBASE is a percentage of the purchase
     if re.search('^(\d+\.){0,1}\d+%$', str(sell)):
