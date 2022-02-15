@@ -780,7 +780,7 @@ def reload_tokens_file(tokens_path, load_message=True):
 
     if load_message == True:
         printt("")
-        printt("Reloading tokens from", tokens_path, '\033[31m', "- do NOT change token SYMBOL in real time", '\033[0m')
+        printt("Reloading tokens from", tokens_path, '\033[31m', "- do NOT change token SYMBOL in real time", '\033[0m', write_to_log=True)
         printt("")
 
     with open(tokens_path, ) as js_file:
@@ -863,12 +863,16 @@ def reload_tokens_file(tokens_path, load_message=True):
         '_CONTRACT_DECIMALS': 0,
         '_BASE_DECIMALS': 0,
         '_WETH_DECIMALS': 0,
+        '_LIQUIDITY_DECIMALS': 0,
         '_LAST_PRICE_MESSAGE': 0,
         '_LAST_MESSAGE': 0,
         '_FIRST_SELL_QUOTE': 0,
         '_BUILT_BY_BOT': False,
         '_EXCHANGE_BASE_SYMBOL': settings['_EXCHANGE_BASE_SYMBOL'],
-        '_PAIR_SYMBOL': ''
+        '_PAIR_SYMBOL': '',
+        '_NOT_ENOUGH_TO_BUY': False,
+        '_IN_TOKEN': '',
+        '_OUT_TOKEN': ''
     }
     
     for token in tokens:
@@ -1175,7 +1179,7 @@ if settings['EXCHANGE'].lower() == 'pancakeswaptestnet':
         my_provider = settings['CUSTOMNODE']
         print(timestamp(), 'Using custom node.')
     else:
-        my_provider = "https://data-seed-prebsc-2-s3.binance.org:8545"
+        my_provider = "https://data-seed-prebsc-2-s2.binance.org:8545"
     
     if not my_provider:
         print(timestamp(), 'Custom node empty. Exiting')
@@ -2809,8 +2813,10 @@ def build_sell_conditions(token_dict, condition, show_message):
     stop = token_dict['STOPLOSSPRICEINBASE']
 
     # Calculates cost per token
-    # TODO : solve problem here https://t.me/LimitSwap/102375
-    if float(token_dict['_TOKEN_BALANCE']) > 0:
+    #  Bot compare between _TOKEN_BALANCE and _PREVIOUS_TOKEN_BALANCE to calculate it only if a BUY order was made
+    #
+    
+    if float(token_dict['_TOKEN_BALANCE']) > 0 and (token_dict['_TOKEN_BALANCE'] != token_dict['_PREVIOUS_TOKEN_BALANCE']):
         if token_dict['KIND_OF_SWAP'] == 'base':
             token_dict['_COST_PER_TOKEN'] = float(token_dict['BUYAMOUNTINBASE']) / float((token_dict['_TOKEN_BALANCE'] - token_dict['_PREVIOUS_TOKEN_BALANCE']))
         elif token_dict['KIND_OF_SWAP'] == 'tokens':
@@ -2823,17 +2829,17 @@ def build_sell_conditions(token_dict, condition, show_message):
         sell = sell.replace("%","")
         if condition == 'before_buy':
             if show_message == "show_message":
-                printt_err("--------------------------------------------------------------------------------------------------")
-                printt_err("    DO NOT CLOSE THE BOT after BUY order is made, or your calculated SELLPRICE will be lost!")
-                printt_err("--------------------------------------------------------------------------------------------------")
+                printt_err("--------------------------------------------------------------------------------------------------", write_to_log=False)
+                printt_err("    DO NOT CLOSE THE BOT after BUY order is made, or your calculated SELLPRICE will be lost!", write_to_log=False)
+                printt_err("--------------------------------------------------------------------------------------------------", write_to_log=False)
                 printt("")
                 printt_info(token_dict['SYMBOL'],": since you have put a % in SELLPRICE, and bot did not buy yet, we will set SELLPRICE = 99999 so as the bot not to sell if you stop and run it again.")
             token_dict['_CALCULATED_SELLPRICEINBASE'] = 99999
         else:
             token_dict['_CALCULATED_SELLPRICEINBASE'] = token_dict['_COST_PER_TOKEN'] * (float(sell) / 100)
             printt_info("")
-            printt_info(token_dict['SYMBOL'], " cost per token was: ", token_dict['_COST_PER_TOKEN'])
-            printt_info("--> SELLPRICEINBASE = ", token_dict['SELLPRICEINBASE'],"*", token_dict['_COST_PER_TOKEN'], "= ", token_dict['_CALCULATED_SELLPRICEINBASE'])
+            printt_info(token_dict['SYMBOL'], " cost per token was: ", token_dict['_COST_PER_TOKEN'], write_to_log=True)
+            printt_info("--> SELLPRICEINBASE = ", token_dict['SELLPRICEINBASE'],"*", token_dict['_COST_PER_TOKEN'], "= ", token_dict['_CALCULATED_SELLPRICEINBASE'], write_to_log=True)
     # Otherwise, don't adjust the sell price in base
     else:
         token_dict['_CALCULATED_SELLPRICEINBASE'] = sell
@@ -4047,6 +4053,7 @@ def buy(token_dict, inToken, outToken, pwd):
     
     # Map variables until all code is cleaned up.
     amount = token_dict['BUYAMOUNTINBASE']
+
     # force it to zero if user has an empty field, if he uses KIND_OF_SWAP = tokens
     if amount == '':
         amount = 0
@@ -4061,6 +4068,24 @@ def buy(token_dict, inToken, outToken, pwd):
     multiplebuys = token_dict['MULTIPLEBUYS']
     buycount = token_dict['BUYCOUNT']
     CONTRACT_DECIMALS = token_dict['_CONTRACT_DECIMALS']
+    
+    # Display informations in logs
+    printt_debug("Your tokens.json contains:", write_to_log=True)
+    printt_debug("ADDRESS =", token_dict['ADDRESS'], write_to_log=True)
+    printt_debug("BUYAMOUNTINBASE =", token_dict['BUYAMOUNTINBASE'], write_to_log=True)
+    printt_debug("SELLAMOUNTINTOKENS =", token_dict['SELLAMOUNTINTOKENS'], write_to_log=True)
+    printt_debug("BUYPRICEINBASE =", token_dict['BUYPRICEINBASE'], write_to_log=True)
+    printt_debug("SELLPRICEINBASE =", token_dict['SELLPRICEINBASE'], write_to_log=True)
+    printt_debug("STOPLOSSPRICEINBASE =", token_dict['STOPLOSSPRICEINBASE'], write_to_log=True)
+    printt_debug("LIQUIDITYINNATIVETOKEN =", token_dict['LIQUIDITYINNATIVETOKEN'], write_to_log=True)
+    printt_debug("MOONBAG =", token_dict['MOONBAG'], write_to_log=True)
+    printt_debug("MAXTOKENS =", token_dict['MAXTOKENS'], write_to_log=True)
+    printt_debug("MAX_SUCCESS_TRANSACTIONS_IN_A_ROW =", token_dict['MAX_SUCCESS_TRANSACTIONS_IN_A_ROW'], write_to_log=True)
+    printt_debug("MAX_FAILED_TRANSACTIONS_IN_A_ROW =", token_dict['MAX_FAILED_TRANSACTIONS_IN_A_ROW'], write_to_log=True)
+    printt_debug("WAIT_FOR_OPEN_TRADE =", token_dict['WAIT_FOR_OPEN_TRADE'], write_to_log=True)
+    printt_debug("USECUSTOMBASEPAIR =", token_dict['USECUSTOMBASEPAIR'], write_to_log=True)
+    printt_debug("BASEADDRESS =", token_dict['BASEADDRESS'], write_to_log=True)
+    printt_debug("", write_to_log=True)
 
     # Check for amount of failed transactions before buy (MAX_FAILED_TRANSACTIONS_IN_A_ROW parameter)
     printt_debug("debug _FAILED_TRANSACTIONS:", token_dict['_FAILED_TRANSACTIONS'])
@@ -5030,13 +5055,16 @@ def run():
                     # Before changing tokens, we store them in a dict, to be able to re-use the internal values like "COST_PER_TOKEN"
                     # The key to re-use them will be token['SYMBOL']
                     #
+                    
+                    printt_debug("tokens before reload:", tokens)
                     _TOKENS_saved = {}
                     for token in tokens:
                         _TOKENS_saved[token['SYMBOL']] = token
 
                     reload_bot_settings(bot_settings)
 
-                    tokens = reload_tokens_file(command_line_args.tokens, True)
+                    # Restart the bot to reload the tokens
+                    runLoop()
                     
             else:
                 load_token_file_increment = load_token_file_increment + 1
