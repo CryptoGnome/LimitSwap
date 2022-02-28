@@ -282,16 +282,16 @@ def printt_sell_price(token_dict, token_price):
     printt_debug("_PREVIOUS_QUOTE :", token_dict['_PREVIOUS_QUOTE'], "for token:", token_dict['SYMBOL'])
     
     if token_dict['USECUSTOMBASEPAIR'] == 'false':
-        price_message = f'{token_dict["_PAIR_SYMBOL"]} Price: {token_price:.24f} {base_symbol} - Buy: {str(token_dict["BUYPRICEINBASE"])}'
+        price_message = f'{token_dict["_PAIR_SYMBOL"]} Price: {token_price:.24f} {base_symbol} - Buy: {token_dict["BUYPRICEINBASE"]:.6g}'
     
     else:
-        price_message = f'{token_dict["_PAIR_SYMBOL"]} Price: {token_price:.24f} {token_dict["BASESYMBOL"]} - Buy: {str(token_dict["BUYPRICEINBASE"])}'
+        price_message = f'{token_dict["_PAIR_SYMBOL"]} Price: {token_price:.24f} {token_dict["BASESYMBOL"]} - Buy: {token_dict["BUYPRICEINBASE"]:.6g}'
 
-    price_message = f'{price_message} Sell: {str(token_dict["_CALCULATED_SELLPRICEINBASE"])} Stop: {str(token_dict["_CALCULATED_STOPLOSSPRICEINBASE"])}'
+    price_message = f'{price_message} Sell: {token_dict["_CALCULATED_SELLPRICEINBASE"]:.6g} Stop: {token_dict["_CALCULATED_STOPLOSSPRICEINBASE"]:.6g}'
     # price_message = price_message + " ATH:" + "{0:.24f}".format(token_dict['_ALL_TIME_HIGH']) + " ATL:" + "{0:.24f}".format(token_dict['_ALL_TIME_LOW'])
 
     if token_dict['TRAILING_STOP_LOSS'] != 0:
-        price_message = f'{price_message} TrailingStop: {token_dict["_TRAILING_STOP_LOSS_PRICE"]:.8f}'
+        price_message = f'{price_message} TrailingStop: {token_dict["_TRAILING_STOP_LOSS_PRICE"]:.6g}'
 
     if token_dict['USECUSTOMBASEPAIR'] == 'false':
         price_message = f'{price_message} - Token balance: {token_dict["_TOKEN_BALANCE"]:.4f} (= {float(token_price) * float(token_dict["_BASE_PRICE"]) * float(token_dict["_TOKEN_BALANCE"]):.2f} $)'
@@ -1133,7 +1133,7 @@ printt("************************************************************************
 
 # Check for version
 #
-version = '4.2.3'
+version = '4.2.3.1'
 printt("YOUR BOT IS CURRENTLY RUNNING VERSION ", version, write_to_log=True)
 check_release()
 
@@ -2841,11 +2841,13 @@ def build_sell_conditions(token_dict, condition, show_message):
         sell = sell.replace("%","")
         if condition == 'before_buy':
             if show_message == "show_message":
+                printt("")
                 printt_err("--------------------------------------------------------------------------------------------------", write_to_log=False)
                 printt_err("    DO NOT CLOSE THE BOT after BUY order is made, or your calculated SELLPRICE will be lost!", write_to_log=False)
                 printt_err("--------------------------------------------------------------------------------------------------", write_to_log=False)
                 printt("")
-                printt_info(token_dict['SYMBOL'],": since you have put a % in SELLPRICE, and bot did not buy yet, we will set SELLPRICE = 99999 so as the bot not to sell if you stop and run it again.")
+                printt_info(token_dict['SYMBOL'],"token :")
+                printt_info("- SELLPRICE -------> will be calculated after BUY is made. Setting 99999 as default value")
             token_dict['_CALCULATED_SELLPRICEINBASE'] = 99999
         else:
             token_dict['_CALCULATED_SELLPRICEINBASE'] = token_dict['_COST_PER_TOKEN'] * (float(sell) / 100)
@@ -2860,7 +2862,7 @@ def build_sell_conditions(token_dict, condition, show_message):
         stop = stop.replace("%","")
         if condition == 'before_buy':
             if show_message == "show_message":
-                printt_info("Since you have put a % in STOPLOSSPRICE, and bot did not buy yet, we will set STOPLOSSPRICE = 0.")
+                printt_info("- STOPLOSSPRICE ---> will be calculated after BUY is made. Setting 0     as default value")
             token_dict['_CALCULATED_STOPLOSSPRICEINBASE'] = 0
         else:
             token_dict['_CALCULATED_STOPLOSSPRICEINBASE'] = token_dict['_COST_PER_TOKEN'] * (float(stop) / 100)
@@ -2871,15 +2873,13 @@ def build_sell_conditions(token_dict, condition, show_message):
     else:
         token_dict['_CALCULATED_STOPLOSSPRICEINBASE'] = stop
 
-    # remove the "%" too in TRAILING_STOP_LOSS
+    # remove the "%"  in TRAILING_STOP_LOSS
     if trailingstop != 0:
         if re.search('^(\d+\.){0,1}\d+%$', str(trailingstop)):
             token_dict['TRAILING_STOP_LOSS'] = token_dict['TRAILING_STOP_LOSS'].replace("%", "")
-        else:
-            printt_err("Please put an amount in % in TRAILING_STOP_LOSS value")
-            sleep(10)
-            sys.exit()
-
+            printt_info("- TRAILING STOP LOSS will be calculated after BUY is made. Setting 0     as default value")
+    
+    printt("")
     printt_debug("1111 token_dict['_CALCULATED_SELLPRICEINBASE']    :", token_dict['_CALCULATED_SELLPRICEINBASE'])
     printt_debug("1111 token_dict['_CALCULATED_STOPLOSSPRICEINBASE']:", token_dict['_CALCULATED_STOPLOSSPRICEINBASE'])
     printt_debug(token_dict)
@@ -4540,6 +4540,10 @@ def sell(token_dict, inToken, outToken):
                     else:
                         # for all the rest of exchanges with Modified = false
                         printt_debug("sell condition 7", write_to_log=True)
+                        printt_debug("amount       :", amount)
+                        printt_debug("amountOutMin :", amountOutMin)
+                        printt_debug("gas          :", gas)
+                        printt_debug("gaslimit     :", gaslimit)
                         transaction = routerContract.functions.swapExactTokensForETH(
                             amount,
                             amountOutMin,
@@ -4966,6 +4970,13 @@ def run():
                 printt_err("Sorry, KIND_OF_SWAP = tokens is only available for USECUSTOMBASEPAIR = false. Exiting.")
                 sys.exit()
 
+            if token['TRAILING_STOP_LOSS'] != 0:
+                if re.search('^(\d+\.){0,1}\d+%$', str(token['TRAILING_STOP_LOSS'])):
+                    pass
+                else:
+                    printt_err("Please put an amount in % in TRAILING_STOP_LOSS value")
+                    sleep(10)
+                    sys.exit()
 
             # Set the checksum addressed for the addresses we're working with
             # _IN_TOKEN is the token you want to BUY (example : CAKE)
@@ -5142,22 +5153,22 @@ def run():
                         # TODO : improve check_precise_price
                         token['_QUOTE'] = check_price(token['_IN_TOKEN'], token['_OUT_TOKEN'], token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
                     
-                    if token['_ALL_TIME_HIGH'] == 0 and token['_ALL_TIME_LOW'] == 0:
-                        token['_ALL_TIME_HIGH'] = token['_QUOTE']
-                        token['_ALL_TIME_LOW'] = token['_QUOTE']
                     
-                    elif token['_QUOTE'] > token['_ALL_TIME_HIGH']:
+                    # let's update ATH and ATL if necessary. We only do this if we have any tokens in our wallet already --> if token balance > 0
+                    # why this condition ? Because trailing stop loss is based on ATH, and we want this to be activated only after buy
+                    if token['_TOKEN_BALANCE'] > 0:
+                        if token['_QUOTE'] > token['_ALL_TIME_HIGH']:
+        
+                            # Setting trailing stop loss price if price goes up
+                            
+                            token['_TRAILING_STOP_LOSS_PRICE'] = token['_QUOTE'] * (Decimal(token['TRAILING_STOP_LOSS']) / 100)
+                            printt_debug("token['_TRAILING_STOP_LOSS_PRICE'] =", token['_TRAILING_STOP_LOSS_PRICE'])
     
-                        # Setting trailing stop loss price if price goes up
+                            token['_ALL_TIME_HIGH'] = token['_QUOTE']
                         
-                        token['_TRAILING_STOP_LOSS_PRICE'] = token['_QUOTE'] * (Decimal(token['TRAILING_STOP_LOSS']) / 100)
-                        printt_debug("token['_TRAILING_STOP_LOSS_PRICE'] =", token['_TRAILING_STOP_LOSS_PRICE'])
-
-                        token['_ALL_TIME_HIGH'] = token['_QUOTE']
-                    
-                    elif token['_QUOTE'] < token['_ALL_TIME_LOW']:
-                        token['_ALL_TIME_LOW'] = token['_QUOTE']
-                    
+                        elif token['_QUOTE'] < token['_ALL_TIME_LOW']:
+                            token['_ALL_TIME_LOW'] = token['_QUOTE']
+                        
                     # If we're still in the market to buy tokens, the print the buy message
                     # added the condition "if token['_PREVIOUS_QUOTE'] != 0" to avoid having a green line in first position and make trading_is_on work
                     if token['_PREVIOUS_QUOTE'] != 0 and token['_QUOTE'] != 0:  # and token['_REACHED_MAX_TOKENS'] == False:
@@ -5261,6 +5272,10 @@ def run():
                                 printt_ok("SUCCESS : your buy Tx is confirmed", write_to_log=True)
                                 printt_ok("")
 
+                                # Wait 3s before recalculating, because sometimes it's not updated yet
+                                printt("Let's wait 3s before we check your new balance, to be sure we get correct amount")
+                                sleep(3)
+
                                 # Save previous token balance before recalculating
                                 token['_PREVIOUS_TOKEN_BALANCE'] = token['_TOKEN_BALANCE']
                                 
@@ -5274,6 +5289,10 @@ def run():
                                 printt_ok("You bought", token['_TOKEN_BALANCE'] - token['_PREVIOUS_TOKEN_BALANCE'], token['SYMBOL'], "tokens", write_to_log=True)
                                 printt_ok("----------------------------------", write_to_log=True)
                                 
+                                # Let's instantiate ATH and ATL now that BUY order is made
+                                token['_ALL_TIME_HIGH'] = token['_QUOTE']
+                                token['_ALL_TIME_LOW'] = token['_QUOTE']
+
                                 # Apprise notification
                                 try:
                                     if settings['ENABLE_APPRISE_NOTIFICATIONS'] == 'true':
@@ -5457,10 +5476,6 @@ def run():
                                 token['_SUCCESS_TRANSACTIONS'] += 1
                                 printt_debug("3900 _SUCCESS_TRANSACTIONS:", token['_SUCCESS_TRANSACTIONS'])
 
-                                # Assumeing we've bought and sold this position, disabling token --> UPDATE TsarBuig : disabling this
-                                # printt_info("We have sold our position in", token['SYMBOL'], "DISABLING this token.")
-                                # token['ENABLED'] = 'false'
-                                
                                 # We re-calculate _TOKEN_BALANCE after the sell() order is made
                                 token['_TOKEN_BALANCE'] = check_balance(token['ADDRESS'], token['SYMBOL'], display_quantity=True) / token['_CONTRACT_DECIMALS']
                                 printt_warn("----------------------------------", write_to_log=True)
