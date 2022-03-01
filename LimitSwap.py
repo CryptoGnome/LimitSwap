@@ -684,6 +684,7 @@ def load_tokens_file(tokens_path, load_message=True):
         '_FIRST_SELL_QUOTE' : 0,
         '_BUILT_BY_BOT' : False,
         '_TRAILING_STOP_LOSS_PRICE': 0,
+        '_TRAILING_STOP_LOSS_WITHOUT_PERCENT': 0,
         '_EXCHANGE_BASE_SYMBOL' : settings['_EXCHANGE_BASE_SYMBOL'],
         '_PAIR_SYMBOL' : ''
     }
@@ -878,6 +879,7 @@ def reload_tokens_file(tokens_path, load_message=True):
         '_FIRST_SELL_QUOTE': 0,
         '_BUILT_BY_BOT': False,
         '_TRAILING_STOP_LOSS_PRICE': 0,
+        '_TRAILING_STOP_LOSS_WITHOUT_PERCENT': 0,
         '_EXCHANGE_BASE_SYMBOL': settings['_EXCHANGE_BASE_SYMBOL'],
         '_PAIR_SYMBOL': '',
         '_NOT_ENOUGH_TO_BUY': False,
@@ -957,6 +959,7 @@ def reload_tokens_file(tokens_path, load_message=True):
             '_BASE_BALANCE': _TOKENS_saved[token['SYMBOL']]['_BASE_BALANCE'],
             '_BASE_PRICE': _TOKENS_saved[token['SYMBOL']]['_BASE_PRICE'],
             '_TRAILING_STOP_LOSS_PRICE': _TOKENS_saved[token['SYMBOL']]['_TRAILING_STOP_LOSS_PRICE'],
+            '_TRAILING_STOP_LOSS_WITHOUT_PERCENT': _TOKENS_saved[token['SYMBOL']]['_TRAILING_STOP_LOSS_WITHOUT_PERCENT'],
             '_BASE_USED_FOR_TX': _TOKENS_saved[token['SYMBOL']]['_BASE_USED_FOR_TX'],
             '_PAIR_TO_DISPLAY': _TOKENS_saved[token['SYMBOL']]['_PAIR_TO_DISPLAY'],
             '_CUSTOM_BASE_BALANCE': _TOKENS_saved[token['SYMBOL']]['_CUSTOM_BASE_BALANCE'],
@@ -1133,7 +1136,7 @@ printt("************************************************************************
 
 # Check for version
 #
-version = '4.2.3.1'
+version = '4.2.3.2'
 printt("YOUR BOT IS CURRENTLY RUNNING VERSION ", version, write_to_log=True)
 check_release()
 
@@ -2124,6 +2127,7 @@ def build_extended_base_configuration(token_dict):
                 "BUYPRICEINBASE": token_dict['BUYPRICEINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
                 "SELLPRICEINBASE": token_dict['_CALCULATED_SELLPRICEINBASE'],
                 "STOPLOSSPRICEINBASE": token_dict['_CALCULATED_STOPLOSSPRICEINBASE'],
+                "TRAILING_STOP_LOSS": token_dict['TRAILING_STOP_LOSS'],
                 "MINIMUM_LIQUIDITY_IN_DOLLARS": token_dict['MINIMUM_LIQUIDITY_IN_DOLLARS'],
                 "USECUSTOMBASEPAIR": "true",
                 "LIQUIDITYINNATIVETOKEN": "false",
@@ -2140,6 +2144,7 @@ def build_extended_base_configuration(token_dict):
                             "SELLPRICEINBASE": float(token_dict['_CALCULATED_SELLPRICEINBASE']) * float(settings['_STABLE_BASES'][stable_token]['multiplier']),
                             "STOPLOSSPRICEINBASE": float(token_dict['_CALCULATED_STOPLOSSPRICEINBASE']) * float(settings['_STABLE_BASES'][stable_token]['multiplier']),
                             "MINIMUM_LIQUIDITY_IN_DOLLARS": token_dict['MINIMUM_LIQUIDITY_IN_DOLLARS'],
+                            "TRAILING_STOP_LOSS": token_dict['TRAILING_STOP_LOSS'],
                             "USECUSTOMBASEPAIR": "true",
                             "LIQUIDITYINNATIVETOKEN": "false",
                             "BASESYMBOL": stable_token,
@@ -2876,10 +2881,11 @@ def build_sell_conditions(token_dict, condition, show_message):
     # remove the "%"  in TRAILING_STOP_LOSS
     if trailingstop != 0:
         if re.search('^(\d+\.){0,1}\d+%$', str(trailingstop)):
-            token_dict['TRAILING_STOP_LOSS'] = token_dict['TRAILING_STOP_LOSS'].replace("%", "")
-            printt_info("- TRAILING STOP LOSS will be calculated after BUY is made. Setting 0     as default value")
+            token_dict['_TRAILING_STOP_LOSS_WITHOUT_PERCENT'] = token_dict['TRAILING_STOP_LOSS'].replace("%", "")
+            if token_dict['_TOKEN_BALANCE'] != 0:
+                printt_info("- TRAILING STOP LOSS will be calculated after BUY is made. Setting 0     as default value")
+                printt("")
     
-    printt("")
     printt_debug("1111 token_dict['_CALCULATED_SELLPRICEINBASE']    :", token_dict['_CALCULATED_SELLPRICEINBASE'])
     printt_debug("1111 token_dict['_CALCULATED_STOPLOSSPRICEINBASE']:", token_dict['_CALCULATED_STOPLOSSPRICEINBASE'])
     printt_debug(token_dict)
@@ -4969,7 +4975,7 @@ def run():
             if token['KIND_OF_SWAP'].lower() == 'tokens' and token['USECUSTOMBASEPAIR'] == 'true':
                 printt_err("Sorry, KIND_OF_SWAP = tokens is only available for USECUSTOMBASEPAIR = false. Exiting.")
                 sys.exit()
-
+            printt_debug("token['TRAILING_STOP_LOSS']:", token['TRAILING_STOP_LOSS'], "for token", token['_PAIR_SYMBOL'] )
             if token['TRAILING_STOP_LOSS'] != 0:
                 if re.search('^(\d+\.){0,1}\d+%$', str(token['TRAILING_STOP_LOSS'])):
                     pass
@@ -5160,9 +5166,7 @@ def run():
                         if token['_QUOTE'] > token['_ALL_TIME_HIGH']:
         
                             # Setting trailing stop loss price if price goes up
-                            
-                            token['_TRAILING_STOP_LOSS_PRICE'] = token['_QUOTE'] * (Decimal(token['TRAILING_STOP_LOSS']) / 100)
-                            printt_debug("token['_TRAILING_STOP_LOSS_PRICE'] =", token['_TRAILING_STOP_LOSS_PRICE'])
+                            token['_TRAILING_STOP_LOSS_PRICE'] = float(token['_QUOTE']) * (float(token['_TRAILING_STOP_LOSS_WITHOUT_PERCENT']) / 100)
     
                             token['_ALL_TIME_HIGH'] = token['_QUOTE']
                         
