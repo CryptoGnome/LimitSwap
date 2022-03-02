@@ -1421,6 +1421,43 @@ elif settings['EXCHANGE'].lower() == 'babyswap':
                                  'BUSD':{ 'address': '0xe9e7cea3dedca5984780bafc599bd69add087d56', 'multiplier' : 0},
                                  'USDC':{ 'address': '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', 'multiplier' : 0}}
 
+elif settings['EXCHANGE'].lower() == 'tethys':
+    if settings['USECUSTOMNODE'].lower() == 'true':
+        my_provider = settings['CUSTOMNODE']
+        print(timestamp(), 'Using custom node.')
+    else:
+        my_provider = "https://andromeda.metis.io/?owner=1088"
+
+    if not my_provider:
+        print(timestamp(), 'Custom node empty. Exiting')
+        exit(1)
+
+    if my_provider[0].lower() == 'h':
+        print(timestamp(), 'Using HTTPProvider')
+        client = Web3(Web3.HTTPProvider(my_provider))
+    elif my_provider[0].lower() == 'w':
+        print(timestamp(), 'Using WebsocketProvider')
+        client = Web3(Web3.WebsocketProvider(my_provider))
+    else:
+        print(timestamp(), 'Using IPCProvider')
+        client = Web3(Web3.IPCProvider(my_provider))
+
+    print(timestamp(), "Metis Chain Connected =", client.isConnected())
+    print(timestamp(), "Loading Tethys Smart Contracts...")
+
+    routerAddress = Web3.toChecksumAddress("0x81b9FA50D5f5155Ee17817C21702C3AE4780AD09")
+    factoryAddress = Web3.toChecksumAddress("0x2CdFB20205701FF01689461610C9F321D1d00F80")
+
+    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
+    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
+
+    weth = Web3.toChecksumAddress("0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000")
+    base_symbol = "METIS"
+    rugdocchain = '&chain=metis'
+    modified = False
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'METIS'
+    settings['_STABLE_BASES'] = {'mUSDC':{ 'address': '0xEA32A96608495e54156Ae48931A7c20f0dcc1a21', 'multiplier' : 0}}
+    
 if settings['EXCHANGE'] == 'bakeryswap':
     if settings['USECUSTOMNODE'] == 'true':
         my_provider = settings['CUSTOMNODE']
@@ -3290,7 +3327,7 @@ def calculate_base_price():
         DECIMALS_STABLES = 1000000000000000000
         DECIMALS_ETH = 1000000000000000000
     
-        # USDC1 0x985458e523db3d53125813ed68c274899e9dfab4
+        # mUSDC 0xEA32A96608495e54156Ae48931A7c20f0dcc1a21
     
         pair_address = '0x6574026Db45bA8d49529145080489C3da71a82DF'
     
@@ -3299,7 +3336,23 @@ def calculate_base_price():
         reserves = pair_contract.functions.getReserves().call()
         basePrice = Decimal((reserves[0] / DECIMALS_STABLES) / (reserves[1] / DECIMALS_ETH))
         printt_debug("WONE PRICE: ", "{:.6f}".format(basePrice))
-    
+
+    elif base_symbol == "METIS":
+        DECIMALS_STABLES = 1000000
+        DECIMALS_ETH = 1000000000000000000
+
+        # USDC 0x0039f574ee5cc39bdd162e9a88e3eb1f111baf48
+
+        # address = Web3.toChecksumAddress('0x0039f574ee5cc39bdd162e9a88e3eb1f111baf48')
+        # pair_address = fetch_pair2(address, weth, factoryContract)
+
+        pair_address = '0xDd7dF3522a49e6e1127bf1A1d3bAEa3bc100583B'
+
+        pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
+        reserves = pair_contract.functions.getReserves().call()
+        basePrice = Decimal((reserves[1] / DECIMALS_STABLES) / (reserves[] / DECIMALS_ETH))
+        printt_debug("METIS PRICE: ", "{:.6f}".format(basePrice))
+
     else:
         printt_err("Unknown chain... please add it to calculate_base_price")
         basePrice = 0
