@@ -1136,7 +1136,7 @@ printt("************************************************************************
 
 # Check for version
 #
-version = '4.2.3.2'
+version = '4.2.3.3'
 printt("YOUR BOT IS CURRENTLY RUNNING VERSION ", version, write_to_log=True)
 check_release()
 
@@ -1216,8 +1216,8 @@ if settings['EXCHANGE'].lower() == 'pancakeswaptestnet':
         routerAddress = Web3.toChecksumAddress("0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F")
         factoryAddress = Web3.toChecksumAddress("0xbcfccbde45ce874adcb698cc183debcf17952812")
     elif settings['EXCHANGEVERSION'] == "2":
-        routerAddress = Web3.toChecksumAddress("0xD99D1c33F9fC3444f8101754aBC46c52416550D1")
-        factoryAddress = Web3.toChecksumAddress("0x6725F303b657a9451d8BA641348b6761A6CC7a17")
+        routerAddress = Web3.toChecksumAddress("0x9ac64cc6e4415144c455bd8e4837fea55603e5c3")
+        factoryAddress = Web3.toChecksumAddress("0xb7926c0430afb07aa7defde6da862ae0bde767bc")
     
     routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
     factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
@@ -5366,11 +5366,11 @@ def run():
                         token['_TOKEN_BALANCE'] = check_balance(token['ADDRESS'], token['SYMBOL'],display_quantity=False) / token['_CONTRACT_DECIMALS']
 
                     printt_debug("_TOKEN_BALANCE 3411", token['_TOKEN_BALANCE'], "for the token:",token['SYMBOL'])
-                            
+                    
                     # Looking if conditions are met to SELL this token
                     #
                     # 1st condition : token price > _CALCULATED_SELLPRICEINBASE
-                    if token['_QUOTE'] > Decimal(token['_CALCULATED_SELLPRICEINBASE']) and Decimal(token['TRAILING_STOP_LOSS']) == 0 and token['_TOKEN_BALANCE'] > 0:
+                    if token['_QUOTE'] > Decimal(token['_CALCULATED_SELLPRICEINBASE']) and Decimal(token['_TRAILING_STOP_LOSS_WITHOUT_PERCENT']) == 0 and token['_TOKEN_BALANCE'] > 0:
                         printt_warn("--------------------------------------------------------------")
                         printt_warn("Sell Signal Found =-= Sell Signal Found =-= Sell Signal Found ", write_to_log=True)
                         price_conditions_met = True
