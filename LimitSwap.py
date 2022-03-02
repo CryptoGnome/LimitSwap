@@ -3350,7 +3350,7 @@ def calculate_base_price():
 
         pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
         reserves = pair_contract.functions.getReserves().call()
-        basePrice = Decimal((reserves[1] / DECIMALS_STABLES) / (reserves[] / DECIMALS_ETH))
+        basePrice = Decimal((reserves[1] / DECIMALS_STABLES) / (reserves[0] / DECIMALS_ETH))
         printt_debug("METIS PRICE: ", "{:.6f}".format(basePrice))
 
     else:
