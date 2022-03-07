@@ -4888,7 +4888,7 @@ def sell(token_dict, inToken, outToken):
                     
                     if fees.lower() == 'true':
                         # HASFEES = true
-                        if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
+                        if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet' or settings["EXCHANGE"].lower() == 'pangolin' or settings["EXCHANGE"].lower() == 'traderjoe':
                             # Special condition on Uniswap, to implement EIP-1559
                             printt_debug("sell condition 16", write_to_log=True)
                             transaction = routerContract.functions.swapExactTokensForTokensSupportingFeeOnTransferTokens(
@@ -4901,7 +4901,7 @@ def sell(token_dict, inToken, outToken):
                                 'maxFeePerGas': Web3.toWei(gas, 'gwei'),
                                 'maxPriorityFeePerGas': Web3.toWei(gaspriority, 'gwei'),
                                 'gas': gaslimit,
-                                'value': amount,
+                                'value': 0,
                                 'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
                                 'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS']),
                                 'type': "0x02"
