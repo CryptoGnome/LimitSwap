@@ -628,6 +628,8 @@ def load_tokens_file(tokens_path, load_message=True):
     # _QUOTE                - holds the token's quote
     # _PREVIOUS_QUOTE       - holds the ask price for a token the last time a price was queried, this is used
     #                         to determine the direction the market is going
+    # _LISTING_QUOTE        - Listing price of a token
+    # _BUY_THE_DIP_ACTIVE   - Price has reached 50% of listing price and we're ready to buy the dip
     # _COST_PER_TOKEN       - the calculated/estimated price the bot paid for the number of tokens it traded
     # _CALCULATED_SELLPRICEINBASE           - the calculated sell price created with build_sell_conditions()
     # _CALCULATED_STOPLOSSPRICEINBASE       - the calculated stoploss price created with build_sell_conditions()
@@ -671,6 +673,8 @@ def load_tokens_file(tokens_path, load_message=True):
         '_CUSTOM_BASE_BALANCE': 0,
         '_QUOTE': 0,
         '_PREVIOUS_QUOTE': 0,
+        '_LISTING_QUOTE': 0,
+        '_BUY_THE_DIP_ACTIVE': False,
         '_ALL_TIME_HIGH': 0,
         '_COST_PER_TOKEN': 0,
         '_CALCULATED_SELLPRICEINBASE': 99999,
@@ -865,6 +869,8 @@ def reload_tokens_file(tokens_path, load_message=True):
         '_CUSTOM_BASE_BALANCE': 0,
         '_QUOTE': 0,
         '_PREVIOUS_QUOTE': 0,
+        '_LISTING_QUOTE': 0,
+        '_BUY_THE_DIP_ACTIVE': False,
         '_ALL_TIME_HIGH': 0,
         '_COST_PER_TOKEN': 0,
         '_CALCULATED_SELLPRICEINBASE': 99999,
@@ -965,6 +971,8 @@ def reload_tokens_file(tokens_path, load_message=True):
             '_CUSTOM_BASE_BALANCE': _TOKENS_saved[token['SYMBOL']]['_CUSTOM_BASE_BALANCE'],
             '_QUOTE': _TOKENS_saved[token['SYMBOL']]['_QUOTE'],
             '_PREVIOUS_QUOTE': _TOKENS_saved[token['SYMBOL']]['_PREVIOUS_QUOTE'],
+            '_LISTING_QUOTE': _TOKENS_saved[token['SYMBOL']]['_LISTING_QUOTE'],
+            '_BUY_THE_DIP_ACTIVE': _TOKENS_saved[token['SYMBOL']]['_BUY_THE_DIP_ACTIVE'],
             '_ALL_TIME_HIGH': _TOKENS_saved[token['SYMBOL']]['_ALL_TIME_HIGH'],
             '_COST_PER_TOKEN': _TOKENS_saved[token['SYMBOL']]['_COST_PER_TOKEN'],
             '_CALCULATED_SELLPRICEINBASE': _TOKENS_saved[token['SYMBOL']]['_CALCULATED_SELLPRICEINBASE'],
@@ -1136,7 +1144,7 @@ printt("************************************************************************
 
 # Check for version
 #
-version = '4.2.3.3'
+version = '4.2.4.0'
 printt("YOUR BOT IS CURRENTLY RUNNING VERSION ", version, write_to_log=True)
 check_release()
 
@@ -2868,7 +2876,53 @@ def wait_for_open_trade(token, inToken, outToken):
     # MethodID: 0xc49b9a80
     
     # many examples here : https://www.4byte.directory/signatures/?sort=text_signature&page=10003
+
+
+def buy_the_dip_mode(token, inToken, outToken):
+    printt_debug("ENTER buy_the_dip_mode")
     
+    printt(" ", write_to_log=False)
+    printt("-----------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
+    printt("BUY_THE_DIP mode is enabled", write_to_log=True)
+    printt("", write_to_log=True)
+    printt("Bot will wait for the price to reach 50% of listing price", write_to_log=True)
+    printt("Then wait for price to rise 20% again to buy", write_to_log=True)
+    printt("", write_to_log=True)
+    printt("--> it will make you buy 20% above the dip :)", write_to_log=True)
+    printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
+    
+    buy_the_dip = False
+
+    # Let's instantiate All-Time Low (ATL) and Listing price
+    token['_QUOTE'] = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], int(token['_CONTRACT_DECIMALS']), int(token['_BASE_DECIMALS']))
+
+    token['_LISTING_QUOTE'] = token['_QUOTE']
+    token['_ALL_TIME_LOW'] = token['_QUOTE']
+
+    while buy_the_dip == False:
+        
+        token['_QUOTE'] = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], int(token['_CONTRACT_DECIMALS']), int(token['_BASE_DECIMALS']))
+        
+        if token['_QUOTE'] > (token['_LISTING_QUOTE']/2) and token['_BUY_THE_DIP_ACTIVE'] == False :
+            printt(f"BUY THE DIP MODE - Token price = {token['_QUOTE']:.10g} - Price target (50% of listing price) = {token['_LISTING_QUOTE']/2:.10g}")
+            
+        elif token['_QUOTE'] <= (token['_LISTING_QUOTE']/2) :
+            token['_BUY_THE_DIP_ACTIVE'] = True
+
+            if token['_QUOTE'] < token['_ALL_TIME_LOW']:
+                token['_ALL_TIME_LOW'] = token['_QUOTE']
+
+            printt(f"READY TO BUY - Token price = {token['_QUOTE']:.10g} < 50% of listing price // All-Time Low = {token['_ALL_TIME_LOW']:.10g} // Target Price = 120% ATL = {token['_ALL_TIME_LOW']*1.2:.10g}")
+
+        if token['_BUY_THE_DIP_ACTIVE'] == True and token['_QUOTE'] > token['_ALL_TIME_LOW']*1.2:
+            token["BUYPRICEINBASE"] = token['_ALL_TIME_LOW']*1.2
+            printt_ok("BUY THE DIP MODE - LET'S BUY !")
+            buy_the_dip = True
+            break
+
+        sleep(cooldown)
+
+
 def get_tokens_purchased(tx_hash):
     # Function: get_tokens_purchased
     # ----------------------------
@@ -5296,6 +5350,14 @@ def run():
                     #    Check the latest price on this token and record information on the price that we may
                     #    need to use later
                     #
+                    
+                    # If user has chose BUY_THE_DIP option :
+                    #   1/ Let's store the listing quote, to make "BUY_THE_DIP" function work
+                    #   2/ Let's switch to "BUY_THE_DIP" mode
+                    
+                    if token['BUYPRICEINBASE'] == 'BUY_THE_DIP' and token['_PREVIOUS_QUOTE'] == 0:
+                        buy_the_dip_mode(token, token['_IN_TOKEN'], token['_OUT_TOKEN'])
+
                     token['_PREVIOUS_QUOTE'] = token['_QUOTE']
                     
                     if token['LIQUIDITYINNATIVETOKEN'] == 'true':
@@ -5330,8 +5392,9 @@ def run():
                     #   the user that we've reached the maximum number of tokens, check for other criteria to buy.
                     #
                     
-                    if token['_QUOTE'] != 0 and token['_QUOTE'] < Decimal(token['BUYPRICEINBASE']) and token['_REACHED_MAX_SUCCESS_TX'] == False and token['_REACHED_MAX_TOKENS'] == False and token['_NOT_ENOUGH_TO_BUY'] == False and token['ENABLED'] == 'true':
-    
+                    if (token['_QUOTE'] != 0 and token['_QUOTE'] < Decimal(token['BUYPRICEINBASE']) and token['_REACHED_MAX_SUCCESS_TX'] == False and token['_REACHED_MAX_TOKENS'] == False and token['_NOT_ENOUGH_TO_BUY'] == False and token['ENABLED'] == 'true') \
+                            or (token['_BUY_THE_DIP_ACTIVE'] == True and token['_REACHED_MAX_SUCCESS_TX'] == False and token['_REACHED_MAX_TOKENS'] == False and token['_NOT_ENOUGH_TO_BUY'] == False and token['ENABLED'] == 'true'):
+                        
                         #
                         # OPEN TRADE CHECK
                         #   If the option is selected, bot wait for trading_is_on == True to create a BUY order
