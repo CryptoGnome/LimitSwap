@@ -1573,6 +1573,41 @@ elif settings["EXCHANGE"] == 'uniswap':
     settings['_STABLE_BASES'] = {'USDT':{ 'address': '0xdac17f958d2ee523a2206206994597c13d831ec7', 'multiplier' : 0},
                                  'USDC':{ 'address': '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', 'multiplier' : 0}}
 
+elif settings["EXCHANGE"] == 'degenswap':
+    if settings['USECUSTOMNODE'] == 'true':
+        my_provider = settings['CUSTOMNODE']
+    else:
+        my_provider = "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"
+
+    if not my_provider:
+        printt_err('Custom node empty. Exiting')
+        exit(1)
+
+    if my_provider[0].lower() == 'h':
+        print(timestamp(), 'Using HTTPProvider')
+        client = Web3(Web3.HTTPProvider(my_provider))
+    elif my_provider[0].lower() == 'w':
+        print(timestamp(), 'Using WebsocketProvider')
+        client = Web3(Web3.WebsocketProvider(my_provider))
+    else:
+        print(timestamp(), 'Using IPCProvider')
+        client = Web3(Web3.IPCProvider(my_provider))
+
+    print(timestamp(), "Degenswap Chain Connected =", client.isConnected())
+    print(timestamp(), "Loading Smart Contracts...")
+    routerAddress = Web3.toChecksumAddress("0x4bf3E2287D4CeD7796bFaB364C0401DFcE4a4f7F")
+    factoryAddress = Web3.toChecksumAddress("0x5c515455EFB90308689579993C11A84fC41229C0")
+    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
+    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
+    weth = Web3.toChecksumAddress("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2")
+    base_symbol = "ETH "
+    rugdocchain = '&chain=eth'
+    modified = False
+
+    settings['_EXCHANGE_BASE_SYMBOL'] = 'ETH '
+    settings['_STABLE_BASES'] = {'USDT':{ 'address': '0xdac17f958d2ee523a2206206994597c13d831ec7', 'multiplier' : 0},
+                                 'USDC':{ 'address': '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', 'multiplier' : 0}}
+
 elif settings["EXCHANGE"] == 'uniswaptestnet':
     if settings['USECUSTOMNODE'] == 'true':
         my_provider = settings['CUSTOMNODE']
@@ -3793,7 +3828,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
                     # USECUSTOMBASEPAIR = true
                     # Base Pair different from weth
                     # Special condition on Uniswap, to implement EIP-1559
-                    printt_debug("make_the_buy condition 9", write_to_log=True)
+                    printt_debug("make_the_buy condition 9 - EIP 1559", write_to_log=True)
                     printt_debug("amount      :", amount)
                     printt_debug("amountOutMin:", amountOutMin)
                     transaction = routerContract.functions.swapExactTokensForTokens(
@@ -4202,6 +4237,7 @@ def buy(token_dict, inToken, outToken, pwd):
     printt_debug("Your tokens.json contains:", write_to_log=True)
     printt_debug("ADDRESS =", token_dict['ADDRESS'], write_to_log=True)
     printt_debug("BUYAMOUNTINBASE =", token_dict['BUYAMOUNTINBASE'], write_to_log=True)
+    printt_debug("SLIPPAGE =", token_dict['SLIPPAGE'], write_to_log=True)
     printt_debug("SELLAMOUNTINTOKENS =", token_dict['SELLAMOUNTINTOKENS'], write_to_log=True)
     printt_debug("BUYPRICEINBASE =", token_dict['BUYPRICEINBASE'], write_to_log=True)
     printt_debug("SELLPRICEINBASE =", token_dict['SELLPRICEINBASE'], write_to_log=True)
@@ -4890,7 +4926,7 @@ def sell(token_dict, inToken, outToken):
                         # HASFEES = true
                         if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet' or settings["EXCHANGE"].lower() == 'pangolin' or settings["EXCHANGE"].lower() == 'traderjoe':
                             # Special condition on Uniswap, to implement EIP-1559
-                            printt_debug("sell condition 16", write_to_log=True)
+                            printt_debug("sell condition 16 - EIP 1559", write_to_log=True)
                             transaction = routerContract.functions.swapExactTokensForTokensSupportingFeeOnTransferTokens(
                                 amount,
                                 amountOutMin,
@@ -5356,6 +5392,7 @@ def run():
                                 printt_err("- INSUFFICIENT_OUTPUT_AMOUNT   --> SLIPPAGE too low")
                                 printt_err("- TRANSFER_FAILED              --> Trading is not enabled. Use WAIT_FOR_OPEN_TRADE parameter after reading wiki")
                                 printt_err("- TRANSFER_FAILED              --> There is a whitelist")
+                                printt_err("- 'Pancake: K'                 --> There are additional fees --> use HASFEES = true")
                                 printt_err("- Sorry, We are unable to locate this TxnHash --> You don't have enough funds on your wallet to cover fees")
                                 printt_err("- ... or your node is not working well")
                                 printt_err("-------------------------------")
@@ -5537,6 +5574,7 @@ def run():
                                 printt_err("- INSUFFICIENT_OUTPUT_AMOUNT   --> SLIPPAGE too low")
                                 printt_err("- TRANSFER_FAILED              --> Trading is not enabled. Use WAIT_FOR_OPEN_TRADE parameter after reading wiki")
                                 printt_err("- TRANSFER_FAILED              --> There is a whitelist")
+                                printt_err("- 'Pancake: K'                 --> There are additional fees --> use HASFEES = true")
                                 printt_err("- Sorry, We are unable to locate this TxnHash --> You don't have enough funds on your wallet to cover fees")
                                 printt_err("- ... or your node is not working well")
                                 printt_err("-------------------------------")
@@ -5628,16 +5666,7 @@ def runLoop():
             printt_err("ERROR. Please go to /log folder and open your logs: you will find more details.")
             logging.exception(e)
             logger1.exception(e)
-            printt("Restarting LimitSwap")
-            # Restart Logic
-            timeout = 10
-            nonce = 0
-            while nonce<=timeout:
-                print(".........Restart Cooldown left " + str(timeout - nonce) + " seconds.............")
-                nonce += 1
-                sleep(1)
-                if nonce > timeout:
-                    runLoop()
+            sys.exit()
 
 
 try:
@@ -5682,12 +5711,4 @@ except Exception as e:
     printt_err("ERROR. Please go to /log folder and open your logs: you will find more details.")
     logging.exception(e)
     logger1.exception(e)
-    # Restart Logic
-    timeout = 10
-    nonce = 0
-    while nonce <= timeout:
-        print(".........Restart Cooldown left " + str(timeout - nonce) + " seconds.............")
-        nonce += 1
-        sleep(1)
-        if nonce > timeout:
-            runLoop()
+    sys.exit()
