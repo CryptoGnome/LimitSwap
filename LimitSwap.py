@@ -948,6 +948,11 @@ def reload_tokens_file(tokens_path, load_message=True):
         elif token['WATCH_STABLES_PAIRS'] == 'true':
             printt_warn("Ignoring WATCH_STABLES_PAIRS", "for", token['SYMBOL'], ": WATCH_STABLES_PAIRS = true and USECUSTOMBASEPAIR = true is unsupported.")
 
+        if token['BUYPRICEINBASE'] == 'BUY_THE_DIP':
+            token.update({
+            'BUYPRICEINBASE': _TOKENS_saved[token['SYMBOL']]['BUYPRICEINBASE'],
+            })
+
         token.update({
             '_LIQUIDITY_READY': _TOKENS_saved[token['SYMBOL']]['_LIQUIDITY_READY'],
             '_LIQUIDITY_CHECKED': _TOKENS_saved[token['SYMBOL']]['_LIQUIDITY_CHECKED'],
@@ -1144,7 +1149,7 @@ printt("************************************************************************
 
 # Check for version
 #
-version = '4.2.4.0'
+version = '4.2.4.1'
 printt("YOUR BOT IS CURRENTLY RUNNING VERSION ", version, write_to_log=True)
 check_release()
 
@@ -2532,7 +2537,7 @@ def check_approval(token, address, allowance_to_compare_with, condition):
                 printt_info("-----------------------------------------------------------------------------")
             elif condition == 'txfail':
                 printt_info("----------------------------------------------------------------------------------")
-                printt_info("You have failed to sell tokens --> LimitSwap will chack if it needs to be APPROVED")
+                printt_info("You have failed to sell tokens --> LimitSwap will check if it needs to be APPROVED")
                 printt_info("----------------------------------------------------------------------------------")
             else:
                 printt_info("-------------------------------------")
