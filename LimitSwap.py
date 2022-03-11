@@ -1281,6 +1281,7 @@ if settings['EXCHANGE'].lower() == 'traderjoe':
     settings['_EXCHANGE_BASE_SYMBOL'] = 'AVAX'
     settings['_STABLE_BASES'] = {'MIM ':{ 'address': '0x130966628846bfd36ff31a822705796e8cb8c18d', 'multiplier' : 0},
                                  'USDC':{ 'address': '0xA7D7079b0FEaD91F3e65f86E8915Cb59c1a4C664', 'multiplier' : 0},
+                                 'USDC':{ 'address': '0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e', 'multiplier' : 0},
                                  'USDT':{ 'address': '0xc7198437980c041c805a1edcba50c1ce5db95118', 'multiplier' : 0}}
 
 if settings["EXCHANGE"] == 'pangolin':
@@ -1316,6 +1317,7 @@ if settings["EXCHANGE"] == 'pangolin':
     settings['_EXCHANGE_BASE_SYMBOL'] = 'AVAX'
     settings['_STABLE_BASES'] = {'MIM ': {'address': '0x130966628846bfd36ff31a822705796e8cb8c18d', 'multiplier': 0},
                                  'USDC': {'address': '0xA7D7079b0FEaD91F3e65f86E8915Cb59c1a4C664', 'multiplier': 0},
+                                 'USDC': {'address': '0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e', 'multiplier': 0},
                                  'USDT': {'address': '0xc7198437980c041c805a1edcba50c1ce5db95118', 'multiplier': 0}}
 
 if settings['EXCHANGE'] == 'pinkswap':
