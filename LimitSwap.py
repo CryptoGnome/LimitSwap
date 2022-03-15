@@ -4816,7 +4816,7 @@ def sell(token_dict, inToken, outToken):
                             })
                         
                         elif settings["EXCHANGE"].lower() == 'pangolin' or settings["EXCHANGE"].lower() == 'traderjoe':
-                            printt_debug("sell condition 9", write_to_log=True)
+                            printt_debug("sell condition 9 EIP 1559 AVAX", write_to_log=True)
                             transaction = routerContract.functions.swapExactTokensForAVAXSupportingFeeOnTransferTokens(
                                 amount,
                                 amountOutMin,
@@ -4824,10 +4824,13 @@ def sell(token_dict, inToken, outToken):
                                 Web3.toChecksumAddress(settings['WALLETADDRESS']),
                                 deadline
                             ).buildTransaction({
-                                'gasPrice': Web3.toWei(gas, 'gwei'),
+                                'maxFeePerGas': Web3.toWei(gas, 'gwei'),
+                                'maxPriorityFeePerGas': Web3.toWei(gaspriority, 'gwei'),
                                 'gas': gaslimit,
+                                'value': 0,
                                 'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
-                                'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
+                                'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS']),
+                                'type': "0x02"
                             })
                             
                         elif settings["EXCHANGE"].lower() == 'bakeryswap':
