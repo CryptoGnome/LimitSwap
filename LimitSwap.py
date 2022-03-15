@@ -2469,6 +2469,8 @@ def approve(address, amount):
     
     if base_symbol == "ETH ":
         minimumbalance = 0.05
+    elif base_symbol == "AVAX":
+        minimumbalance = 0.2
     else:
         minimumbalance = 0.01
     
@@ -3520,6 +3522,8 @@ def calculate_base_balance(token):
     # Bot will get your balance, and show an error if there is a problem with your node.
     if base_symbol == "ETH ":
         minimumbalance = 0.05
+    elif base_symbol == "AVAX":
+        minimumbalance = 0.2
     else:
         minimumbalance = 0.03
 
@@ -3531,7 +3535,7 @@ def calculate_base_balance(token):
         sys.exit()
 
     if eth_balance < minimumbalance:
-        printt_err("You have less than 0.05 ETH or 0.03 BNB/FTM/MATIC/etc. token in your wallet, bot needs more to cover fees : please add some more in your wallet")
+        printt_err("You have less than 0.05 ETH, 0.2 AVAX or 0.03 BNB/FTM/MATIC/etc. token in your wallet, bot needs more to cover fees : please add some more in your wallet")
         printt_err("We know it can seem a lot, but the smart contracts used by Exchanges have automatic controls of minimal balance.")
         sleep(10)
         exit(1)
@@ -5443,6 +5447,10 @@ def run():
                             else:
                                 pass
                         
+                        #
+                        # LET'S BUY !!
+                        #
+
                         if command_line_args.sim_buy:
                             tx = command_line_args.sim_buy
                         else:
