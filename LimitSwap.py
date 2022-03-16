@@ -1149,7 +1149,7 @@ printt("************************************************************************
 
 # Check for version
 #
-version = '4.2.4.1'
+version = '4.2.5.0'
 printt("YOUR BOT IS CURRENTLY RUNNING VERSION ", version, write_to_log=True)
 check_release()
 
@@ -2932,6 +2932,65 @@ def buy_the_dip_mode(token, inToken, outToken):
         sleep(cooldown)
 
 
+def pinksale_snipe_mode(token):
+    printt_debug("ENTER pinksale_snipe_mode")
+
+    real_date = datetime.fromtimestamp(token['PINKSALE_PRESALE_START_TIMESTAMP'])
+
+    printt(" ", write_to_log=False)
+    printt("-----------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
+    printt("PINKSALE SNIPE mode is enabled", write_to_log=True)
+    printt("", write_to_log=True)
+    printt("Bot will wait for the timestamp that you entered in PINKSALE_PRESALE_START_TIMESTAMP to be reached before buying", write_to_log=True)
+    printt("", write_to_log=True)
+    printt_info("  - You will buy", token['BUYAMOUNTINBASE'], base_symbol, "of", token['SYMBOL'], write_to_log=True)
+    printt_info("  - At timestamp :", token['PINKSALE_PRESALE_START_TIMESTAMP'], "= real date :", real_date, write_to_log=True)
+    printt("", write_to_log=False)
+    printt_warn("  - Do not make any other Tx with this wallet during waiting time, because your nonce is stored to accelerate Tx", write_to_log=True)
+    printt_info("  - GAS is pre-calculated too to accelerate Tx", write_to_log=True)
+    printt("", write_to_log=True)
+    printt("Let's wait for timestamp to be reached!", write_to_log=True)
+    printt("", write_to_log=True)
+    printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
+
+    presale_address = Web3.toChecksumAddress(token['PINKSALE_PRESALE_ADDRESS'])
+    amount = token['BUYAMOUNTINBASE']
+    
+    # Let's store the nonce to accelerate Tx
+    nonce = client.eth.getTransactionCount(settings['WALLETADDRESS'])
+
+    # Let's calculate GAS to use
+    calculate_gas(token)
+    gas = token['_GAS_TO_USE']
+
+    # Let's pause until timestamp is reached
+    pause.until(int(token['PINKSALE_PRESALE_START_TIMESTAMP']))
+
+    #build the Tx once it's reached
+    tx = {
+        'nonce': nonce,
+        'to': presale_address,
+        'value': Web3.toWei(amount, 'ether'),
+        'gas': 1000000,
+        'gasPrice': Web3.toWei(gas, 'gwei'),
+        'data': '0xd7bb99ba'
+    }
+
+    #sign the transaction
+    signed_tx = client.eth.account.signTransaction(tx, private_key=settings['PRIVATEKEY'])
+    
+    #send transaction
+    tx_hash = client.eth.sendRawTransaction(signed_tx.rawTransaction)
+
+    #get transaction hash
+    printt("")
+    printt_ok("Tx has been made!", Web3.toHex(tx_hash))
+    printt("")
+    printt("Bot will now close. Enjoy your lambo!")
+    printt("")
+    sys.exit()
+
+
 def get_tokens_purchased(tx_hash):
     # Function: get_tokens_purchased
     # ----------------------------
@@ -3691,7 +3750,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
 
                 if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
     
-                    printt_debug("make_the_buy condition 3", write_to_log=True)
+                    printt_debug("make_the_buy condition 3 - EIP 1559", write_to_log=True)
                     
                     transaction = routerContract.functions.swapExactETHForTokens(
                         amountOutMin,
@@ -4903,7 +4962,7 @@ def sell(token_dict, inToken, outToken):
                         # HASFEES = true
                         if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet' or settings["EXCHANGE"].lower() == 'traderjoe' or settings["EXCHANGE"].lower() == 'pangolin':
                             # Special condition on Uniswap, to implement EIP-1559
-                            printt_debug("sell condition 12", write_to_log=True)
+                            printt_debug("sell condition 12 EIP 1559", write_to_log=True)
                             transaction = routerContract.functions.swapExactTokensForTokensSupportingFeeOnTransferTokens(
                                 amount,
                                 amountOutMin,
@@ -4942,7 +5001,7 @@ def sell(token_dict, inToken, outToken):
                         # HASFEES = false
                         if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet' or settings["EXCHANGE"].lower() == 'traderjoe' or settings["EXCHANGE"].lower() == 'traderjoe':
                             # Special condition on Uniswap, to implement EIP-1559
-                            printt_debug("sell condition 14", write_to_log=True)
+                            printt_debug("sell condition 14 EIP 1559", write_to_log=True)
                             transaction = routerContract.functions.swapExactTokensForTokens(
                                 amount,
                                 amountOutMin,
@@ -5036,7 +5095,7 @@ def sell(token_dict, inToken, outToken):
                         # HASFEES = false
                         if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet' or settings["EXCHANGE"].lower() == 'traderjoe' or settings["EXCHANGE"].lower() == 'pangolin':
                             # Special condition on Uniswap, to implement EIP-1559
-                            printt_debug("sell condition 18", write_to_log=True)
+                            printt_debug("sell condition 18 - EIP 1559", write_to_log=True)
                             transaction = routerContract.functions.swapExactTokensForTokens(
                                 amount,
                                 amountOutMin,
@@ -5176,6 +5235,8 @@ def run():
         for token in tokens:
     
             # tokens.json values logic control
+            #
+            
             if token['MULTIPLEBUYS'].lower() == 'true' and token['KIND_OF_SWAP'].lower() == 'tokens':
                 printt_err("MULTIPLEBUYS is only compatible with KIND_OF_SWAP = base... Sorry.")
                 sys.exit()
@@ -5192,7 +5253,9 @@ def run():
             if token['KIND_OF_SWAP'].lower() == 'tokens' and token['USECUSTOMBASEPAIR'] == 'true':
                 printt_err("Sorry, KIND_OF_SWAP = tokens is only available for USECUSTOMBASEPAIR = false. Exiting.")
                 sys.exit()
+            
             printt_debug("token['TRAILING_STOP_LOSS']:", token['TRAILING_STOP_LOSS'], "for token", token['_PAIR_SYMBOL'] )
+            
             if token['TRAILING_STOP_LOSS'] != 0:
                 if re.search('^(\d+\.){0,1}\d+%$', str(token['TRAILING_STOP_LOSS'])):
                     pass
@@ -5200,80 +5263,92 @@ def run():
                     printt_err("Please put an amount in % in TRAILING_STOP_LOSS value")
                     sleep(10)
                     sys.exit()
-
-            # Set the checksum addressed for the addresses we're working with
-            # _IN_TOKEN is the token you want to BUY (example : CAKE)
-            token['_IN_TOKEN'] = Web3.toChecksumAddress(token['ADDRESS'])
-    
-            # _OUT_TOKEN is the token you want to TRADE WITH (example : ETH or USDT)
-            if token['USECUSTOMBASEPAIR'] == 'true':
-                token['_OUT_TOKEN'] = Web3.toChecksumAddress(token['BASEADDRESS'])
-            else:
-                token['_OUT_TOKEN'] = weth
-    
-            # Calculate contract / custom base pair / weth decimals
-            printt_debug("Pre-calculations for token:", token['ADDRESS'], ": Gas / Decimals / Balance / RugDoc check")
+                    
+            if token['WAIT_FOR_OPEN_TRADE'] == 'pinksale_not_started' and token['KIND_OF_SWAP'].lower() != 'base':
+                printt_err("PINKSALE sniping is only compatible with KIND_OF_SWAP = base")
+                sleep(10)
+                sys.exit()
             
-            token['_CONTRACT_DECIMALS'] = int(decimals(token['ADDRESS']))
-            printt_debug("token['_CONTRACT_DECIMALS']:", token['_CONTRACT_DECIMALS'])
+            #
+            # end of tokens.json values logic control
 
-            # Calculates _BASE_DECIMALS
-            if token['USECUSTOMBASEPAIR'] == 'true':
-                token['_BASE_DECIMALS'] = int(decimals(token['BASEADDRESS']))
-            else:
-                token['_BASE_DECIMALS'] = int(decimals(weth))
-            printt_debug("token['_BASE_DECIMALS']    :", token['_BASE_DECIMALS'])
-           
-            # Calculates _LIQUIDITY_DECIMALS
-            if token['USECUSTOMBASEPAIR'] == 'true' and token['LIQUIDITYINNATIVETOKEN'] == 'false':
-                token['_LIQUIDITY_DECIMALS'] = int(decimals(token['BASEADDRESS']))
-            else:
-                token['_LIQUIDITY_DECIMALS'] = int(decimals(weth))
-            printt_debug("token['_LIQUIDITY_DECIMALS']    :", token['_LIQUIDITY_DECIMALS'])
-
-            # Calculates _WETH_DECIMALS
-            token['_WETH_DECIMALS'] = int(decimals(weth))
-            printt_debug("token['_WETH_DECIMALS']    :", token['_WETH_DECIMALS'])
-            
-            # Calculate base price
-            token['_BASE_PRICE'] = calculate_base_price()
-          
-            # Calculate sell price
-            # If _COST_PER_TOKEN ==0, it means the bot did not buy token yet --> before_buy condition
-            if token['_COST_PER_TOKEN'] == 0 :
-                build_sell_conditions(token, 'before_buy', 'show_message')
-            else:
-                build_sell_conditions(token, 'after_buy', 'show_message')
+            # If we just want to snipe a Pinksale listing, we bypass all the pre-checks
+            if token['WAIT_FOR_OPEN_TRADE'] != 'pinksale_not_started':
                 
-            # Determine token name + base symbol to display
-            if token['USECUSTOMBASEPAIR'] == 'true':
-                token['_PAIR_TO_DISPLAY'] = token['SYMBOL'] + "/" + token['BASESYMBOL']
-            else:
-                token['_PAIR_TO_DISPLAY'] = token['SYMBOL'] + "/" + base_symbol
-
-            # Check to see if we have any tokens in our wallet already
-            token['_TOKEN_BALANCE'] = check_balance(token['ADDRESS'], token['SYMBOL'], display_quantity=False) / token['_CONTRACT_DECIMALS']
-            token['_PREVIOUS_TOKEN_BALANCE'] = token['_TOKEN_BALANCE']
-            if token['_TOKEN_BALANCE'] > 0:
-                printt("")
-                printt("Your wallet already owns : ", token['_TOKEN_BALANCE'], token['SYMBOL'], write_to_log=True)
-                if token['_TOKEN_BALANCE'] >= float(token['MAXTOKENS']):
-                    token['_REACHED_MAX_TOKENS'] = True
-                    printt_warn("You have reached MAXTOKENS for token ", token['SYMBOL'], "--> bot stops to buy", write_to_log=True)
-                    printt("")
+                # Set the checksum addressed for the addresses we're working with
+                # _IN_TOKEN is the token you want to BUY (example : CAKE)
+                token['_IN_TOKEN'] = Web3.toChecksumAddress(token['ADDRESS'])
+        
+                # _OUT_TOKEN is the token you want to TRADE WITH (example : ETH or USDT)
+                if token['USECUSTOMBASEPAIR'] == 'true':
+                    token['_OUT_TOKEN'] = Web3.toChecksumAddress(token['BASEADDRESS'])
                 else:
-                    token['_REACHED_MAX_TOKENS'] = False
-
-            # Calculate balances prior to buy() to accelerate buy()
-            calculate_base_balance(token)
-            
-            # Calculate how much gas we should use for this token
-            calculate_gas(token)
-            
-            # Call of RugDoc API if parameter is set to True
-            if token['RUGDOC_CHECK'] == 'true':
-                check_rugdoc_api(token)
+                    token['_OUT_TOKEN'] = weth
+        
+                # Calculate contract / custom base pair / weth decimals
+                printt_debug("Pre-calculations for token:", token['ADDRESS'], ": Gas / Decimals / Balance / RugDoc check")
                 
+                token['_CONTRACT_DECIMALS'] = int(decimals(token['ADDRESS']))
+                printt_debug("token['_CONTRACT_DECIMALS']:", token['_CONTRACT_DECIMALS'])
+    
+                # Calculates _BASE_DECIMALS
+                if token['USECUSTOMBASEPAIR'] == 'true':
+                    token['_BASE_DECIMALS'] = int(decimals(token['BASEADDRESS']))
+                else:
+                    token['_BASE_DECIMALS'] = int(decimals(weth))
+                printt_debug("token['_BASE_DECIMALS']    :", token['_BASE_DECIMALS'])
+               
+                # Calculates _LIQUIDITY_DECIMALS
+                if token['USECUSTOMBASEPAIR'] == 'true' and token['LIQUIDITYINNATIVETOKEN'] == 'false':
+                    token['_LIQUIDITY_DECIMALS'] = int(decimals(token['BASEADDRESS']))
+                else:
+                    token['_LIQUIDITY_DECIMALS'] = int(decimals(weth))
+                printt_debug("token['_LIQUIDITY_DECIMALS']    :", token['_LIQUIDITY_DECIMALS'])
+    
+                # Calculates _WETH_DECIMALS
+                token['_WETH_DECIMALS'] = int(decimals(weth))
+                printt_debug("token['_WETH_DECIMALS']    :", token['_WETH_DECIMALS'])
+                
+                # Calculate base price
+                token['_BASE_PRICE'] = calculate_base_price()
+              
+                # Calculate sell price
+                # If _COST_PER_TOKEN ==0, it means the bot did not buy token yet --> before_buy condition
+                if token['_COST_PER_TOKEN'] == 0 :
+                    build_sell_conditions(token, 'before_buy', 'show_message')
+                else:
+                    build_sell_conditions(token, 'after_buy', 'show_message')
+                    
+                # Determine token name + base symbol to display
+                if token['USECUSTOMBASEPAIR'] == 'true':
+                    token['_PAIR_TO_DISPLAY'] = token['SYMBOL'] + "/" + token['BASESYMBOL']
+                else:
+                    token['_PAIR_TO_DISPLAY'] = token['SYMBOL'] + "/" + base_symbol
+    
+                # Check to see if we have any tokens in our wallet already
+                token['_TOKEN_BALANCE'] = check_balance(token['ADDRESS'], token['SYMBOL'], display_quantity=False) / token['_CONTRACT_DECIMALS']
+                token['_PREVIOUS_TOKEN_BALANCE'] = token['_TOKEN_BALANCE']
+                if token['_TOKEN_BALANCE'] > 0:
+                    printt("")
+                    printt("Your wallet already owns : ", token['_TOKEN_BALANCE'], token['SYMBOL'], write_to_log=True)
+                    if token['_TOKEN_BALANCE'] >= float(token['MAXTOKENS']):
+                        token['_REACHED_MAX_TOKENS'] = True
+                        printt_warn("You have reached MAXTOKENS for token ", token['SYMBOL'], "--> bot stops to buy", write_to_log=True)
+                        printt("")
+                    else:
+                        token['_REACHED_MAX_TOKENS'] = False
+    
+                # Calculate balances prior to buy() to accelerate buy()
+                calculate_base_balance(token)
+
+                # Calculate GAS to use
+                calculate_gas(token)
+
+                # Call of RugDoc API if parameter is set to True
+                if token['RUGDOC_CHECK'] == 'true':
+                    check_rugdoc_api(token)
+                
+            
         load_token_file_increment = 0
         tokens_file_modified_time = os.path.getmtime(command_line_args.tokens)
         first_liquidity_check = True
@@ -5336,7 +5411,7 @@ def run():
                     #
                     printt_debug("token['_LIQUIDITY_READY']:", token['_LIQUIDITY_READY'], "for token :", token['SYMBOL'])
                     
-                    if token['_LIQUIDITY_READY'] == False:
+                    if token['_LIQUIDITY_READY'] == False and token['WAIT_FOR_OPEN_TRADE'] != 'pinksale_not_started':
                         try:
                             if token['LIQUIDITYINNATIVETOKEN'] == 'true':
                                 #       Case 1/ LIQUIDITYINNATIVETOKEN = true  --> we will snipe using ETH / BNB liquidity --> we use check_pool with weth
@@ -5368,12 +5443,16 @@ def run():
                     #    need to use later
                     #
                     
-                    # If user has chose BUY_THE_DIP option :
+                    # If user has chosen BUY_THE_DIP option :
                     #   1/ Let's store the listing quote, to make "BUY_THE_DIP" function work
                     #   2/ Let's switch to "BUY_THE_DIP" mode
                     
                     if token['BUYPRICEINBASE'] == 'BUY_THE_DIP' and token['_PREVIOUS_QUOTE'] == 0:
                         buy_the_dip_mode(token, token['_IN_TOKEN'], token['_OUT_TOKEN'])
+                    
+                    # If user wants to snipe Pinksale listing before it started:
+                    if token['WAIT_FOR_OPEN_TRADE'] == 'pinksale_not_started':
+                        pinksale_snipe_mode(token)
 
                     token['_PREVIOUS_QUOTE'] = token['_QUOTE']
                     
