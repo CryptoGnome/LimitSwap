@@ -5273,6 +5273,20 @@ def run():
                     sleep(10)
                     sys.exit()
                     
+            if re.search('[0-9]+', str(token['SELLPRICEINBASE'])):
+                pass
+            else:
+                printt_err("Please put: 1/ an number, or 2/ a number in %, in SELLPRICEINBASE value")
+                sleep(10)
+                sys.exit()
+                
+            if re.search('[0-9]+', str(token['STOPLOSSPRICEINBASE'])):
+                pass
+            else:
+                printt_err("Please put: 1/ an number, or 2/ a number in %, in STOPLOSSPRICEINBASE value")
+                sleep(10)
+                sys.exit()
+                    
             if token['WAIT_FOR_OPEN_TRADE'] == 'pinksale_not_started' and token['KIND_OF_SWAP'].lower() != 'base':
                 printt_err("PINKSALE sniping is only compatible with KIND_OF_SWAP = base")
                 sleep(10)
