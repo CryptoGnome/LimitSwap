@@ -2922,7 +2922,7 @@ def buy_the_dip_mode(token, inToken, outToken):
         if token['_QUOTE'] > (token['_ALL_TIME_HIGH']*0.5) and token['_BUY_THE_DIP_ACTIVE'] == False :
             printt(f"BUY THE DIP | Token price = {token['_QUOTE']:.10g} | ATH = {token['_ALL_TIME_HIGH']:.10g} | Target Price = 50% of ATH = {token['_ALL_TIME_HIGH']*0.5:.10g}")
             
-        elif token['_QUOTE'] <= (token['_ALL_TIME_HIGH']/2) :
+        elif token['_QUOTE'] <= (token['_ALL_TIME_HIGH']*0.5) :
             token['_BUY_THE_DIP_ACTIVE'] = True
 
             # Update ATL if Price < previous ATL
