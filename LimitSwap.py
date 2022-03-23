@@ -281,24 +281,24 @@ def printt_sell_price(token_dict, token_price):
     printt_debug("_PREVIOUS_QUOTE :", token_dict['_PREVIOUS_QUOTE'], "for token:", token_dict['SYMBOL'])
     
     if token_dict['USECUSTOMBASEPAIR'] == 'false':
-        price_message = f'{token_dict["_PAIR_SYMBOL"]} Price: {token_price:.24f} {base_symbol} - Buy: {token_dict["BUYPRICEINBASE"]:.6g}'
+        price_message = f'{token_dict["_PAIR_SYMBOL"]} Price: {token_price:.24f} {base_symbol} | Buy: {token_dict["BUYPRICEINBASE"]:.6g}'
     
     else:
-        price_message = f'{token_dict["_PAIR_SYMBOL"]} Price: {token_price:.24f} {token_dict["BASESYMBOL"]} - Buy: {token_dict["BUYPRICEINBASE"]:.6g}'
+        price_message = f'{token_dict["_PAIR_SYMBOL"]} Price: {token_price:.24f} {token_dict["BASESYMBOL"]} | Buy: {token_dict["BUYPRICEINBASE"]:.6g}'
 
-    price_message = f'{price_message} Sell: {token_dict["_CALCULATED_SELLPRICEINBASE"]:.6g} Stop: {token_dict["_CALCULATED_STOPLOSSPRICEINBASE"]:.6g}'
+    price_message = f'{price_message} | Sell: {token_dict["_CALCULATED_SELLPRICEINBASE"]:.6g} | Stop: {token_dict["_CALCULATED_STOPLOSSPRICEINBASE"]:.6g}'
     # price_message = price_message + " ATH:" + "{0:.24f}".format(token_dict['_ALL_TIME_HIGH']) + " ATL:" + "{0:.24f}".format(token_dict['_ALL_TIME_LOW'])
 
     if token_dict['TRAILING_STOP_LOSS'] != 0:
-        price_message = f'{price_message} TrailingStop: {token_dict["_TRAILING_STOP_LOSS_PRICE"]:.6g}'
+        price_message = f'{price_message} | TrailingStop: {token_dict["_TRAILING_STOP_LOSS_PRICE"]:.6g}'
 
     if token_dict['USECUSTOMBASEPAIR'] == 'false':
-        price_message = f'{price_message} - Token balance: {token_dict["_TOKEN_BALANCE"]:.4f} (= {float(token_price) * float(token_dict["_BASE_PRICE"]) * float(token_dict["_TOKEN_BALANCE"]):.2f} $)'
+        price_message = f'{price_message} | Token balance: {token_dict["_TOKEN_BALANCE"]:.4f} (= {float(token_price) * float(token_dict["_BASE_PRICE"]) * float(token_dict["_TOKEN_BALANCE"]):.2f} $)'
     else:
-        price_message = f'{price_message} - Token balance: {token_dict["_TOKEN_BALANCE"]:.4f} (= {float(token_price) * float(token_dict["_TOKEN_BALANCE"]):.2f} {token_dict["BASESYMBOL"]})'
+        price_message = f'{price_message} | Token balance: {token_dict["_TOKEN_BALANCE"]:.4f} (= {float(token_price) * float(token_dict["_TOKEN_BALANCE"]):.2f} {token_dict["BASESYMBOL"]})'
 
     if token_dict['_REACHED_MAX_TOKENS'] == True:
-        price_message = f'{price_message}\033[31m - MAXTOKENS reached \033[0m'
+        price_message = f'{price_message}\033[31m | MAXTOKENS reached \033[0m'
 
     if price_message == token_dict['_LAST_PRICE_MESSAGE'] and settings['VERBOSE_PRICING'] == 'false':
         bot_settings['_NEED_NEW_LINE'] = False
@@ -2566,7 +2566,7 @@ def check_approval(token, address, allowance_to_compare_with, condition):
 
 def check_bnb_balance():
     balance = client.eth.getBalance(settings['WALLETADDRESS'])
-    printt("Current Wallet Balance is :", Web3.fromWei(balance, 'ether'), base_symbol, write_to_log=True)
+    printt("Current Wallet Balance is: ", Web3.fromWei(balance, 'ether'), base_symbol, write_to_log=True)
     return balance
 
 
@@ -2897,8 +2897,8 @@ def buy_the_dip_mode(token, inToken, outToken):
     printt("-----------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
     printt("BUY_THE_DIP mode is enabled", write_to_log=True)
     printt("", write_to_log=True)
-    printt("Bot will wait for the price to reach 50% of listing price", write_to_log=True)
-    printt("Then wait for price to rise 20% again to buy", write_to_log=True)
+    printt("- Bot will wait for the price to reach 50% of ATH (All-Time-High)", write_to_log=True)
+    printt("- Then wait for price to rise 20% again to buy", write_to_log=True)
     printt("", write_to_log=True)
     printt("--> it will make you buy 20% above the dip :)", write_to_log=True)
     printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
@@ -2908,27 +2908,33 @@ def buy_the_dip_mode(token, inToken, outToken):
     # Let's instantiate All-Time Low (ATL) and Listing price
     token['_QUOTE'] = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], int(token['_CONTRACT_DECIMALS']), int(token['_BASE_DECIMALS']))
 
-    token['_LISTING_QUOTE'] = token['_QUOTE']
+    token['_ALL_TIME_HIGH'] = token['_QUOTE']
     token['_ALL_TIME_LOW'] = token['_QUOTE']
 
     while buy_the_dip == False:
         
         token['_QUOTE'] = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], int(token['_CONTRACT_DECIMALS']), int(token['_BASE_DECIMALS']))
-        
-        if token['_QUOTE'] > (token['_LISTING_QUOTE']/2) and token['_BUY_THE_DIP_ACTIVE'] == False :
-            printt(f"BUY THE DIP MODE - Token price = {token['_QUOTE']:.10g} - Price target (50% of listing price) = {token['_LISTING_QUOTE']/2:.10g}")
+
+        # Update ATH if Price > previous ATH
+        if token['_QUOTE'] > token['_ALL_TIME_HIGH']:
+            token['_ALL_TIME_HIGH'] = token['_QUOTE']
+
+        if token['_QUOTE'] > (token['_ALL_TIME_HIGH']*0.5) and token['_BUY_THE_DIP_ACTIVE'] == False :
+            printt(f"BUY THE DIP | Token price = {token['_QUOTE']:.10g} | ATH = {token['_ALL_TIME_HIGH']:.10g} | Target Price = 50% of ATH = {token['_ALL_TIME_HIGH']*0.5:.10g}")
             
-        elif token['_QUOTE'] <= (token['_LISTING_QUOTE']/2) :
+        elif token['_QUOTE'] <= (token['_ALL_TIME_HIGH']/2) :
             token['_BUY_THE_DIP_ACTIVE'] = True
 
+            # Update ATL if Price < previous ATL
             if token['_QUOTE'] < token['_ALL_TIME_LOW']:
                 token['_ALL_TIME_LOW'] = token['_QUOTE']
 
-            printt(f"READY TO BUY - Token price = {token['_QUOTE']:.10g} < 50% of listing price // All-Time Low = {token['_ALL_TIME_LOW']:.10g} // Target Price = 120% ATL = {token['_ALL_TIME_LOW']*1.2:.10g}")
+            printt(f"READY TO BUY | Token price = {token['_QUOTE']:.10g} | All-Time Low = {token['_ALL_TIME_LOW']:.10g} | Target Price = 120% ATL = {token['_ALL_TIME_LOW']*1.2:.10g}")
 
         if token['_BUY_THE_DIP_ACTIVE'] == True and token['_QUOTE'] > token['_ALL_TIME_LOW']*1.2:
             token["BUYPRICEINBASE"] = token['_ALL_TIME_LOW']*1.2
-            printt_ok("BUY THE DIP MODE - LET'S BUY !")
+            printt_ok("")
+            printt_ok("BUY THE DIP target reached : LET'S BUY !")
             buy_the_dip = True
             break
 
