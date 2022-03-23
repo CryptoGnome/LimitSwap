@@ -95,8 +95,7 @@ signal.signal(signal.SIGINT, signal_handler)
 
 
 def timestamp():
-    timestamp = time()
-    dt_object = datetime.fromtimestamp(timestamp)
+    dt_object = datetime.now().strftime('%m-%d %H:%M:%S.%f')
     return dt_object
 
 
@@ -2542,6 +2541,10 @@ def check_approval(token, address, allowance_to_compare_with, condition):
             elif condition == 'txfail':
                 printt_info("----------------------------------------------------------------------------------")
                 printt_info("You have failed to sell tokens --> LimitSwap will check if it needs to be APPROVED")
+                printt_info("----------------------------------------------------------------------------------")
+            elif condition == 'instant':
+                printt_info("----------------------------------------------------------------------------------")
+                printt_info("You have selected PREAPPROVE = instant --> LimitSwap will now APPROVE this token")
                 printt_info("----------------------------------------------------------------------------------")
             else:
                 printt_info("-------------------------------------")
@@ -5343,6 +5346,10 @@ def run():
 
                 # Calculate GAS to use
                 calculate_gas(token)
+
+                # if user has chose the option "instant", token is approved at bot launch.
+                if settings['PREAPPROVE'] == 'instant':
+                    check_approval(token, token['ADDRESS'], token['_TOKEN_BALANCE'] * token['_CONTRACT_DECIMALS'], 'instant')
 
                 # Call of RugDoc API if parameter is set to True
                 if token['RUGDOC_CHECK'] == 'true':
