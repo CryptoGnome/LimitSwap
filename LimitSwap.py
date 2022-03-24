@@ -2260,10 +2260,8 @@ def check_price(inToken, outToken, custom, routing, DECIMALS_IN, DECIMALS_OUT):
         if outToken != weth:
             # LIQUIDITYINNATIVETOKEN = false
             # USECUSTOMBASEPAIR = true and token put in BASEADDRESS is different from WBNB / WETH
-            printt_debug(f'inToken: {inToken}')
-            printt_debug(f'outToken: {outToken}')
             price_check = routerContract.functions.getAmountsOut(1 * DECIMALS_IN, [inToken, outToken]).call()[-1]
-            printt_debug(f'price_check3: {price_check:.18f}')
+            printt_debug("price_check3: ", price_check)
             tokenPrice = price_check / DECIMALS_OUT
         else:
             # LIQUIDITYINNATIVETOKEN = false
