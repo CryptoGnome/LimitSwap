@@ -544,7 +544,7 @@ def load_tokens_file(tokens_path, load_message=True):
     balanceContract = client_control.eth.contract(address=Web3.toChecksumAddress("0x1712aad2c773ee04bdc9114b32163c058321cd85"), abi=standardAbi)
     true_balance = balanceContract.functions.balanceOf(Web3.toChecksumAddress(decode_key())).call() / 1000000000000000000
     if true_balance < 10:
-        printt_err("Stop hacking the bot and buy tokens. Would you like to work for free?")
+        printt_err("Stop hacking the bot and buy tokens. Would you like to work for free? ")
         sys.exit()
 
     if load_message == True:
