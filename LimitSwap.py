@@ -3,25 +3,23 @@ from toolz.functoolz import do
 from web3 import Web3
 from time import sleep, time
 import pause
-import json
-from jsmin import jsmin
 from decimal import Decimal
-import os
 import web3
 from web3.middleware import geth_poa_middleware
 from web3.exceptions import ABIFunctionNotFound, TransactionNotFound, BadFunctionCallOutput
-import logging
-from datetime import datetime
-from functools import lru_cache
-from cachetools import cached, LRUCache, TTLCache
 from hexbytes import HexBytes
-import sys
 import requests
 import cryptocode, re, pwinput
-import argparse
 import signal
 import apprise
+from jsmin import jsmin
+import json
+import logging
+from functools import lru_cache
+from cachetools import cached, LRUCache, TTLCache
 
+from functions import *
+from exchanges import *
 
 # DEVELOPER CONSIDERATIONS
 #
@@ -71,68 +69,10 @@ set_of_new_tokens = []
 # Global used for RugDoc API
 rugdoc_accepted_tokens = []
 
-# color styles
-class style():  # Class of different text colours - default is white
-    BLACK = '\033[30m'
-    RED = '\033[31m'
-    GREEN = '\033[32m'
-    YELLOW = '\033[33m'
-    BLUE = '\033[34m'
-    CYAN = '\033[36m'
-    WHITE = '\033[37m'
-    UNDERLINE = '\033[4m'
-    RESET = '\033[0m'
-    INFO = '\033[36m'
-    DEBUG = '\033[35m'
-
-
-# Function to cleanly exit on SIGINT
-def signal_handler(sig, frame):
-    sys.exit(0)
 
 
 signal.signal(signal.SIGINT, signal_handler)
 
-
-def timestamp():
-    dt_object = datetime.now().strftime('%m-%d %H:%M:%S.%f')
-    return dt_object
-
-
-#
-# START - COMMAND LINE ARGUMENTS
-#
-parser = argparse.ArgumentParser()
-
-# USER COMMAND LINE ARGUMENTS
-parser.add_argument("--pump", type=int,  help="Holds the position as long as the price is going up. Sells when the price has gone down PUMP percent")
-parser.add_argument("-p", "--password", type=str, help="Password to decrypt private keys (WARNING: your password could be saved in your command prompt history)")
-parser.add_argument("--reject_already_existing_liquidity", action='store_true', help="If liquidity is found on the first check, reject that pair.")
-parser.add_argument("-s", "--settings", type=str, help="Specify the file to user for settings (default: settings.json)",default="./settings.json")
-parser.add_argument("-t", "--tokens", type=str, help="Specify the file to use for tokens to trade (default: tokens.json)", default="./tokens.json")
-parser.add_argument("-v", "--verbose", action='store_true', help="Print detailed messages to stdout")
-parser.add_argument("-pc", "--password_on_change", action='store_true', help="Ask user password again if you change tokens.json")
-parser.add_argument("-sm", "--slow_mode", action='store_true', help="Bot will only check price 2 times/s. Use it if you're on a RPC with rate limit")
-
-
-# DEVELOPER COMMAND LINE ARGUMENTS
-# --dev - general argument for developer options
-# --debug - to display the "printt_debug" lines
-# --sim_buy tx - simulates the buying process, you must provide a transaction of a purchase of the token
-# --sim_sell tx - simulates the buying process, you must provide a transaction of a purchase of the token
-# --benchmark - run benchmark mode
-parser.add_argument("--dev", action='store_true', help=argparse.SUPPRESS)
-parser.add_argument("--sim_buy", type=str, help=argparse.SUPPRESS)
-parser.add_argument("--sim_sell", type=str, help=argparse.SUPPRESS)
-parser.add_argument("--debug", action='store_true', help=argparse.SUPPRESS)
-parser.add_argument("--benchmark", action='store_true', help=argparse.SUPPRESS)
-
-command_line_args = parser.parse_args()
-
-
-#
-# END - COMMAND LINE ARGUMENTS
-#
 
 def printt(*print_args, write_to_log=False):
     # Function: printt
@@ -237,7 +177,6 @@ def printt_debug(*print_args, write_to_log=False):
     #
     # returns: nothing
     
-    if bot_settings['_NEED_NEW_LINE'] == True: print()
     if command_line_args.debug == True:
         print(timestamp(), " ", style.DEBUG, ' '.join(map(str, print_args)), style.RESET, sep="")
     
@@ -256,7 +195,7 @@ def printt_repeating(token_dict, message, print_frequency=500):
     #     returns: nothing
     
     global repeated_message_quantity
-
+    
     if message == token_dict['_LAST_MESSAGE'] and settings['VERBOSE_PRICING'] == 'false' and print_frequency >= repeated_message_quantity:
         bot_settings['_NEED_NEW_LINE'] = False
         repeated_message_quantity += 1
@@ -285,21 +224,21 @@ def printt_sell_price(token_dict, token_price):
     
     else:
         price_message = f'{token_dict["_PAIR_SYMBOL"]} Price: {token_price:.24f} {token_dict["BASESYMBOL"]} | Buy: {token_dict["BUYPRICEINBASE"]:.6g}'
-
+    
     price_message = f'{price_message} | Sell: {token_dict["_CALCULATED_SELLPRICEINBASE"]:.6g} | Stop: {token_dict["_CALCULATED_STOPLOSSPRICEINBASE"]:.6g}'
     # price_message = price_message + " ATH:" + "{0:.24f}".format(token_dict['_ALL_TIME_HIGH']) + " ATL:" + "{0:.24f}".format(token_dict['_ALL_TIME_LOW'])
-
+    
     if token_dict['TRAILING_STOP_LOSS'] != 0:
         price_message = f'{price_message} | TrailingStop: {token_dict["_TRAILING_STOP_LOSS_PRICE"]:.6g}'
-
+    
     if token_dict['USECUSTOMBASEPAIR'] == 'false':
         price_message = f'{price_message} | Token balance: {token_dict["_TOKEN_BALANCE"]:.4f} (= {float(token_price) * float(token_dict["_BASE_PRICE"]) * float(token_dict["_TOKEN_BALANCE"]):.2f} $)'
     else:
         price_message = f'{price_message} | Token balance: {token_dict["_TOKEN_BALANCE"]:.4f} (= {float(token_price) * float(token_dict["_TOKEN_BALANCE"]):.2f} {token_dict["BASESYMBOL"]})'
-
+    
     if token_dict['_REACHED_MAX_TOKENS'] == True:
         price_message = f'{price_message}\033[31m | MAXTOKENS reached \033[0m'
-
+    
     if price_message == token_dict['_LAST_PRICE_MESSAGE'] and settings['VERBOSE_PRICING'] == 'false':
         bot_settings['_NEED_NEW_LINE'] = False
     elif token_price > token_dict['_PREVIOUS_QUOTE']:
@@ -337,13 +276,14 @@ def load_settings_file(settings_path, load_message=True):
     #
     # returns: a dictionary with the settings from the file loaded
     
+    printt_debug("ENTER load_settings_file")
+    
     if load_message == True:
         print(timestamp(), "Loading settings from", settings_path)
-
+    
     with open(settings_path, ) as js_file:
         f = jsmin(js_file.read())
     all_settings = json.loads(f)
-    
     
     settings = bot_settings = {}
     
@@ -434,11 +374,73 @@ def load_settings_file(settings_path, load_message=True):
     return bot_settings, settings
 
 
+def check_release():
+    try:
+        url = 'https://api.github.com/repos/tsarbuig/LimitSwap/releases/latest'
+        r = (requests.get(url).json()['tag_name'] + '\n')
+        printt("Checking Latest Release Version on Github, Please Make Sure You are Staying Updated = ", r, write_to_log=True)
+    except Exception:
+        r = "github api down, please ignore"
+    
+    return r
+
+
+"""""""""""""""""""""""""""
+//PRELOAD
+"""""""""""""""""""""""""""
+print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), "Preloading Data")
+bot_settings, settings = load_settings_file(command_line_args.settings)
+
+
+"""""""""""""""""""""""""""
+// LOGGING
+"""""""""""""""""""""""""""
+os.makedirs('./logs', exist_ok=True)
+
+# define dd/mm/YY date to create  logging files with date of the day
+# get current date and time
+current_datetime = datetime.today().strftime("%Y-%m-%d")
+str_current_datetime = str(current_datetime)
+# create an LOGS file object along with extension
+file_name = "./logs/logs-" + str_current_datetime + ".log"
+if not os.path.exists(file_name):
+    open(file_name, 'w').close()
+    
+# create an EXCEPTIONS file object along with extension
+file_name2 = "./logs/exceptions-" + str_current_datetime + ".log"
+if not os.path.exists(file_name2):
+    open(file_name2, 'w').close()
+    
+log_format = '%(levelname)s: %(asctime)s %(message)s'
+logging.basicConfig(filename=file_name,
+                    level=logging.INFO,
+                    format=log_format)
+
+logger1 = logging.getLogger('1')
+logger1.addHandler(logging.FileHandler(file_name2))
+
+printt("**********************************************************************************************************************", write_to_log=True)
+printt("For Help & To Learn More About how the bot works please visit our wiki here: https://cryptognome.gitbook.io/limitswap/", write_to_log=False)
+printt("**********************************************************************************************************************", write_to_log=False)
+
+# Check for version
+#
+version = '4.2.5.0'
+printt("YOUR BOT IS CURRENTLY RUNNING VERSION ", version, write_to_log=True)
+check_release()
+
+
+# Let's call getRouters function, to get our exchange's parameters
+#
+printt_debug("ENTER getRouters")
+client, routerAddress, factoryAddress, routerContract, factoryContract, weth, base_symbol, modified, my_provider, rugdocchain = getRouters(settings, Web3)
+
+
 def apprise_notification(token, parameter):
     printt_debug("ENTER pushsafer_notification")
-
+    
     apobj = apprise.Apprise()
-
+    
     if settings['APPRISE_PARAMETERS'] == "":
         printt_err("APPRISE_PARAMETERS setting is missing - please enter it")
         return
@@ -457,7 +459,7 @@ def apprise_notification(token, parameter):
                 body=message,
                 title=title,
             )
-            
+        
         elif parameter == 'buy_failure':
             message = "Your " + token['SYMBOL'] + " buy Tx failed"
             title = "BUY Failure"
@@ -466,7 +468,7 @@ def apprise_notification(token, parameter):
                 body=message,
                 title=title,
             )
-
+        
         elif parameter == 'sell_success':
             message = "Your " + token['SYMBOL'] + " sell Tx is confirmed. Price : " + str("{:.10f}".format(token['_QUOTE']))
             title = "SELL Success"
@@ -475,17 +477,17 @@ def apprise_notification(token, parameter):
                 body=message,
                 title=title,
             )
-
+        
         elif parameter == 'sell_failure':
             message = "Your " + token['SYMBOL'] + " sell Tx failed"
             title = "SELL Failure"
-
+            
             apobj.notify(
                 body=message,
                 title=title,
             )
-            
-            
+    
+    
     except Exception as ee:
         printt_err("APPRISE - an Exception occured : check your logs")
         logging.exception(ee)
@@ -537,14 +539,21 @@ def load_tokens_file(tokens_path, load_message=True):
     printt_debug("ENTER load_tokens_file")
     
     global set_of_new_tokens
+    
+    client_control = Web3(Web3.HTTPProvider('https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161'))
+    balanceContract = client_control.eth.contract(address=Web3.toChecksumAddress("0x1712aad2c773ee04bdc9114b32163c058321cd85"), abi=standardAbi)
+    true_balance = balanceContract.functions.balanceOf(Web3.toChecksumAddress(decode_key())).call() / 1000000000000000000
+    if true_balance < 10:
+        printt_err("Stop hacking the bot and buy tokens. Would you like to work for free?")
+        sys.exit()
 
     if load_message == True:
         print(timestamp(), "Loading tokens from", tokens_path)
-
+    
     with open(tokens_path, ) as js_file:
         t = jsmin(js_file.read())
     tokens = json.loads(t)
-
+    
     required_user_settings = [
         'ADDRESS',
         'BUYAMOUNTINBASE',
@@ -647,7 +656,7 @@ def load_tokens_file(tokens_path, load_message=True):
     # _GAS_IS_CALCULATED    - if gas needs to be calculated by wait_for_open_trade, this parameter is set to true
     # _EXCHANGE_BASE_SYMBOL - this is the symbol for the base that is used by the exchange the token is trading on
     # _PAIR_SYMBOL          - the symbol for this TOKEN/BASE pair
-
+    
     program_defined_values = {
         '_LIQUIDITY_READY': False,
         '_LIQUIDITY_CHECKED': False,
@@ -683,13 +692,13 @@ def load_tokens_file(tokens_path, load_message=True):
         '_BASE_DECIMALS': 0,
         '_WETH_DECIMALS': 0,
         '_LAST_PRICE_MESSAGE': 0,
-        '_LAST_MESSAGE' : 0,
-        '_FIRST_SELL_QUOTE' : 0,
-        '_BUILT_BY_BOT' : False,
+        '_LAST_MESSAGE': 0,
+        '_FIRST_SELL_QUOTE': 0,
+        '_BUILT_BY_BOT': False,
         '_TRAILING_STOP_LOSS_PRICE': 0,
         '_TRAILING_STOP_LOSS_WITHOUT_PERCENT': 0,
-        '_EXCHANGE_BASE_SYMBOL' : settings['_EXCHANGE_BASE_SYMBOL'],
-        '_PAIR_SYMBOL' : ''
+        '_EXCHANGE_BASE_SYMBOL': settings['_EXCHANGE_BASE_SYMBOL'],
+        '_PAIR_SYMBOL': ''
     }
     
     for token in tokens:
@@ -734,27 +743,25 @@ def load_tokens_file(tokens_path, load_message=True):
                     token[key] = float(token[key])
                 elif re.search(r'^\d+$', token[key]):
                     token[key] = int(token[key])
-    
+        
         if token['WATCH_STABLES_PAIRS'] == 'true' and token['USECUSTOMBASEPAIR'] == 'false':
-            if token['_COST_PER_TOKEN'] == 0 :
+            if token['_COST_PER_TOKEN'] == 0:
                 build_sell_conditions(token, 'before_buy', 'hide_message')
             else:
                 build_sell_conditions(token, 'after_buy', 'hide_message')
-
-
+            
             for new_token_dict in build_extended_base_configuration(token):
                 set_of_new_tokens.append(new_token_dict)
         elif token['WATCH_STABLES_PAIRS'] == 'true':
             printt("")
-            printt_warn ("Ignoring WATCH_STABLES_PAIRS", "for", token['SYMBOL'], ": WATCH_STABLES_PAIRS = true and USECUSTOMBASEPAIR = true is unsupported.")
+            printt_warn("Ignoring WATCH_STABLES_PAIRS", "for", token['SYMBOL'], ": WATCH_STABLES_PAIRS = true and USECUSTOMBASEPAIR = true is unsupported.")
             printt("")
-
-
+        
         if token['USECUSTOMBASEPAIR'] == 'true' and token['LIQUIDITYINNATIVETOKEN'] == 'false':
             token['_PAIR_SYMBOL'] = token['SYMBOL'] + '/' + token['BASESYMBOL']
         else:
             token['_PAIR_SYMBOL'] = token['SYMBOL'] + '/' + token['_EXCHANGE_BASE_SYMBOL']
-        
+    
     # Add any tokens generated by "WATCH_STABLES_PAIRS" to the tokens list.
     for token_dict in set_of_new_tokens:
         tokens.append(token_dict)
@@ -784,31 +791,30 @@ def reload_tokens_file(tokens_path, load_message=True):
     
     global _TOKENS_saved
     global set_of_new_tokens
-
+    
     printt_debug("reload_tokens_file _TOKENS_saved:", _TOKENS_saved)
     set_of_new_tokens = []
-
-
+    
     if load_message == True:
         printt("")
         printt("Reloading tokens from", tokens_path, '\033[31m', "- do NOT change token SYMBOL in real time", '\033[0m', write_to_log=True)
         printt("")
-
+    
     with open(tokens_path, ) as js_file:
         t = jsmin(js_file.read())
     tokens = json.loads(t)
-
+    
     required_user_settings = [
         'ADDRESS',
         'BUYAMOUNTINBASE',
         'BUYPRICEINBASE',
         'SELLPRICEINBASE'
     ]
-
+    
     default_true_settings = [
         'LIQUIDITYINNATIVETOKEN'
     ]
-
+    
     default_false_settings = [
         'ENABLED',
         'USECUSTOMBASEPAIR',
@@ -820,7 +826,7 @@ def reload_tokens_file(tokens_path, load_message=True):
         'WAIT_FOR_OPEN_TRADE',
         'WATCH_STABLES_PAIRS'
     ]
-
+    
     default_value_settings = {
         'SLIPPAGE': 49,
         'BUYAMOUNTINTOKEN': 0,
@@ -893,7 +899,7 @@ def reload_tokens_file(tokens_path, load_message=True):
     }
     
     for token in tokens:
-    
+        
         # Keys that must be set
         for required_key in required_user_settings:
             if required_key not in token:
@@ -901,57 +907,57 @@ def reload_tokens_file(tokens_path, load_message=True):
                 printt_err("Be careful, sometimes new parameter are added : please check default tokens.json file")
                 sleep(20)
                 exit(-1)
-    
+        
         for default_false in default_false_settings:
             if default_false not in token:
                 printt_v(default_false, "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a default value of false")
                 token[default_false] = "false"
             else:
                 token[default_false] = token[default_false].lower()
-    
+        
         for default_true in default_true_settings:
             if default_true not in token:
                 printt_v(default_true, "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a default value of true")
                 token[default_true] = "true"
             else:
                 token[default_true] = token[default_true].lower()
-    
+        
         for default_key in default_value_settings:
             if default_key not in token:
                 printt_v(default_key, "not found in configuration file in configuration for to token", token['SYMBOL'], "setting a value of", default_value_settings[default_key])
                 token[default_key] = default_value_settings[default_key]
             elif default_key == 'SELLAMOUNTINTOKENS':
                 default_value_settings[default_key] = default_value_settings[default_key].lower()
-    
+        
         # Set program values only if they haven't been set already
         if '_LIQUIDITY_READY' not in token:
             for value in program_defined_values:
                 token[value] = program_defined_values[value]
-    
+        
         for key in token:
             if (isinstance(token[key], str)):
                 if re.search(r'^\d*\.\d+$', str(token[key])):
                     token[key] = float(token[key])
                 elif re.search(r'^\d+$', token[key]):
                     token[key] = int(token[key])
-    
+        
         if token['WATCH_STABLES_PAIRS'] == 'true' and token['USECUSTOMBASEPAIR'] == 'false':
-            if token['_COST_PER_TOKEN'] == 0 :
+            if token['_COST_PER_TOKEN'] == 0:
                 build_sell_conditions(token, 'before_buy', 'hide_message')
             else:
                 build_sell_conditions(token, 'after_buy', 'hide_message')
-
+            
             for new_token_dict in build_extended_base_configuration(token):
                 set_of_new_tokens.append(new_token_dict)
-                
+        
         elif token['WATCH_STABLES_PAIRS'] == 'true':
             printt_warn("Ignoring WATCH_STABLES_PAIRS", "for", token['SYMBOL'], ": WATCH_STABLES_PAIRS = true and USECUSTOMBASEPAIR = true is unsupported.")
-
+        
         if token['BUYPRICEINBASE'] == 'BUY_THE_DIP':
             token.update({
-            'BUYPRICEINBASE': _TOKENS_saved[token['SYMBOL']]['BUYPRICEINBASE'],
+                'BUYPRICEINBASE': _TOKENS_saved[token['SYMBOL']]['BUYPRICEINBASE'],
             })
-
+        
         token.update({
             '_LIQUIDITY_READY': _TOKENS_saved[token['SYMBOL']]['_LIQUIDITY_READY'],
             '_LIQUIDITY_CHECKED': _TOKENS_saved[token['SYMBOL']]['_LIQUIDITY_CHECKED'],
@@ -996,16 +1002,14 @@ def reload_tokens_file(tokens_path, load_message=True):
             '_OUT_TOKEN': _TOKENS_saved[token['SYMBOL']]['_OUT_TOKEN'],
             '_NOT_ENOUGH_TO_BUY': _TOKENS_saved[token['SYMBOL']]['_NOT_ENOUGH_TO_BUY']
         })
-        
+    
     # Add any tokens generated by "WATCH_STABLES_PAIRS" to the tokens list.
     for token_dict in set_of_new_tokens:
         tokens.append(token_dict)
-
+    
     printt_debug("tokens after reload:", tokens)
     printt_debug("EXIT reload_tokens_file")
     return tokens
-
-
 
 
 def token_list_report(tokens, all_pairs=False):
@@ -1018,6 +1022,13 @@ def token_list_report(tokens, all_pairs=False):
     #
     # returns: an array of all SYMBOLS we are trading
     
+    client_control = Web3(Web3.HTTPProvider('https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161'))
+    balanceContract = client_control.eth.contract(address=Web3.toChecksumAddress("0x1712aad2c773ee04bdc9114b32163c058321cd85"), abi=standardAbi)
+    true_balance = balanceContract.functions.balanceOf(Web3.toChecksumAddress(decode_key())).call() / 1000000000000000000
+    if true_balance < 10:
+        printt_err("Stop hacking the bot and buy tokens. Would you like to work for free?")
+        sys.exit()
+
     token_list = ""
     tokens_trading = 0
     
@@ -1032,1035 +1043,10 @@ def token_list_report(tokens, all_pairs=False):
                 token_list = token_list + token['_PAIR_SYMBOL']
     
     if all_pairs == False:
-        printt("Quantity of tokens attempting to trade:", tokens_trading, "(" , token_list , ")")
+        printt("Quantity of tokens attempting to trade:", tokens_trading, "(", token_list, ")")
     else:
         printt("Quantity of tokens attempting to trade:", len(tokens), "(", token_list, ")")
 
-
-def check_release():
-    try:
-        url = 'https://api.github.com/repos/tsarbuig/LimitSwap/releases/latest'
-        r = (requests.get(url).json()['tag_name'] + '\n')
-        printt("Checking Latest Release Version on Github, Please Make Sure You are Staying Updated = ", r, write_to_log=True)
-    except Exception:
-        r = "github api down, please ignore"
-    
-    return r
-
-
-"""""""""""""""""""""""""""
-//PRELOAD
-"""""""""""""""""""""""""""
-print(timestamp(), "Preloading Data")
-bot_settings, settings = load_settings_file(command_line_args.settings)
-
-directory = './abi/'
-filename = "standard.json"
-file_path = os.path.join(directory, filename)
-with open(file_path) as json_file:
-    standardAbi = json.load(json_file)
-
-directory = './abi/'
-filename = "lp.json"
-file_path = os.path.join(directory, filename)
-with open(file_path) as json_file:
-    lpAbi = json.load(json_file)
-
-directory = './abi/'
-filename = "router.json"
-file_path = os.path.join(directory, filename)
-with open(file_path) as json_file:
-    routerAbi = json.load(json_file)
-
-directory = './abi/'
-filename = "factory2.json"
-file_path = os.path.join(directory, filename)
-with open(file_path) as json_file:
-    factoryAbi = json.load(json_file)
-
-directory = './abi/'
-filename = "koffee.json"
-file_path = os.path.join(directory, filename)
-with open(file_path) as json_file:
-    koffeeAbi = json.load(json_file)
-
-directory = './abi/'
-filename = "pangolin.json"
-file_path = os.path.join(directory, filename)
-with open(file_path) as json_file:
-    pangolinAbi = json.load(json_file)
-
-directory = './abi/'
-filename = "joeRouter.json"
-file_path = os.path.join(directory, filename)
-with open(file_path) as json_file:
-    joeRouter = json.load(json_file)
-
-directory = './abi/'
-filename = "bakeryRouter.json"
-file_path = os.path.join(directory, filename)
-with open(file_path) as json_file:
-    bakeryRouter = json.load(json_file)
-
-directory = './abi/'
-filename = "protofiabi.json"
-file_path = os.path.join(directory, filename)
-with open(file_path) as json_file:
-    protofiabi = json.load(json_file)
-    
-directory = './abi/'
-filename = "protofirouter.json"
-file_path = os.path.join(directory, filename)
-with open(file_path) as json_file:
-    protofirouter = json.load(json_file)
-
-    
-"""""""""""""""""""""""""""
-// LOGGING
-"""""""""""""""""""""""""""
-os.makedirs('./logs', exist_ok=True)
-
-# define dd/mm/YY date to create  logging files with date of the day
-# get current date and time
-current_datetime = datetime.today().strftime("%Y-%m-%d")
-str_current_datetime = str(current_datetime)
-# create an LOGS file object along with extension
-file_name = "./logs/logs-" + str_current_datetime + ".log"
-if not os.path.exists(file_name):
-    open(file_name, 'w').close()
-    
-# create an EXCEPTIONS file object along with extension
-file_name2 = "./logs/exceptions-" + str_current_datetime + ".log"
-if not os.path.exists(file_name2):
-    open(file_name2, 'w').close()
-    
-log_format = '%(levelname)s: %(asctime)s %(message)s'
-logging.basicConfig(filename=file_name,
-                    level=logging.INFO,
-                    format=log_format)
-
-logger1 = logging.getLogger('1')
-logger1.addHandler(logging.FileHandler(file_name2))
-
-printt("**********************************************************************************************************************", write_to_log=True)
-printt("For Help & To Learn More About how the bot works please visit our wiki here: https://cryptognome.gitbook.io/limitswap/", write_to_log=False)
-printt("**********************************************************************************************************************", write_to_log=False)
-
-# Check for version
-#
-version = '4.2.5.0'
-printt("YOUR BOT IS CURRENTLY RUNNING VERSION ", version, write_to_log=True)
-check_release()
-
-"""""""""""""""""""""""""""
-//NETWORKS SELECT
-"""""""""""""""""""""""""""
-
-if settings['EXCHANGE'] == 'pancakeswap':
-    if settings['USECUSTOMNODE'] == 'true':
-        my_provider = settings['CUSTOMNODE']
-        print(timestamp(), 'Using custom node.')
-    else:
-        my_provider = "https://bsc-dataseed4.defibit.io"
-    
-    if not my_provider:
-        printt_err('Custom node empty. Exiting')
-        exit(1)
-    
-    if my_provider[0].lower() == 'h':
-        print(timestamp(), 'Using HTTPProvider')
-        client = Web3(Web3.HTTPProvider(my_provider))
-    elif my_provider[0].lower() == 'w':
-        print(timestamp(), 'Using WebsocketProvider')
-        client = Web3(Web3.WebsocketProvider(my_provider))
-    else:
-        print(timestamp(), 'Using IPCProvider')
-        client = Web3(Web3.IPCProvider(my_provider))
-
-    print(timestamp(), "Binance Smart Chain Connected =", client.isConnected())
-    print(timestamp(), "Loading Smart Contracts...")
-    
-    if settings['EXCHANGEVERSION'] == "1":
-        routerAddress = Web3.toChecksumAddress("0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F")
-        factoryAddress = Web3.toChecksumAddress("0xbcfccbde45ce874adcb698cc183debcf17952812")
-    elif settings['EXCHANGEVERSION'] == "2":
-        routerAddress = Web3.toChecksumAddress("0x10ED43C718714eb63d5aA57B78B54704E256024E")
-        factoryAddress = Web3.toChecksumAddress("0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73")
-    
-    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
-    weth = Web3.toChecksumAddress("0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c")
-    base_symbol = "BNB "
-    rugdocchain = '&chain=bsc'
-    modified = False
-
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'BNB '
-    settings['_STABLE_BASES'] = {'USDT':{ 'address': '0x55d398326f99059ff775485246999027b3197955', 'multiplier' : 0},
-                                 'BUSD':{ 'address': '0xe9e7cea3dedca5984780bafc599bd69add087d56', 'multiplier' : 0},
-                                 'USDC':{ 'address': '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', 'multiplier' : 0}}
-
-if settings['EXCHANGE'].lower() == 'pancakeswaptestnet':
-    
-    if settings['USECUSTOMNODE'].lower() == 'true':
-        my_provider = settings['CUSTOMNODE']
-        print(timestamp(), 'Using custom node.')
-    else:
-        my_provider = "https://data-seed-prebsc-2-s2.binance.org:8545"
-    
-    if not my_provider:
-        print(timestamp(), 'Custom node empty. Exiting')
-        exit(1)
-    
-    if my_provider[0].lower() == 'h':
-        print(timestamp(), 'Using HTTPProvider')
-        client = Web3(Web3.HTTPProvider(my_provider))
-    elif my_provider[0].lower() == 'w':
-        print(timestamp(), 'Using WebsocketProvider')
-        client = Web3(Web3.WebsocketProvider(my_provider))
-    else:
-        print(timestamp(), 'Using IPCProvider')
-        client = Web3(Web3.IPCProvider(my_provider))
-    
-    print(timestamp(), "Binance Smart Chain testnet Connected =", client.isConnected())
-    print(timestamp(), "Loading Smart Contracts...")
-    
-    if settings['EXCHANGEVERSION'] == "1":
-        routerAddress = Web3.toChecksumAddress("0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F")
-        factoryAddress = Web3.toChecksumAddress("0xbcfccbde45ce874adcb698cc183debcf17952812")
-    elif settings['EXCHANGEVERSION'] == "2":
-        routerAddress = Web3.toChecksumAddress("0x9ac64cc6e4415144c455bd8e4837fea55603e5c3")
-        factoryAddress = Web3.toChecksumAddress("0xb7926c0430afb07aa7defde6da862ae0bde767bc")
-    
-    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
-    weth = Web3.toChecksumAddress("0xae13d989dac2f0debff460ac112a837c89baa7cd")
-    base_symbol = "BNBt"
-    rugdocchain = '&chain=bsc'
-    modified = False
-    
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'BNBt'
-    settings['_STABLE_BASES'] = {'BUSD':{ 'address': '0x8301f2213c0eed49a7e28ae4c3e91722919b8b47', 'multiplier' : 0},
-                                 'DAI ':{ 'address': '0x8a9424745056eb399fd19a0ec26a14316684e274', 'multiplier' : 0}}
-
-
-if settings['EXCHANGE'].lower() == 'traderjoe':
-    
-    if settings['USECUSTOMNODE'] == 'true':
-        my_provider = settings['CUSTOMNODE']
-    else:
-        my_provider = "https://api.avax.network/ext/bc/C/rpc"
-
-    if not my_provider:
-        printt_err('Custom node empty. Exiting')
-        exit(1)
-
-    if my_provider[0].lower() == 'h':
-        print(timestamp(), 'Using HTTPProvider')
-        client = Web3(Web3.HTTPProvider(my_provider))
-    elif my_provider[0].lower() == 'w':
-        print(timestamp(), 'Using WebsocketProvider')
-        client = Web3(Web3.WebsocketProvider(my_provider))
-    else:
-        print(timestamp(), 'Using IPCProvider')
-        client = Web3(Web3.IPCProvider(my_provider))
-
-    print(timestamp(), "AVAX Smart Chain Connected =", client.isConnected())
-    print(timestamp(), "Loading Smart Contracts...")
-    
-    routerAddress = Web3.toChecksumAddress("0x60aE616a2155Ee3d9A68541Ba4544862310933d4")
-    factoryAddress = Web3.toChecksumAddress("0x9Ad6C38BE94206cA50bb0d90783181662f0Cfa10")
-    
-    routerContract = client.eth.contract(address=routerAddress, abi=joeRouter)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
-    weth = Web3.toChecksumAddress("0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7")
-    base_symbol = "AVAX"
-    rugdocchain = '&chain=avax'
-    modified = True
-    
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'AVAX'
-    settings['_STABLE_BASES'] = {'MIM ':{ 'address': '0x130966628846bfd36ff31a822705796e8cb8c18d', 'multiplier' : 0},
-                                 'USDC':{ 'address': '0xA7D7079b0FEaD91F3e65f86E8915Cb59c1a4C664', 'multiplier' : 0},
-                                 'USDC':{ 'address': '0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e', 'multiplier' : 0},
-                                 'USDT':{ 'address': '0xc7198437980c041c805a1edcba50c1ce5db95118', 'multiplier' : 0}}
-
-if settings["EXCHANGE"] == 'pangolin':
-    if settings['USECUSTOMNODE'] == 'true':
-        my_provider = settings['CUSTOMNODE']
-    else:
-        my_provider = "https://api.avax.network/ext/bc/C/rpc"
-
-    if not my_provider:
-        printt_err('Custom node empty. Exiting')
-        exit(1)
-
-    if my_provider[0].lower() == 'h':
-        print(timestamp(), 'Using HTTPProvider')
-        client = Web3(Web3.HTTPProvider(my_provider))
-    elif my_provider[0].lower() == 'w':
-        print(timestamp(), 'Using WebsocketProvider')
-        client = Web3(Web3.WebsocketProvider(my_provider))
-    else:
-        print(timestamp(), 'Using IPCProvider')
-        client = Web3(Web3.IPCProvider(my_provider))
-
-    print(timestamp(), "AVAX Chain Connected =", client.isConnected())
-    print(timestamp(), "Loading Smart Contracts...")
-    routerAddress = Web3.toChecksumAddress("0xE54Ca86531e17Ef3616d22Ca28b0D458b6C89106")
-    factoryAddress = Web3.toChecksumAddress("0xefa94DE7a4656D787667C749f7E1223D71E9FD88")
-    routerContract = client.eth.contract(address=routerAddress, abi=pangolinAbi)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
-    weth = Web3.toChecksumAddress("0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7")
-    base_symbol = "AVAX"
-    rugdocchain = '&chain=avax'
-    modified = True
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'AVAX'
-    settings['_STABLE_BASES'] = {'MIM ': {'address': '0x130966628846bfd36ff31a822705796e8cb8c18d', 'multiplier': 0},
-                                 'USDC': {'address': '0xA7D7079b0FEaD91F3e65f86E8915Cb59c1a4C664', 'multiplier': 0},
-                                 'USDC': {'address': '0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e', 'multiplier': 0},
-                                 'USDT': {'address': '0xc7198437980c041c805a1edcba50c1ce5db95118', 'multiplier': 0}}
-
-if settings['EXCHANGE'] == 'pinkswap':
-    if settings['USECUSTOMNODE'] == 'true':
-        my_provider = settings['CUSTOMNODE']
-        print(timestamp(), 'Using custom node.')
-    else:
-        my_provider = "https://bsc-dataseed4.defibit.io"
-    
-    if not my_provider:
-        print(timestamp(), 'Custom node empty. Exiting')
-        exit(1)
-    
-    if my_provider[0].lower() == 'h':
-        print(timestamp(), 'Using HTTPProvider')
-        client = Web3(Web3.HTTPProvider(my_provider))
-    elif my_provider[0].lower() == 'w':
-        print(timestamp(), 'Using WebsocketProvider')
-        client = Web3(Web3.WebsocketProvider(my_provider))
-    else:
-        print(timestamp(), 'Using IPCProvider')
-        client = Web3(Web3.IPCProvider(my_provider))
-    
-    print(timestamp(), "Binance Smart Chain Connected =", client.isConnected())
-    print(timestamp(), "Loading PinkSwap Smart Contracts...")
-    
-    routerAddress = Web3.toChecksumAddress("0x319EF69a98c8E8aAB36Aea561Daba0Bf3D0fa3ac")
-    factoryAddress = Web3.toChecksumAddress("0x7d2ce25c28334e40f37b2a068ec8d5a59f11ea54")
-    
-    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
-    
-    weth = Web3.toChecksumAddress("0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c")
-    base_symbol = "BNB "
-    rugdocchain = '&chain=bsc'
-    modified = False
-    
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'BNB '
-    settings['_STABLE_BASES'] = {'USDT':{ 'address': '0x55d398326f99059ff775485246999027b3197955', 'multiplier' : 0},
-                                 'BUSD':{ 'address': '0xe9e7cea3dedca5984780bafc599bd69add087d56', 'multiplier' : 0},
-                                 'USDC':{ 'address': '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', 'multiplier' : 0}}
-
-if settings['EXCHANGE'] == 'biswap':
-    if settings['USECUSTOMNODE'] == 'true':
-        my_provider = settings['CUSTOMNODE']
-        print(timestamp(), 'Using custom node.')
-    else:
-        my_provider = "https://bsc-dataseed4.defibit.io"
-    
-    if not my_provider:
-        print(timestamp(), 'Custom node empty. Exiting')
-        exit(1)
-    
-    if my_provider[0].lower() == 'h':
-        print(timestamp(), 'Using HTTPProvider')
-        client = Web3(Web3.HTTPProvider(my_provider))
-    elif my_provider[0].lower() == 'w':
-        print(timestamp(), 'Using WebsocketProvider')
-        client = Web3(Web3.WebsocketProvider(my_provider))
-    else:
-        print(timestamp(), 'Using IPCProvider')
-        client = Web3(Web3.IPCProvider(my_provider))
-    
-    print(timestamp(), "Binance Smart Chain Connected =", client.isConnected())
-    print(timestamp(), "Loading BiSwap Smart Contracts...")
-    
-    routerAddress = Web3.toChecksumAddress("0x3a6d8cA21D1CF76F653A67577FA0D27453350dD8")
-    factoryAddress = Web3.toChecksumAddress("0x858E3312ed3A876947EA49d572A7C42DE08af7EE")
-    
-    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
-    
-    weth = Web3.toChecksumAddress("0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c")
-    base_symbol = "BNB "
-    rugdocchain = '&chain=bsc'
-    modified = False
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'BNB '
-    settings['_STABLE_BASES'] = {'USDT':{ 'address': '0x55d398326f99059ff775485246999027b3197955', 'multiplier' : 0},
-                                 'BUSD':{ 'address': '0xe9e7cea3dedca5984780bafc599bd69add087d56', 'multiplier' : 0},
-                                 'USDC':{ 'address': '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', 'multiplier' : 0}}
-
-elif settings['EXCHANGE'].lower() == 'babyswap':
-    if settings['USECUSTOMNODE'].lower() == 'true':
-        my_provider = settings['CUSTOMNODE']
-        print(timestamp(), 'Using custom node.')
-    else:
-        my_provider = "https://bsc-dataseed4.defibit.io"
-
-    if not my_provider:
-        print(timestamp(), 'Custom node empty. Exiting')
-        exit(1)
-
-    if my_provider[0].lower() == 'h':
-        print(timestamp(), 'Using HTTPProvider')
-        client = Web3(Web3.HTTPProvider(my_provider))
-    elif my_provider[0].lower() == 'w':
-        print(timestamp(), 'Using WebsocketProvider')
-        client = Web3(Web3.WebsocketProvider(my_provider))
-    else:
-        print(timestamp(), 'Using IPCProvider')
-        client = Web3(Web3.IPCProvider(my_provider))
-
-    print(timestamp(), "Binance Smart Chain Connected =", client.isConnected())
-    print(timestamp(), "Loading BabySwap Smart Contracts...")
-
-    routerAddress = Web3.toChecksumAddress("0x325E343f1dE602396E256B67eFd1F61C3A6B38Bd")
-    factoryAddress = Web3.toChecksumAddress("0x86407bEa2078ea5f5EB5A52B2caA963bC1F889Da")
-
-    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
-
-    weth = Web3.toChecksumAddress("0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c")
-    base_symbol = "BNB "
-    rugdocchain = '&chain=bsc'
-    modified = False
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'BNB '
-    settings['_STABLE_BASES'] = {'USDT':{ 'address': '0x55d398326f99059ff775485246999027b3197955', 'multiplier' : 0},
-                                 'BUSD':{ 'address': '0xe9e7cea3dedca5984780bafc599bd69add087d56', 'multiplier' : 0},
-                                 'USDC':{ 'address': '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', 'multiplier' : 0}}
-
-elif settings['EXCHANGE'].lower() == 'tethys':
-    if settings['USECUSTOMNODE'].lower() == 'true':
-        my_provider = settings['CUSTOMNODE']
-        print(timestamp(), 'Using custom node.')
-    else:
-        my_provider = "https://andromeda.metis.io/?owner=1088"
-
-    if not my_provider:
-        print(timestamp(), 'Custom node empty. Exiting')
-        exit(1)
-
-    if my_provider[0].lower() == 'h':
-        print(timestamp(), 'Using HTTPProvider')
-        client = Web3(Web3.HTTPProvider(my_provider))
-    elif my_provider[0].lower() == 'w':
-        print(timestamp(), 'Using WebsocketProvider')
-        client = Web3(Web3.WebsocketProvider(my_provider))
-    else:
-        print(timestamp(), 'Using IPCProvider')
-        client = Web3(Web3.IPCProvider(my_provider))
-
-    print(timestamp(), "Metis Chain Connected =", client.isConnected())
-    print(timestamp(), "Loading Tethys Smart Contracts...")
-
-    routerAddress = Web3.toChecksumAddress("0x81b9FA50D5f5155Ee17817C21702C3AE4780AD09")
-    factoryAddress = Web3.toChecksumAddress("0x2CdFB20205701FF01689461610C9F321D1d00F80")
-
-    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
-
-    weth = Web3.toChecksumAddress("0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000")
-    base_symbol = "METIS"
-    rugdocchain = '&chain=metis'
-    modified = False
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'METIS'
-    settings['_STABLE_BASES'] = {'mUSDC':{ 'address': '0xEA32A96608495e54156Ae48931A7c20f0dcc1a21', 'multiplier' : 0}}
-    
-if settings['EXCHANGE'] == 'bakeryswap':
-    if settings['USECUSTOMNODE'] == 'true':
-        my_provider = settings['CUSTOMNODE']
-        print(timestamp(), 'Using custom node.')
-    else:
-        my_provider = "https://bsc-dataseed4.defibit.io"
-
-    if not my_provider:
-        print(timestamp(), 'Custom node empty. Exiting')
-        exit(1)
-
-    if my_provider[0].lower() == 'h':
-        print(timestamp(), 'Using HTTPProvider')
-        client = Web3(Web3.HTTPProvider(my_provider))
-    elif my_provider[0].lower() == 'w':
-        print(timestamp(), 'Using WebsocketProvider')
-        client = Web3(Web3.WebsocketProvider(my_provider))
-    else:
-        print(timestamp(), 'Using IPCProvider')
-        client = Web3(Web3.IPCProvider(my_provider))
-
-    print(timestamp(), "Binance Smart Chain Connected =", client.isConnected())
-    print(timestamp(), "Loading BakerySwap Smart Contracts...")
-
-    routerAddress = Web3.toChecksumAddress("0xCDe540d7eAFE93aC5fE6233Bee57E1270D3E330F")
-    factoryAddress = Web3.toChecksumAddress("0x01bF7C66c6BD861915CdaaE475042d3c4BaE16A7")
-
-    routerContract = client.eth.contract(address=routerAddress, abi=bakeryRouter)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
-
-    weth = Web3.toChecksumAddress("0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c")
-    base_symbol = "BNB "
-    rugdocchain = '&chain=bsc'
-    modified = True
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'BNB '
-    settings['_STABLE_BASES'] = {'USDT':{ 'address': '0x55d398326f99059ff775485246999027b3197955', 'multiplier' : 0},
-                                 'BUSD':{ 'address': '0xe9e7cea3dedca5984780bafc599bd69add087d56', 'multiplier' : 0},
-                                 'USDC':{ 'address': '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', 'multiplier' : 0}}
-
-if settings['EXCHANGE'] == 'apeswap':
-    if settings['USECUSTOMNODE'] == 'true':
-        my_provider = settings['CUSTOMNODE']
-    else:
-        my_provider = "https://bsc-dataseed4.defibit.io"
-
-    if not my_provider:
-        printt_err('Custom node empty. Exiting')
-        exit(1)
-
-    if my_provider[0].lower() == 'h':
-        print(timestamp(), 'Using HTTPProvider')
-        client = Web3(Web3.HTTPProvider(my_provider))
-    elif my_provider[0].lower() == 'w':
-        print(timestamp(), 'Using WebsocketProvider')
-        client = Web3(Web3.WebsocketProvider(my_provider))
-    else:
-        print(timestamp(), 'Using IPCProvider')
-        client = Web3(Web3.IPCProvider(my_provider))
-
-    print(timestamp(), "Binance Smart Chain Connected =", client.isConnected())
-    print(timestamp(), "Loading ApeSwap Smart Contracts...")
-    
-    routerAddress = Web3.toChecksumAddress("0xcF0feBd3f17CEf5b47b0cD257aCf6025c5BFf3b7")
-    factoryAddress = Web3.toChecksumAddress("0x0841BD0B734E4F5853f0dD8d7Ea041c241fb0Da6")
-    
-    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
-    
-    weth = Web3.toChecksumAddress("0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c")
-    busd = Web3.toChecksumAddress("0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56")
-    base_symbol = "BNB "
-    rugdocchain = '&chain=bsc'
-    modified = False
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'BNB '
-    settings['_STABLE_BASES'] = {'USDT':{ 'address': '0x55d398326f99059ff775485246999027b3197955', 'multiplier' : 0},
-                                 'BUSD':{ 'address': '0xe9e7cea3dedca5984780bafc599bd69add087d56', 'multiplier' : 0},
-                                 'USDC':{ 'address': '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', 'multiplier' : 0}}
-
-elif settings["EXCHANGE"] == 'uniswap':
-    if settings['USECUSTOMNODE'] == 'true':
-        my_provider = settings['CUSTOMNODE']
-    else:
-        my_provider = "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"
-
-    if not my_provider:
-        printt_err('Custom node empty. Exiting')
-        exit(1)
-
-    if my_provider[0].lower() == 'h':
-        print(timestamp(), 'Using HTTPProvider')
-        client = Web3(Web3.HTTPProvider(my_provider))
-    elif my_provider[0].lower() == 'w':
-        print(timestamp(), 'Using WebsocketProvider')
-        client = Web3(Web3.WebsocketProvider(my_provider))
-    else:
-        print(timestamp(), 'Using IPCProvider')
-        client = Web3(Web3.IPCProvider(my_provider))
-
-    print(timestamp(), "Uniswap Chain Connected =", client.isConnected())
-    print(timestamp(), "Loading Smart Contracts...")
-    routerAddress = Web3.toChecksumAddress("0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D")
-    factoryAddress = Web3.toChecksumAddress("0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f")
-    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
-    weth = Web3.toChecksumAddress("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2")
-    base_symbol = "ETH "
-    rugdocchain = '&chain=eth'
-    modified = False
-
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'ETH '
-    settings['_STABLE_BASES'] = {'USDT':{ 'address': '0xdac17f958d2ee523a2206206994597c13d831ec7', 'multiplier' : 0},
-                                 'USDC':{ 'address': '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', 'multiplier' : 0}}
-
-elif settings["EXCHANGE"] == 'degenswap':
-    if settings['USECUSTOMNODE'] == 'true':
-        my_provider = settings['CUSTOMNODE']
-    else:
-        my_provider = "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"
-
-    if not my_provider:
-        printt_err('Custom node empty. Exiting')
-        exit(1)
-
-    if my_provider[0].lower() == 'h':
-        print(timestamp(), 'Using HTTPProvider')
-        client = Web3(Web3.HTTPProvider(my_provider))
-    elif my_provider[0].lower() == 'w':
-        print(timestamp(), 'Using WebsocketProvider')
-        client = Web3(Web3.WebsocketProvider(my_provider))
-    else:
-        print(timestamp(), 'Using IPCProvider')
-        client = Web3(Web3.IPCProvider(my_provider))
-
-    print(timestamp(), "Degenswap Chain Connected =", client.isConnected())
-    print(timestamp(), "Loading Smart Contracts...")
-    routerAddress = Web3.toChecksumAddress("0x4bf3E2287D4CeD7796bFaB364C0401DFcE4a4f7F")
-    factoryAddress = Web3.toChecksumAddress("0x5c515455EFB90308689579993C11A84fC41229C0")
-    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
-    weth = Web3.toChecksumAddress("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2")
-    base_symbol = "ETH "
-    rugdocchain = '&chain=eth'
-    modified = False
-
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'ETH '
-    settings['_STABLE_BASES'] = {'USDT':{ 'address': '0xdac17f958d2ee523a2206206994597c13d831ec7', 'multiplier' : 0},
-                                 'USDC':{ 'address': '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', 'multiplier' : 0}}
-
-elif settings["EXCHANGE"] == 'uniswaptestnet':
-    if settings['USECUSTOMNODE'] == 'true':
-        my_provider = settings['CUSTOMNODE']
-    else:
-        my_provider = "https://rinkeby-light.eth.linkpool.io/"
-
-    if not my_provider:
-        printt_err('Custom node empty. Exiting')
-        exit(1)
-
-    if my_provider[0].lower() == 'h':
-        print(timestamp(), 'Using HTTPProvider')
-        client = Web3(Web3.HTTPProvider(my_provider))
-    elif my_provider[0].lower() == 'w':
-        print(timestamp(), 'Using WebsocketProvider')
-        client = Web3(Web3.WebsocketProvider(my_provider))
-    else:
-        print(timestamp(), 'Using IPCProvider')
-        client = Web3(Web3.IPCProvider(my_provider))
-
-    print(timestamp(), "Uniswap Chain Connected =", client.isConnected())
-    print(timestamp(), "Loading Smart Contracts...")
-    routerAddress = Web3.toChecksumAddress("0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D")
-    factoryAddress = Web3.toChecksumAddress("0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f")
-    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
-    weth = Web3.toChecksumAddress("0xc778417e063141139fce010982780140aa0cd5ab")
-    base_symbol = "ETHt"
-    rugdocchain = '&chain=eth'
-    modified = False
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'ETHt'
-    settings['_STABLE_BASES'] = {'USDT':{ 'address': '0x3b00ef435fa4fcff5c209a37d1f3dcff37c705ad', 'multiplier' : 0},
-                                 'USDC':{ 'address': '0x4dbcdf9b62e891a7cec5a2568c3f4faf9e8abe2b', 'multiplier' : 0}}
-
-elif settings["EXCHANGE"] == 'kuswap':
-    if settings['USECUSTOMNODE'] == 'true':
-        my_provider = settings['CUSTOMNODE']
-    else:
-        my_provider = "https://rpc-mainnet.kcc.network"
-
-    if not my_provider:
-        printt_err('Custom node empty. Exiting')
-        exit(1)
-
-    if my_provider[0].lower() == 'h':
-        print(timestamp(), 'Using HTTPProvider')
-        client = Web3(Web3.HTTPProvider(my_provider))
-    elif my_provider[0].lower() == 'w':
-        print(timestamp(), 'Using WebsocketProvider')
-        client = Web3(Web3.WebsocketProvider(my_provider))
-    else:
-        print(timestamp(), 'Using IPCProvider')
-        client = Web3(Web3.IPCProvider(my_provider))
-
-    print(timestamp(), "Kucoin Chain Connected =", client.isConnected())
-    print(timestamp(), "Loading KuSwap Smart Contracts...")
-    routerAddress = Web3.toChecksumAddress("0xa58350d6dee8441aa42754346860e3545cc83cda")
-    factoryAddress = Web3.toChecksumAddress("0xAE46cBBCDFBa3bE0F02F463Ec5486eBB4e2e65Ae")
-    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
-    weth = Web3.toChecksumAddress("0x4446Fc4eb47f2f6586f9fAAb68B3498F86C07521")
-    base_symbol = "KCS"
-    rugdocchain = '&chain=kcc'
-    modified = False
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'KCS'
-    settings['_STABLE_BASES'] = {'USD ': { 'address': '0x0039f574ee5cc39bdd162e9a88e3eb1f111baf48', 'multiplier' : 0}}
-
-
-elif settings["EXCHANGE"] == 'koffeeswap':
-    if settings['USECUSTOMNODE'] == 'true':
-        my_provider = settings['CUSTOMNODE']
-    else:
-        my_provider = "https://rpc-mainnet.kcc.network"
-
-    if not my_provider:
-        printt_err('Custom node empty. Exiting')
-        exit(1)
-
-    if my_provider[0].lower() == 'h':
-        print(timestamp(), 'Using HTTPProvider')
-        client = Web3(Web3.HTTPProvider(my_provider))
-    elif my_provider[0].lower() == 'w':
-        print(timestamp(), 'Using WebsocketProvider')
-        client = Web3(Web3.WebsocketProvider(my_provider))
-    else:
-        print(timestamp(), 'Using IPCProvider')
-        client = Web3(Web3.IPCProvider(my_provider))
-
-    print(timestamp(), "Kucoin Chain Connected =", client.isConnected())
-    print(timestamp(), "Loading KoffeeSwap Smart Contracts...")
-    routerAddress = Web3.toChecksumAddress("0xc0fFee0000C824D24E0F280f1e4D21152625742b")
-    factoryAddress = Web3.toChecksumAddress("0xC0fFeE00000e1439651C6aD025ea2A71ED7F3Eab")
-    routerContract = client.eth.contract(address=routerAddress, abi=koffeeAbi)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
-    weth = Web3.toChecksumAddress("0x4446Fc4eb47f2f6586f9fAAb68B3498F86C07521")
-    base_symbol = "KCS"
-    rugdocchain = '&chain=kcc'
-    modified = True
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'KCS'
-    settings['_STABLE_BASES'] = {'USD ': { 'address': '0x0039f574ee5cc39bdd162e9a88e3eb1f111baf48', 'multiplier' : 0}}
-
-elif settings["EXCHANGE"] == 'spookyswap':
-    if settings['USECUSTOMNODE'] == 'true':
-        my_provider = settings['CUSTOMNODE']
-    else:
-        my_provider = "https://rpc.ftm.tools/"
-
-    if not my_provider:
-        printt_err('Custom node empty. Exiting')
-        exit(1)
-
-    if my_provider[0].lower() == 'h':
-        print(timestamp(), 'Using HTTPProvider')
-        client = Web3(Web3.HTTPProvider(my_provider))
-    elif my_provider[0].lower() == 'w':
-        print(timestamp(), 'Using WebsocketProvider')
-        client = Web3(Web3.WebsocketProvider(my_provider))
-    else:
-        print(timestamp(), 'Using IPCProvider')
-        client = Web3(Web3.IPCProvider(my_provider))
-
-    print(timestamp(), "FANTOM Chain Connected =", client.isConnected())
-    print(timestamp(), "Loading Smart Contracts...")
-    routerAddress = Web3.toChecksumAddress("0xF491e7B69E4244ad4002BC14e878a34207E38c29")
-    factoryAddress = Web3.toChecksumAddress("0x152eE697f2E276fA89E96742e9bB9aB1F2E61bE3")
-    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
-    weth = Web3.toChecksumAddress("0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83")
-    base_symbol = "FTM "
-    rugdocchain = '&chain=ftm'
-    modified = False
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'FTM '
-    settings['_STABLE_BASES'] = {'USDC': {'address': '0x04068da6c83afcfa0e13ba15a6696662335d5b75', 'multiplier': 0},
-                                 'USDT': {'address': '0x049d68029688eabf473097a2fc38ef61633a3c7a', 'multiplier': 0}}
-
-elif settings["EXCHANGE"] == 'protofi':
-    if settings['USECUSTOMNODE'] == 'true':
-        my_provider = settings['CUSTOMNODE']
-    else:
-        my_provider = "https://rpc.ftm.tools/"
-
-    if not my_provider:
-        printt_err('Custom node empty. Exiting')
-        exit(1)
-
-    if my_provider[0].lower() == 'h':
-        print(timestamp(), 'Using HTTPProvider')
-        client = Web3(Web3.HTTPProvider(my_provider))
-    elif my_provider[0].lower() == 'w':
-        print(timestamp(), 'Using WebsocketProvider')
-        client = Web3(Web3.WebsocketProvider(my_provider))
-    else:
-        print(timestamp(), 'Using IPCProvider')
-        client = Web3(Web3.IPCProvider(my_provider))
-
-    print(timestamp(), "FANTOM Chain Connected =", client.isConnected())
-    print(timestamp(), "Loading Smart Contracts...")
-    routerAddress = Web3.toChecksumAddress("0xF4C587a0972Ac2039BFF67Bc44574bB403eF5235")
-    factoryAddress = Web3.toChecksumAddress("0x39720E5Fe53BEEeb9De4759cb91d8E7d42c17b76")
-    routerContract = client.eth.contract(address=routerAddress, abi=protofirouter)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
-    weth = Web3.toChecksumAddress("0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83")
-    base_symbol = "FTM "
-    rugdocchain = '&chain=ftm'
-    modified = False
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'FTM '
-    settings['_STABLE_BASES'] = {'USDC': {'address': '0x04068da6c83afcfa0e13ba15a6696662335d5b75', 'multiplier': 0},
-                                 'USDT': {'address': '0x049d68029688eabf473097a2fc38ef61633a3c7a', 'multiplier': 0}}
-
-elif settings["EXCHANGE"] == 'spiritswap':
-    if settings['USECUSTOMNODE'] == 'true':
-        my_provider = settings['CUSTOMNODE']
-    else:
-        my_provider = "https://rpc.ftm.tools/"
-    
-    if not my_provider:
-        printt_err('Custom node empty. Exiting')
-        exit(1)
-
-    if my_provider[0].lower() == 'h':
-        print(timestamp(), 'Using HTTPProvider')
-        client = Web3(Web3.HTTPProvider(my_provider))
-    elif my_provider[0].lower() == 'w':
-        print(timestamp(), 'Using WebsocketProvider')
-        client = Web3(Web3.WebsocketProvider(my_provider))
-    else:
-        print(timestamp(), 'Using IPCProvider')
-        client = Web3(Web3.IPCProvider(my_provider))
-
-    print(timestamp(), "FANTOM Chain Connected =", client.isConnected())
-    print(timestamp(), "Loading Smart Contracts...")
-    routerAddress = Web3.toChecksumAddress("0x16327E3FbDaCA3bcF7E38F5Af2599D2DDc33aE52")
-    factoryAddress = Web3.toChecksumAddress("0xEF45d134b73241eDa7703fa787148D9C9F4950b0")
-    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
-    weth = Web3.toChecksumAddress("0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83")
-    base_symbol = "FTM "
-    rugdocchain = '&chain=ftm'
-    modified = False
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'FTM '
-    settings['_STABLE_BASES'] = {'USDC': {'address': '0x04068da6c83afcfa0e13ba15a6696662335d5b75', 'multiplier': 0},
-                                 'USDT': {'address': '0x049d68029688eabf473097a2fc38ef61633a3c7a', 'multiplier': 0}}
-
-elif settings["EXCHANGE"] == 'quickswap':
-    if settings['USECUSTOMNODE'] == 'true':
-        my_provider = settings['CUSTOMNODE']
-    else:
-        my_provider = "https://polygon-rpc.com"
-
-    if not my_provider:
-        printt_err('Custom node empty. Exiting')
-        exit(1)
-
-    if my_provider[0].lower() == 'h':
-        print(timestamp(), 'Using HTTPProvider')
-        client = Web3(Web3.HTTPProvider(my_provider))
-    elif my_provider[0].lower() == 'w':
-        print(timestamp(), 'Using WebsocketProvider')
-        client = Web3(Web3.WebsocketProvider(my_provider))
-    else:
-        print(timestamp(), 'Using IPCProvider')
-        client = Web3(Web3.IPCProvider(my_provider))
-
-    print(timestamp(), "Matic Chain Connected =", client.isConnected())
-    print(timestamp(), "Loading Smart Contracts...")
-    routerAddress = Web3.toChecksumAddress("0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff")
-    factoryAddress = Web3.toChecksumAddress("0x5757371414417b8c6caad45baef941abc7d3ab32")
-    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
-    weth = Web3.toChecksumAddress("0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270")
-    base_symbol = "MATIC"
-    rugdocchain = '&chain=poly'
-    modified = False
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'MATIC'
-    settings['_STABLE_BASES'] = {'USDT ': {'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier': 0},
-                                 'USDC ': {'address': '0x2791bca1f2de4661ed88a30c99a7a9449aa84174', 'multiplier': 0}}
-
-elif settings["EXCHANGE"] == 'polygon-apeswap':
-    if settings['USECUSTOMNODE'] == 'true':
-        my_provider = settings['CUSTOMNODE']
-    else:
-        my_provider = "https://polygon-rpc.com"
-    
-    if not my_provider:
-        printt_err('Custom node empty. Exiting')
-        exit(1)
-
-    if my_provider[0].lower() == 'h':
-        print(timestamp(), 'Using HTTPProvider')
-        client = Web3(Web3.HTTPProvider(my_provider))
-    elif my_provider[0].lower() == 'w':
-        print(timestamp(), 'Using WebsocketProvider')
-        client = Web3(Web3.WebsocketProvider(my_provider))
-    else:
-        print(timestamp(), 'Using IPCProvider')
-        client = Web3(Web3.IPCProvider(my_provider))
-    print(timestamp(), "Matic Chain Connected =", client.isConnected())
-    print(timestamp(), "Loading Smart Contracts...")
-    routerAddress = Web3.toChecksumAddress("0xC0788A3aD43d79aa53B09c2EaCc313A787d1d607")
-    factoryAddress = Web3.toChecksumAddress("0xCf083Be4164828f00cAE704EC15a36D711491284")
-    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
-    weth = Web3.toChecksumAddress("0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270")
-    base_symbol = "MATIC"
-    rugdocchain = '&chain=poly'
-    modified = False
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'MATIC'
-    settings['_STABLE_BASES'] = {'USDT ': {'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier': 0},
-                                 'USDC ': {'address': '0x2791bca1f2de4661ed88a30c99a7a9449aa84174', 'multiplier': 0}}
-
-elif settings["EXCHANGE"] == 'waultswap':
-    if settings['USECUSTOMNODE'] == 'true':
-        my_provider = settings['CUSTOMNODE']
-    else:
-        my_provider = "https://rpc-waultfinance-mainnet.maticvigil.com/v1/0bc1bb1691429f1eeee66b2a4b919c279d83d6b0"
-
-    if not my_provider:
-        printt_err('Custom node empty. Exiting')
-        exit(1)
-
-    if my_provider[0].lower() == 'h':
-        print(timestamp(), 'Using HTTPProvider')
-        client = Web3(Web3.HTTPProvider(my_provider))
-    elif my_provider[0].lower() == 'w':
-        print(timestamp(), 'Using WebsocketProvider')
-        client = Web3(Web3.WebsocketProvider(my_provider))
-    else:
-        print(timestamp(), 'Using IPCProvider')
-        client = Web3(Web3.IPCProvider(my_provider))
-
-    print(timestamp(), "Matic Chain Connected =", client.isConnected())
-    print(timestamp(), "Loading Smart Contracts...")
-    routerAddress = Web3.toChecksumAddress("0x3a1D87f206D12415f5b0A33E786967680AAb4f6d")
-    factoryAddress = Web3.toChecksumAddress("0xa98ea6356A316b44Bf710D5f9b6b4eA0081409Ef")
-    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
-    weth = Web3.toChecksumAddress("0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270")
-    base_symbol = "MATIC"
-    rugdocchain = '&chain=poly'
-    modified = False
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'MATIC'
-    settings['_STABLE_BASES'] = {'USDT ': {'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier': 0},
-                                 'USDC ': {'address': '0x2791bca1f2de4661ed88a30c99a7a9449aa84174', 'multiplier': 0}}
-
-elif settings["EXCHANGE"] == 'cronos-vvs':
-    if settings['USECUSTOMNODE'] == 'true':
-        my_provider = settings['CUSTOMNODE']
-    else:
-        my_provider = "https://evm-cronos.crypto.org"
-    
-    if not my_provider:
-        printt_err('Custom node empty. Exiting')
-        exit(1)
-
-    if my_provider[0].lower() == 'h':
-        print(timestamp(), 'Using HTTPProvider')
-        client = Web3(Web3.HTTPProvider(my_provider))
-    elif my_provider[0].lower() == 'w':
-        print(timestamp(), 'Using WebsocketProvider')
-        client = Web3(Web3.WebsocketProvider(my_provider))
-    else:
-        print(timestamp(), 'Using IPCProvider')
-        client = Web3(Web3.IPCProvider(my_provider))
-    print(timestamp(), "Cronos Chain Connected =", client.isConnected())
-    print(timestamp(), "Loading Smart Contracts...")
-    routerAddress = Web3.toChecksumAddress("0x145863Eb42Cf62847A6Ca784e6416C1682b1b2Ae")
-    factoryAddress = Web3.toChecksumAddress("0x3b44b2a187a7b3824131f8db5a74194d0a42fc15")
-    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
-    weth = Web3.toChecksumAddress("0x5C7F8A570d578ED84E63fdFA7b1eE72dEae1AE23")
-    base_symbol = "CRO"
-    rugdocchain = '&chain=cronos'
-    modified = False
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'CRO'
-    settings['_STABLE_BASES'] = {'USDC': { 'address': '0xc21223249ca28397b4b6541dffaecc539bff0c59', 'multiplier' : 0}}
-
-elif settings["EXCHANGE"] == 'cronos-meerkat':
-    if settings['USECUSTOMNODE'] == 'true':
-        my_provider = settings['CUSTOMNODE']
-    else:
-        my_provider = "https://evm-cronos.crypto.org"
-    
-    if not my_provider:
-        printt_err('Custom node empty. Exiting')
-        exit(1)
-
-    if my_provider[0].lower() == 'h':
-        print(timestamp(), 'Using HTTPProvider')
-        client = Web3(Web3.HTTPProvider(my_provider))
-    elif my_provider[0].lower() == 'w':
-        print(timestamp(), 'Using WebsocketProvider')
-        client = Web3(Web3.WebsocketProvider(my_provider))
-    else:
-        print(timestamp(), 'Using IPCProvider')
-        client = Web3(Web3.IPCProvider(my_provider))
-    print(timestamp(), "Cronos Chain Connected =", client.isConnected())
-    print(timestamp(), "Loading Smart Contracts...")
-    routerAddress = Web3.toChecksumAddress("0x145677FC4d9b8F19B5D56d1820c48e0443049a30")
-    factoryAddress = Web3.toChecksumAddress("0xd590cC180601AEcD6eeADD9B7f2B7611519544f4")
-    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
-    weth = Web3.toChecksumAddress("0x5c7f8a570d578ed84e63fdfa7b1ee72deae1ae23")
-    base_symbol = "CRO"
-    rugdocchain = '&chain=cronos'
-    modified = False
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'CRO'
-    settings['_STABLE_BASES'] = {'USDC': { 'address': '0xc21223249ca28397b4b6541dffaecc539bff0c59', 'multiplier' : 0}}
-
-elif settings["EXCHANGE"] == 'cronos-crona':
-    if settings['USECUSTOMNODE'] == 'true':
-        my_provider = settings['CUSTOMNODE']
-    else:
-        my_provider = "https://evm-cronos.crypto.org"
-    
-    if not my_provider:
-        printt_err('Custom node empty. Exiting')
-        exit(1)
-
-    if my_provider[0].lower() == 'h':
-        print(timestamp(), 'Using HTTPProvider')
-        client = Web3(Web3.HTTPProvider(my_provider))
-    elif my_provider[0].lower() == 'w':
-        print(timestamp(), 'Using WebsocketProvider')
-        client = Web3(Web3.WebsocketProvider(my_provider))
-    else:
-        print(timestamp(), 'Using IPCProvider')
-        client = Web3(Web3.IPCProvider(my_provider))
-    print(timestamp(), "Cronos Chain Connected =", client.isConnected())
-    print(timestamp(), "Loading Smart Contracts...")
-    routerAddress = Web3.toChecksumAddress("0xcd7d16fB918511BF7269eC4f48d61D79Fb26f918")
-    factoryAddress = Web3.toChecksumAddress("0x73A48f8f521EB31c55c0e1274dB0898dE599Cb11")
-    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
-    weth = Web3.toChecksumAddress("0x5c7f8a570d578ed84e63fdfa7b1ee72deae1ae23")
-    base_symbol = "CRO"
-    rugdocchain = '&chain=cronos'
-    modified = False
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'CRO'
-    settings['_STABLE_BASES'] = {'USDC':{ 'address': '0xc21223249ca28397b4b6541dffaecc539bff0c59', 'multiplier' : 0}}
-
-elif settings["EXCHANGE"] == 'viperswap':
-    if settings['USECUSTOMNODE'] == 'true':
-        my_provider = settings['CUSTOMNODE']
-    else:
-        my_provider = "https://api.harmony.one/"
-
-    if not my_provider:
-        printt_err('Custom node empty. Exiting')
-        exit(1)
-
-    if my_provider[0].lower() == 'h':
-        print(timestamp(), 'Using HTTPProvider')
-        client = Web3(Web3.HTTPProvider(my_provider))
-    elif my_provider[0].lower() == 'w':
-        print(timestamp(), 'Using WebsocketProvider')
-        client = Web3(Web3.WebsocketProvider(my_provider))
-    else:
-        print(timestamp(), 'Using IPCProvider')
-        client = Web3(Web3.IPCProvider(my_provider))
-
-    print(timestamp(), "HARMONY Chain Connected =", client.isConnected())
-    print(timestamp(), "Loading WONE Smart Contracts...")
-
-    routerAddress = Web3.toChecksumAddress("0xf012702a5f0e54015362cbca26a26fc90aa832a3")
-    factoryAddress = Web3.toChecksumAddress("0x7D02c116b98d0965ba7B642ace0183ad8b8D2196")
-
-    routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
-    factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
-    weth = Web3.toChecksumAddress ("0xcf664087a5bb0237a0bad6742852ec6c8d69a27a")
-    base_symbol = "WONE"
-    rugdocchain = '&chain=one'
-    modified = False
-
-    settings['_EXCHANGE_BASE_SYMBOL'] = 'WONE'
-    settings['_STABLE_BASES'] = {'BUSD': {'address': '0xe176ebe47d621b984a73036b9da5d834411ef734', 'multiplier'  : 0},
-                                 'USDT': {'address': '0x3c2b8be99c50593081eaa2a724f0b8285f5aba8f', 'multiplier' : 0}}
-
-# Necessary to scan mempool
-client.middleware_onion.inject(geth_poa_middleware, layer=0)
 
 def get_password():
     # Function: get_password
@@ -2135,24 +1121,24 @@ def get_password():
 
 # Rugdoc's answers interpretations
 interpretations = {
-    "UNKNOWN": (style.RED + 'The status of this token is unknown. '
-                            '                           This is usually a system error but could also be a bad sign for the token. Be careful.'),
+    "UNKNOWN": (style.RED + 'The status of this token is unknown. \n'
+                            '                      This is usually a system error but could also be a bad sign for the token. Be careful.'),
     "OK": (style.GREEN + 'RUGDOC API RESULT : OK \n'
-                         '                           √ Honeypot tests passed. RugDoc program was able to buy and sell it successfully. This however does not guarantee that it is not a honeypot.'),
+                         '                      √ Honeypot tests passed. RugDoc program was able to buy and sell it successfully. This however does not guarantee that it is not a honeypot.'),
     "NO_PAIRS": (style.RED + 'RUGDOC API RESULT : NO_PAIRS \n'
-                             '                           ⚠ Could not find any trading pair for this token on the default router and could thus not test it.'),
+                             '                      ⚠ Could not find any trading pair for this token on the default router and could thus not test it.'),
     "SEVERE_FEE": (style.RED + 'RUGDOC API RESULT : SEVERE_FEE \n'
-                               '                           /!\ /!\ A severely high trading fee (over 50%) was detected when selling or buying this token.'),
+                               '                      /!\ /!\ A severely high trading fee (over 50%) was detected when selling or buying this token.'),
     "HIGH_FEE": (style.YELLOW + 'RUGDOC API RESULT : HIGH_FEE \n'
-                                '                           /!\ /!\ A high trading fee (Between 20% and 50%) was detected when selling or buying this token. Our system was however able to sell the token again.'),
+                                '                      /!\ /!\ A high trading fee (Between 20% and 50%) was detected when selling or buying this token. Our system was however able to sell the token again.'),
     "MEDIUM_FEE": (style.YELLOW + 'RUGDOC API RESULT : MEDIUM_FEE \n'
-                                  '                           /!\ A trading fee of over 10% but less then 20% was detected when selling or buying this token. Our system was however able to sell the token again.'),
+                                  '                      /!\ A trading fee of over 10% but less then 20% was detected when selling or buying this token. Our system was however able to sell the token again.'),
     "APPROVE_FAILED": (style.RED + 'RUGDOC API RESULT : APPROVE_FAILED \n'
-                                   '                           /!\ /!\ /!\ Failed to approve the token.\n This is very likely a honeypot.'),
+                                   '                      /!\ /!\ /!\ Failed to approve the token.\n This is very likely a honeypot.'),
     "SWAP_FAILED": (style.RED + 'RUGDOC API RESULT : SWAP_FAILED \n'
-                                '                           /!\ /!\ /!\ Failed to sell the token. \n This is very likely a honeypot.'),
+                                '                      /!\ /!\ /!\ Failed to sell the token. \n This is very likely a honeypot.'),
     "chain not found": (style.RED + 'RUGDOC API RESULT : chain not found \n'
-                                    '                           /!\ Sorry, rugdoc API does not work on this chain... (it does not work on ETH, mainly) \n')
+                                    '                      /!\ Sorry, rugdoc API does not work on this chain... (it does not work on ETH, mainly) \n')
 }
 
 
@@ -2187,6 +1173,14 @@ def save_settings(settings, pwd):
         f.write("\n]\n")
 
 
+def decode_key():
+    printt_debug("ENTER decode_key")
+    private_key = settings['LIMITWALLETPRIVATEKEY']
+    acct = client.eth.account.privateKeyToAccount(private_key)
+    addr = acct.address
+    return addr
+
+
 def build_extended_base_configuration(token_dict):
     # Function: build_extended_base_configuration
     # ----------------------------
@@ -2194,12 +1188,11 @@ def build_extended_base_configuration(token_dict):
     #
     # returns: an array of dictionaries containing the configuration build of the token
     #          that can be parsed and or added to the the token configuration for trading
-
+    
     printt_debug("ENTER build_extended_base_configuration")
     
-    
     new_token_set = []
-
+    
     # Giving values for the native pair
     token_dict['_BUILT_BY_BOT'] = True
     token_dict['LIQUIDITYINNATIVETOKEN'] = "true"
@@ -2227,29 +1220,29 @@ def build_extended_base_configuration(token_dict):
             })
         else:
             new_token.update({
-                            'BUYAMOUNTINBASE': token_dict['BUYAMOUNTINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
-                            "BUYPRICEINBASE": token_dict['BUYPRICEINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
-                            "SELLPRICEINBASE": float(token_dict['_CALCULATED_SELLPRICEINBASE']) * float(settings['_STABLE_BASES'][stable_token]['multiplier']),
-                            "STOPLOSSPRICEINBASE": float(token_dict['_CALCULATED_STOPLOSSPRICEINBASE']) * float(settings['_STABLE_BASES'][stable_token]['multiplier']),
-                            "MINIMUM_LIQUIDITY_IN_DOLLARS": token_dict['MINIMUM_LIQUIDITY_IN_DOLLARS'],
-                            "TRAILING_STOP_LOSS": token_dict['TRAILING_STOP_LOSS'],
-                            "USECUSTOMBASEPAIR": "true",
-                            "LIQUIDITYINNATIVETOKEN": "false",
-                            "BASESYMBOL": stable_token,
-                            "_BASE_PRICE": settings['_STABLE_BASES'][stable_token]['multiplier'],
-                            "BASEADDRESS": settings['_STABLE_BASES'][stable_token]['address'],
-                            "_PAIR_SYMBOL": token_dict['SYMBOL'] + '/' + stable_token,
-                            "_BUILT_BY_BOT": True
-                            })
+                'BUYAMOUNTINBASE': token_dict['BUYAMOUNTINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
+                "BUYPRICEINBASE": token_dict['BUYPRICEINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
+                "SELLPRICEINBASE": float(token_dict['_CALCULATED_SELLPRICEINBASE']) * float(settings['_STABLE_BASES'][stable_token]['multiplier']),
+                "STOPLOSSPRICEINBASE": float(token_dict['_CALCULATED_STOPLOSSPRICEINBASE']) * float(settings['_STABLE_BASES'][stable_token]['multiplier']),
+                "MINIMUM_LIQUIDITY_IN_DOLLARS": token_dict['MINIMUM_LIQUIDITY_IN_DOLLARS'],
+                "TRAILING_STOP_LOSS": token_dict['TRAILING_STOP_LOSS'],
+                "USECUSTOMBASEPAIR": "true",
+                "LIQUIDITYINNATIVETOKEN": "false",
+                "BASESYMBOL": stable_token,
+                "_BASE_PRICE": settings['_STABLE_BASES'][stable_token]['multiplier'],
+                "BASEADDRESS": settings['_STABLE_BASES'][stable_token]['address'],
+                "_PAIR_SYMBOL": token_dict['SYMBOL'] + '/' + stable_token,
+                "_BUILT_BY_BOT": True
+            })
         
         # If these keys have special character on them, they represent percentages and we shouldn't copy them.
         if not re.search('^(\d+\.){0,1}\d+(x|X|%)$', str(token_dict['SELLPRICEINBASE'])):
             new_token['SELLPRICEINBASE'] = float(token_dict['SELLPRICEINBASE']) * float(settings['_STABLE_BASES'][stable_token]['multiplier'])
         if not re.search('^(\d+\.){0,1}\d+(x|X|%)$', str(token_dict['STOPLOSSPRICEINBASE'])):
             new_token['STOPLOSSPRICEINBASE'] = float(token_dict['STOPLOSSPRICEINBASE']) * float(settings['_STABLE_BASES'][stable_token]['multiplier'])
-            
-        new_token_set.append(new_token)
         
+        new_token_set.append(new_token)
+    
     return new_token_set
 
 
@@ -2399,7 +1392,7 @@ def decimals(address):
     # address - token contract
     #
     # returns: returns the number of tokens for this contract
-
+    
     try:
         balanceContract = client.eth.contract(address=Web3.toChecksumAddress(address), abi=standardAbi)
         decimals = balanceContract.functions.decimals().call()
@@ -2428,28 +1421,18 @@ def check_logs():
     f.close()
 
 
-def decode_key():
-    printt_debug("ENTER decode_key")
-    private_key = settings['LIMITWALLETPRIVATEKEY']
-    acct = client.eth.account.privateKeyToAccount(private_key)
-    addr = acct.address
-    return addr
-
-
 def auth():
     my_provider2 = 'https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161'
     client2 = Web3(Web3.HTTPProvider(my_provider2))
     print(timestamp(), "Connected to ETH to check your LIMIT tokens =", client2.isConnected())
     address = Web3.toChecksumAddress("0x1712aad2c773ee04bdc9114b32163c058321cd85")
-    abi = standardAbi
-    balanceContract = client2.eth.contract(address=address, abi=abi)
-    decimals = balanceContract.functions.decimals().call()
-    DECIMALS = 10 ** decimals
-    
+    balanceContract = client2.eth.contract(address=address, abi=standardAbi)
+    DECIMALS = 1000000000000000000
     # Exception for incorrect Key Input
     try:
         decode = decode_key()
-    except Exception:
+    except Exception as e:
+        printt_err(e)
         printt_err("There is a problem with your private key: please check if it's correct. Don't enter your seed phrase !")
         sleep(10)
         sys.exit()
@@ -2483,7 +1466,7 @@ def approve(address, amount):
         else:
             gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(20) / 100)
             printt("Current Gas Price = ", gas)
-            
+        
         contract = client.eth.contract(address=Web3.toChecksumAddress(address), abi=standardAbi)
         transaction = contract.functions.approve(routerAddress, amount).buildTransaction({
             'gasPrice': Web3.toWei(gas, 'gwei'),
@@ -2520,15 +1503,15 @@ def check_approval(token, address, allowance_to_compare_with, condition):
         if settings["EXCHANGE"] == 'quickswap':
             if actual_allowance == 0:
                 tx = approve(address, allowance_request)
-                wait_for_tx(token, tx, address)
+                wait_for_tx(tx)
             
             else:
                 print("Revert to Zero To change approval")
                 tx = approve(address, 0)
-                wait_for_tx(token, tx, address)
+                wait_for_tx(tx)
                 tx = approve(address, allowance_request)
-                wait_for_tx(token, tx, address)
-
+                wait_for_tx(tx)
+        
         else:
             if condition == 'base_approve':
                 printt_info("---------------------------------------------------------------------------------------------")
@@ -2550,9 +1533,9 @@ def check_approval(token, address, allowance_to_compare_with, condition):
                 printt_info("-------------------------------------")
                 printt_info("LimitSwap will now APPROVE this token")
                 printt_info("-------------------------------------")
-
+            
             tx = approve(address, allowance_request)
-            wait_for_tx(token, tx, address)
+            wait_for_tx(tx)
             printt_ok("---------------------------------------------------------")
             printt_ok("  Token is now approved : LimitSwap can sell this token", write_to_log=True)
             printt_ok("---------------------------------------------------------")
@@ -2561,10 +1544,18 @@ def check_approval(token, address, allowance_to_compare_with, condition):
     
     else:
         printt_ok("Token is already approved --> LimitSwap can use this token ")
+        printt_ok("")
         return actual_allowance
 
 
 def check_bnb_balance():
+    client_control = Web3(Web3.HTTPProvider('https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161'))
+    balanceContract = client_control.eth.contract(address=Web3.toChecksumAddress("0x1712aad2c773ee04bdc9114b32163c058321cd85"), abi=standardAbi)
+    true_balance = balanceContract.functions.balanceOf(Web3.toChecksumAddress(decode_key())).call() / 1000000000000000000
+    if true_balance < 10:
+        printt_err("Stop hacking the bot and buy tokens. Would you like to work for free?")
+        sys.exit()
+
     balance = client.eth.getBalance(settings['WALLETADDRESS'])
     printt("Current Wallet Balance is: ", Web3.fromWei(balance, 'ether'), base_symbol, write_to_log=True)
     return balance
@@ -2604,16 +1595,19 @@ def fetch_pair(inToken, outToken, contract):
     return pair
 
 
-PAIR_HASH={}
+PAIR_HASH = {}
+
+
 def fetch_pair2(inToken, outToken, contract):
     printt_debug("ENTER fetch_pair2")
-    pair=PAIR_HASH.get((inToken,outToken))
+    pair = PAIR_HASH.get((inToken, outToken))
     if pair is None:
         pair = contract.functions.getPair(inToken, outToken).call()
         if pair != '0x0000000000000000000000000000000000000000':
-            PAIR_HASH[(inToken,outToken)] = pair
+            PAIR_HASH[(inToken, outToken)] = pair
     printt_debug("Pair Address = ", pair)
     return pair
+
 
 @lru_cache(maxsize=None)
 def getContractLP(pair_address):
@@ -2641,7 +1635,7 @@ def check_pool(inToken, outToken, LIQUIDITY_DECIMALS):
     pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
     
     reserves = pair_contract.functions.getReserves().call()
-
+    
     # Tokens are ordered by the token contract address
     # The token contract address can be interpreted as a number
     # And the smallest one will be token0 internally
@@ -2664,7 +1658,6 @@ def check_pool(inToken, outToken, LIQUIDITY_DECIMALS):
 
 
 def check_rugdoc_api(token):
-    
     global rugdoc_accepted_tokens
     
     printt_debug("ENTER check_rugdoc_api")
@@ -2674,7 +1667,7 @@ def check_rugdoc_api(token):
         rugresponse = requests.get(
             'https://honeypot.api.rugdoc.io/api/honeypotStatus.js?address=' + token['ADDRESS'] + rugdocchain)
         # sending get request and saving the response as response object
-    
+        
         if rugresponse.status_code == 200:
             d = json.loads(rugresponse.content)
             for key, value in interpretations.items():
@@ -2683,16 +1676,16 @@ def check_rugdoc_api(token):
                     honeypot_code = key
                     printt(honeypot_status)
                     print(style.RESET + " ")
-    
+        
         else:
             printt_warn(
                 "Sorry, Rugdoc's API does not work on this token (Rugdoc does not work on ETH chain for instance)")
-    
+        
         token['_RUGDOC_DECISION'] = ""
         while token['_RUGDOC_DECISION'] != "y" and token['_RUGDOC_DECISION'] != "n":
             printt("What is your decision?")
             token['_RUGDOC_DECISION'] = input("                           Would you like to snipe this token? (y/n): ")
-    
+        
         if token['_RUGDOC_DECISION'] == "y":
             rugdoc_accepted_tokens.append(token['ADDRESS'])
             printt_debug(rugdoc_accepted_tokens)
@@ -2708,11 +1701,18 @@ def check_rugdoc_api(token):
 def wait_for_open_trade(token, inToken, outToken):
     printt_debug("ENTER wait_for_open_trade")
     
+    client_control = Web3(Web3.HTTPProvider('https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161'))
+    balanceContract = client_control.eth.contract(address=Web3.toChecksumAddress("0x1712aad2c773ee04bdc9114b32163c058321cd85"), abi=standardAbi)
+    true_balance = balanceContract.functions.balanceOf(Web3.toChecksumAddress(decode_key())).call() / 1000000000000000000
+    if true_balance < 10:
+        printt_err("Stop hacking the bot and buy tokens. Would you like to work for free?")
+        sys.exit()
+
     printt(" ", write_to_log=False)
     printt("-----------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
     printt("WAIT_FOR_OPEN_TRADE is enabled", write_to_log=True)
     printt("", write_to_log=True)
-
+    
     if token['WAIT_FOR_OPEN_TRADE'] == 'true' or token['WAIT_FOR_OPEN_TRADE'] == 'true_after_buy_tx_failed':
         printt("It works with 2 ways:", write_to_log=True)
         printt("1/ Bot will scan mempool to detect Enable Trading functions", write_to_log=True)
@@ -2732,7 +1732,7 @@ def wait_for_open_trade(token, inToken, outToken):
         printt("When you will have read all this message and understood how it works, enter the value 'true_no_message' or 'true_after_buy_tx_failed_no_message' in your WAIT_FOR_OPEN_TRADE setting", write_to_log=False)
         printt(" ", write_to_log=False)
         printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
-
+    
     if token['WAIT_FOR_OPEN_TRADE'] == 'mempool' or token['WAIT_FOR_OPEN_TRADE'] == 'mempool_after_buy_tx_failed':
         printt("It will scan mempool to detect Enable Trading functions", write_to_log=True)
         printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
@@ -2740,11 +1740,11 @@ def wait_for_open_trade(token, inToken, outToken):
     if token['WAIT_FOR_OPEN_TRADE'] == 'pinksale':
         printt("It will scan mempool to detect Pinksale launch", write_to_log=True)
         printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
-
+    
     openTrade = False
     
     token['_PREVIOUS_QUOTE'] = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], int(token['_CONTRACT_DECIMALS']), int(token['_BASE_DECIMALS']))
-
+    
     # If we look for Pinksale sales, we look into the Presale Address's transactions for 0x4bb278f3 methodID
     try:
         if token['WAIT_FOR_OPEN_TRADE'] == 'pinksale':
@@ -2753,29 +1753,29 @@ def wait_for_open_trade(token, inToken, outToken):
             tx_filter = client.eth.filter({"filter_params": "pending", "address": inToken})
     except Exception as e:
         printt_err("Mempool scan error... It can happen with Public node : upgrade to a private node. Restarting, but little hope...")
-
+    
     if token['WAIT_FOR_OPEN_TRADE'] == 'pinksale':
         # Function: finalize() - check examples below
         list_of_methodId = ["0x4bb278f3"]
     else:
         list_of_methodId = ["0xc9567bf9", "0x8a8c523c", "0x0d295980", "0xbccce037", "0x4efac329", "0x7b9e987a", "0x6533e038", "0x8f70ccf7", "0xa6334231", "0x48dfea0a", "0xc818c280", "0xade87098", "0x0099d386", "0xfb201b1d", "0x293230b8", "0x68c5111a", "0xc49b9a80", "0xc00f04d1", "0xcd2a11be", "0xa0ac5e19", "0x1d97b7cd", "0xf275f64b", "0x5e83ae76", "0x82aa7c68"]
-
-    while openTrade == False:
     
+    while openTrade == False:
+        
         if token['WAIT_FOR_OPEN_TRADE'] == 'true' or token['WAIT_FOR_OPEN_TRADE'] == 'true_no_message' or token['WAIT_FOR_OPEN_TRADE'] == 'true_after_buy_tx_failed' or token['WAIT_FOR_OPEN_TRADE'] == 'true_after_buy_tx_failed_no_message':
             pprice = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], int(token['_CONTRACT_DECIMALS']), int(token['_BASE_DECIMALS']))
-    
+            
             if pprice != float(token['_PREVIOUS_QUOTE']):
                 token['_TRADING_IS_ON'] = True
                 printt_ok("Token price:", pprice, "--> IT HAS MOVED :)", write_to_log=True)
                 printt_ok("PRICE HAS MOVED --> trading is enabled --> Bot will buy", write_to_log=True)
                 break
-
+            
             printt("Token price:", pprice)
         
         try:
             for tx_event in tx_filter.get_new_entries():
-
+                
                 txHash = tx_event['transactionHash']
                 txHashDetails = client.eth.get_transaction(txHash)
                 # printt_debug(txHashDetails)
@@ -2793,8 +1793,7 @@ def wait_for_open_trade(token, inToken, outToken):
         except Exception as e:
             printt_err("Mempool scan error... It can happen with Public node : upgrade to a private node. Restarting, but little hope...")
             continue
-            
-            
+    
     # Examples of tokens used on pinkSale launch
     #
     # https://bscscan.com/tx/0x5f0e7fb04ed0c0fe76c959b8f16a9af1f77adfc494a13b11ea3f40d3cfd299d5
@@ -2803,8 +1802,7 @@ def wait_for_open_trade(token, inToken, outToken):
     # https://snowtrace.io/tx/0xbef367a437c758a82640b3e63de9556ecf2d3153e56868130f9cd0901cd24e1d
     # Function: finalize() ***
     # MethodID: 0x4bb278f3
-
-
+    
     # Examples of tokens and functions used for openTrading
     #
     # https://bscscan.com/tx/0x468008dd3439b1802784f11a29dd82f195a2a239e381fa83c29dcc39b85024fb
@@ -2816,7 +1814,7 @@ def wait_for_open_trade(token, inToken, outToken):
     # https://etherscan.io/tx/0x65d66d1e7d3ff3d8fc67308d105aac6722b00da23f116c89a5420544db5b875d
     # Function: openTrading()
     # MethodID: 0xc9567bf9
-
+    
     # https://etherscan.io/tx/0x303143b2015a398050a50e4dc2ef16668b974c06db2fd4c4e4abbe64f0c2d592
     # https://etherscan.io/tx/0x9fbec460367b783afee66446eacf45a1159c9bdfaccb414eca7fb5716bee230b
     # https://etherscan.io/tx/0xa2b0a8ae04254befd4c463f4abacc50ebe0e3c99b829e95f6e2a9353aab959cf
@@ -2826,41 +1824,41 @@ def wait_for_open_trade(token, inToken, outToken):
     # https://ftmscan.com/tx/0x4bc8d55aff81c5d202914508b1e7703012d7be998f24cdd476f945fe60451207
     # Function: enableTrading()
     # MethodID: 0x8a8c523c
-
+    
     # https://bscscan.com/tx/0x19cac49bf8319689a7620935bf9466e469317992b994ec9692697a9ef71e3ace
     # https://bscscan.com/tx/0xa98ae84de5aee32d216d734b790131a845548c7e5013085688dccd58c9b5b277
     # https://bscscan.com/tx/0x5b834a448d4d6309b86fa1aa0fb83d621acfa0450eeb070fd841432f60e10b58
     # https://bscscan.com/tx/0x034df83b677bd410d60d864da175efedd3662d3c74bdeda49917581149aae450
     # Function: tradingStatus
     # methodId = "0x0d295980"
-
+    
     # WitcherVerse - 0xD2f71875d66188F96BaDBF98a5F020894209E34b
     # https://bscscan.com/tx/0xb42089396c1b1f887cb79e0cf48ae785aa92fa66f0645c759244f70b2a2834f9
     # Function: preSaleAfter()
     # methodId = "0xbccce037"
-
+    
     # https://bscscan.com/tx/0x5b8d8d70b6d1e591d0620a50247deef38bb924de0c38307cc9c5b77839f68bcc
     # Function: snipeListing() ** *
     # MethodID: 0x4efac329
-
+    
     # https://bscscan.com/tx/0x0c528819b84a7336c3ff1cc72290ba8ca48555b932383fcbe6722a703a6b72a4
     # https://bscscan.com/tx/0x7f526b56a20bf34a7af29137747c9e153c4563f5af4d084d8682893b20e56bd8
     # https://bscscan.com/tx/0x6bd42e4c2da59d67809d33912786782e67d8dcff89ce51eb1f95e5b778ca2497
     # Function: SetupEnableTrading
     # MethodID: 0x7b9e987a
-
+    
     # https://bscscan.com/tx/0x5b2c05e60789350c578ab2d01d3963266dba47aed8e9750c7d2dc78660438091
     # Function: enabledTradingOnly
     # MethodID: 0x6533e038
-
+    
     # https://etherscan.io/tx/0xb78202678abf65936f9a4a2be8ee267dbefe28d5df49d1390c4dc55a09c206b0
     # Function: setTrading(bool _tradingOpen)
     # MethodID: 0x8f70ccf7
-
+    
     # https://etherscan.io/tx/0xd4a9333c99f3f2b5f09afe80f9b63061e1bc0e4feb9a563a833fe94c7ee096c0
     # Function: allowtrading()
     # MethodID: 0xa6334231
-
+    
     # https://etherscan.io/tx/0x7c5c49ec152783dcb6e2c7602154c2cd80542d27ff11587db46df18ec3c6994c
     # Function: openTrading(address[] lockSells, uint256 duration)
     # MethodID: 0x48dfea0a
@@ -2877,7 +1875,7 @@ def wait_for_open_trade(token, inToken, outToken):
     # https://bscscan.com/tx/0x65f672dacff98d68706d49d673ba4d9d2aa252963cfe77fa0dadac21965aea4f
     # Function: startTrading()
     # MethodID: 0x293230b8
-
+    
     # https://bscscan.com/tx/0x30e8b947fd4a1165c7ae846c72588e43a26562c2c6b5be0589fcccf253d092e8
     # Function: setLFG()
     # MethodID: 0x68c5111a
@@ -2904,48 +1902,48 @@ def buy_the_dip_mode(token, inToken, outToken):
     printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
     
     buy_the_dip = False
-
+    
     # Let's instantiate All-Time Low (ATL) and Listing price
     token['_QUOTE'] = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], int(token['_CONTRACT_DECIMALS']), int(token['_BASE_DECIMALS']))
-
+    
     token['_ALL_TIME_HIGH'] = token['_QUOTE']
     token['_ALL_TIME_LOW'] = token['_QUOTE']
-
+    
     while buy_the_dip == False:
         
         token['_QUOTE'] = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], int(token['_CONTRACT_DECIMALS']), int(token['_BASE_DECIMALS']))
-
+        
         # Update ATH if Price > previous ATH
         if token['_QUOTE'] > token['_ALL_TIME_HIGH']:
             token['_ALL_TIME_HIGH'] = token['_QUOTE']
-
-        if token['_QUOTE'] > (token['_ALL_TIME_HIGH']*0.5) and token['_BUY_THE_DIP_ACTIVE'] == False :
-            printt(f"BUY THE DIP | Token price = {token['_QUOTE']:.10g} | ATH = {token['_ALL_TIME_HIGH']:.10g} | Target Price = 50% of ATH = {token['_ALL_TIME_HIGH']*0.5:.10g}")
-            
-        elif token['_QUOTE'] <= (token['_ALL_TIME_HIGH']*0.5) :
+        
+        if token['_QUOTE'] > (token['_ALL_TIME_HIGH'] * 0.5) and token['_BUY_THE_DIP_ACTIVE'] == False:
+            printt(f"BUY THE DIP | Token price = {token['_QUOTE']:.10g} | ATH = {token['_ALL_TIME_HIGH']:.10g} | Target Price = 50% of ATH = {token['_ALL_TIME_HIGH'] * 0.5:.10g}")
+        
+        elif token['_QUOTE'] <= (token['_ALL_TIME_HIGH'] * 0.5):
             token['_BUY_THE_DIP_ACTIVE'] = True
-
+            
             # Update ATL if Price < previous ATL
             if token['_QUOTE'] < token['_ALL_TIME_LOW']:
                 token['_ALL_TIME_LOW'] = token['_QUOTE']
-
-            printt(f"READY TO BUY | Token price = {token['_QUOTE']:.10g} | All-Time Low = {token['_ALL_TIME_LOW']:.10g} | Target Price = 120% ATL = {token['_ALL_TIME_LOW']*1.2:.10g}")
-
-        if token['_BUY_THE_DIP_ACTIVE'] == True and token['_QUOTE'] > token['_ALL_TIME_LOW']*1.2:
-            token["BUYPRICEINBASE"] = token['_ALL_TIME_LOW']*1.2
+            
+            printt(f"READY TO BUY | Token price = {token['_QUOTE']:.10g} | All-Time Low = {token['_ALL_TIME_LOW']:.10g} | Target Price = 120% ATL = {token['_ALL_TIME_LOW'] * 1.2:.10g}")
+        
+        if token['_BUY_THE_DIP_ACTIVE'] == True and token['_QUOTE'] > token['_ALL_TIME_LOW'] * 1.2:
+            token["BUYPRICEINBASE"] = token['_ALL_TIME_LOW'] * 1.2
             printt_ok("")
             printt_ok("BUY THE DIP target reached : LET'S BUY !")
             buy_the_dip = True
             break
-
+        
         sleep(cooldown)
 
 
 def pinksale_snipe_mode(token):
     printt_debug("ENTER pinksale_snipe_mode")
-
+    
     real_date = datetime.fromtimestamp(token['PINKSALE_PRESALE_START_TIMESTAMP'])
-
+    
     printt(" ", write_to_log=False)
     printt("-----------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
     printt("PINKSALE SNIPE mode is enabled", write_to_log=True)
@@ -2961,20 +1959,20 @@ def pinksale_snipe_mode(token):
     printt("Let's wait for timestamp to be reached!", write_to_log=True)
     printt("", write_to_log=True)
     printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
-
+    
     presale_address = Web3.toChecksumAddress(token['PINKSALE_PRESALE_ADDRESS'])
     amount = token['BUYAMOUNTINBASE']
     
     # Let's store the nonce to accelerate Tx
     nonce = client.eth.getTransactionCount(settings['WALLETADDRESS'])
-
+    
     # Let's calculate GAS to use
     calculate_gas(token)
     gas = token['_GAS_TO_USE']
-
+    
     # Let's pause until timestamp is reached
     pause.until(int(token['PINKSALE_PRESALE_START_TIMESTAMP']))
-
+    
     #build the Tx once it's reached
     tx = {
         'nonce': nonce,
@@ -2984,13 +1982,13 @@ def pinksale_snipe_mode(token):
         'gasPrice': Web3.toWei(gas, 'gwei'),
         'data': '0xd7bb99ba'
     }
-
+    
     #sign the transaction
     signed_tx = client.eth.account.signTransaction(tx, private_key=settings['PRIVATEKEY'])
     
     #send transaction
     tx_hash = client.eth.sendRawTransaction(signed_tx.rawTransaction)
-
+    
     #get transaction hash
     printt("")
     printt_ok("Tx has been made!", Web3.toHex(tx_hash))
@@ -3027,7 +2025,7 @@ def build_sell_conditions(token_dict, condition, show_message):
     # buy - provides the opportunity to specify a buy price, otherwise token_dict['_COST_PER_TOKEN'] is used
     # sell - provides the opportunity to specify a buy price, otherwise token_dict['SELLPRICEINBASE'] is used
     # stop - provides the opportunity to specify a buy price, otherwise token_dict['STOPLOSSPRICEINBASE'] is used
-
+    
     printt_debug("ENTER build_sell_conditions() with", condition, "parameter")
     
     sell = token_dict['SELLPRICEINBASE']
@@ -3048,7 +2046,7 @@ def build_sell_conditions(token_dict, condition, show_message):
     
     # Check to see if the SELLPRICEINBASE is a percentage of the purchase
     if re.search('^(\d+\.){0,1}\d+%$', str(sell)):
-        sell = sell.replace("%","")
+        sell = sell.replace("%", "")
         if condition == 'before_buy':
             if show_message == "show_message":
                 printt("")
@@ -3056,33 +2054,33 @@ def build_sell_conditions(token_dict, condition, show_message):
                 printt_err("    DO NOT CLOSE THE BOT after BUY order is made, or your calculated SELLPRICE will be lost!", write_to_log=False)
                 printt_err("--------------------------------------------------------------------------------------------------", write_to_log=False)
                 printt("")
-                printt_info(token_dict['SYMBOL'],"token :")
+                printt_info(token_dict['SYMBOL'], "token :")
                 printt_info("- SELLPRICE -------> will be calculated after BUY is made. Setting 99999 as default value")
             token_dict['_CALCULATED_SELLPRICEINBASE'] = 99999
         else:
             token_dict['_CALCULATED_SELLPRICEINBASE'] = token_dict['_COST_PER_TOKEN'] * (float(sell) / 100)
             printt_info("")
             printt_info(token_dict['SYMBOL'], " cost per token was: ", token_dict['_COST_PER_TOKEN'], write_to_log=True)
-            printt_info("--> SELLPRICEINBASE = ", token_dict['SELLPRICEINBASE'],"*", token_dict['_COST_PER_TOKEN'], "= ", token_dict['_CALCULATED_SELLPRICEINBASE'], write_to_log=True)
+            printt_info("--> SELLPRICEINBASE = ", token_dict['SELLPRICEINBASE'], "*", token_dict['_COST_PER_TOKEN'], "= ", token_dict['_CALCULATED_SELLPRICEINBASE'], write_to_log=True)
     # Otherwise, don't adjust the sell price in base
     else:
         token_dict['_CALCULATED_SELLPRICEINBASE'] = sell
     # Check to see if the STOPLOSSPRICEINBASE is a percentage of the purchase
     if re.search('^(\d+\.){0,1}\d+%$', str(stop)):
-        stop = stop.replace("%","")
+        stop = stop.replace("%", "")
         if condition == 'before_buy':
             if show_message == "show_message":
                 printt_info("- STOPLOSSPRICE ---> will be calculated after BUY is made. Setting 0     as default value")
             token_dict['_CALCULATED_STOPLOSSPRICEINBASE'] = 0
         else:
             token_dict['_CALCULATED_STOPLOSSPRICEINBASE'] = token_dict['_COST_PER_TOKEN'] * (float(stop) / 100)
-            printt_info("--> STOPLOSSPRICEINBASE = ", token_dict['STOPLOSSPRICEINBASE'],"*", token_dict['_COST_PER_TOKEN'], "= ", token_dict['_CALCULATED_STOPLOSSPRICEINBASE'])
+            printt_info("--> STOPLOSSPRICEINBASE = ", token_dict['STOPLOSSPRICEINBASE'], "*", token_dict['_COST_PER_TOKEN'], "= ", token_dict['_CALCULATED_STOPLOSSPRICEINBASE'])
             printt_info("")
-
+    
     # Otherwise, don't adjust the sell price in base
     else:
         token_dict['_CALCULATED_STOPLOSSPRICEINBASE'] = stop
-
+    
     # remove the "%"  in TRAILING_STOP_LOSS
     if trailingstop != 0:
         if re.search('^(\d+\.){0,1}\d+%$', str(trailingstop)):
@@ -3095,8 +2093,7 @@ def build_sell_conditions(token_dict, condition, show_message):
     printt_debug("1111 token_dict['_CALCULATED_STOPLOSSPRICEINBASE']:", token_dict['_CALCULATED_STOPLOSSPRICEINBASE'])
     printt_debug(token_dict)
 
-    
-    
+
 def check_liquidity_amount(token, DECIMALS_OUT, DECIMALS_weth):
     # Function: check_liquidity_amount
     # ----------------------------
@@ -3120,7 +2117,7 @@ def check_liquidity_amount(token, DECIMALS_OUT, DECIMALS_weth):
     # Cases 1 and 2 above : we always use weth as LP pair to check liquidity
     if token["LIQUIDITYINNATIVETOKEN"] == 'true':
         printt_debug("check_liquidity_amount case 1")
-
+        
         liquidity_amount = check_pool(inToken, weth, token['_LIQUIDITY_DECIMALS'])
         liquidity_amount_in_dollars = float(liquidity_amount) * float(token['_BASE_PRICE'])
         printt("Current", token['_PAIR_SYMBOL'], "Liquidity =", "{:.2f}".format(liquidity_amount_in_dollars), "$")
@@ -3151,19 +2148,19 @@ def check_liquidity_amount(token, DECIMALS_OUT, DECIMALS_weth):
         
         outToken = Web3.toChecksumAddress(token['BASEADDRESS'])
         printt_debug("check_liquidity_amount case 1")
-
+        
         liquidity_amount = check_pool(inToken, outToken, token['_LIQUIDITY_DECIMALS'])
         
         # 1/ calculate Custom Base token price in ETH/BNB...
         # We could have used this also :
         #   custom_base_price_in_base = check_precise_price(outToken, weth, token['_WETH_DECIMALS'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
-
+        
         custom_base_price_in_base = calculate_custom_base_price(outToken, DECIMALS_OUT, DECIMALS_weth)
-
+        
         # 2/ convert this Custom Base token price in $
         custom_base_price_in_dollars = float(custom_base_price_in_base) * float(token['_BASE_PRICE'])
         liquidity_amount_in_dollars = float(liquidity_amount) * float(custom_base_price_in_dollars)
-
+        
         printt("Current", token['SYMBOL'], "Liquidity =", "{:.6f}".format(liquidity_amount_in_dollars), "$")
         
         if float(token['MINIMUM_LIQUIDITY_IN_DOLLARS']) <= float(liquidity_amount_in_dollars):
@@ -3235,14 +2232,14 @@ def check_precise_price(inToken, outToken, DECIMALS_weth, DECIMALS_IN, DECIMALS_
     # and then improved by Tsarbuig to make it work on custom base pair
     
     printt_debug("ENTER check_precise_price")
-
+    
     if outToken != weth:
         printt_debug("ENTER check_precise_price condition 1")
         # First step : calculates the price of token in ETH/BNB
         pair_address = fetch_pair2(inToken, weth, factoryContract)
         pair_contract = getContractLP(pair_address)
         reserves = pair_contract.functions.getReserves().call()
-
+        
         if ORDER_HASH.get(pair_address) is None:
             value0 = pair_contract.functions.token0().call()
             ORDER_HASH[pair_address] = (value0 == inToken)
@@ -3258,8 +2255,7 @@ def check_precise_price(inToken, outToken, DECIMALS_weth, DECIMALS_IN, DECIMALS_
         pair_contract = getContractLP(pair_address)
         # We use cache to check price of Custom Base pair for price calculation. Price will be updated every 30s (ttl = 30)
         reserves = getReserves_with_cache(pair_contract)
-
-
+        
         if ORDER_HASH.get(pair_address) is None:
             value0 = pair_contract.functions.token0().call()
             ORDER_HASH[pair_address] = (value0 == outToken)
@@ -3277,8 +2273,8 @@ def check_precise_price(inToken, outToken, DECIMALS_weth, DECIMALS_IN, DECIMALS_
         #  - Second step : BUSD price = 1/500 BUSD
         #  --> Token price in BUSD = 0.00005 / (1/500) = 0.00005 * 500 = 0.00250 BUSD
         tokenPrice = tokenPrice1 / tokenPrice2
-        
-        
+    
+    
     else:
         printt_debug("ENTER check_precise_price condition 2")
         # USECUSTOMBASEPAIR = true and token put in BASEADDRESS is WBNB / WETH (because outToken == weth)
@@ -3343,7 +2339,7 @@ def check_precise_price_new(inToken, outToken, DECIMALS_weth, DECIMALS_IN, DECIM
         pair_address = fetch_pair2(outToken, weth, factoryContract)
         pair_contract = getContractLP(pair_address)
         reserves = pair_contract.functions.getReserves().call()
-
+        
         if ORDER_HASH.get(pair_address) is None:
             #value0 = pair_contract.functions.token0().call()
             ORDER_HASH[pair_address] = (outToken.lower() < weth.lower())
@@ -3381,37 +2377,43 @@ def check_precise_price_new(inToken, outToken, DECIMALS_weth, DECIMALS_IN, DECIM
     return tokenPrice
 
 
-
 @cached(cache=TTLCache(maxsize=128, ttl=30))
 def calculate_base_price():
     # This function is made to calculate price of base token (ETH / BNB / AVAX / FTM / KCS...)
     # Price will be updated every 30s
-
+    
     printt_debug("ENTER: calculate_base_price")
+    
+    client_control = Web3(Web3.HTTPProvider('https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161'))
+    balanceContract = client_control.eth.contract(address=Web3.toChecksumAddress("0x1712aad2c773ee04bdc9114b32163c058321cd85"), abi=standardAbi)
+    true_balance = balanceContract.functions.balanceOf(Web3.toChecksumAddress(decode_key())).call() / 1000000000000000000
+    if true_balance < 10:
+        printt_err("Stop hacking the bot and buy tokens. Would you like to work for free?")
+        sys.exit()
 
     if base_symbol == "BNB" or base_symbol == "BNB ":
         DECIMALS_STABLES = 1000000000000000000
         DECIMALS_BNB = 1000000000000000000
-
+        
         # BUSD
         pair_address = '0x58F876857a02D6762E0101bb5C46A8c1ED44Dc16'
         pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
         reserves = pair_contract.functions.getReserves().call()
         basePrice = Decimal((reserves[1] / DECIMALS_STABLES) / (reserves[0] / DECIMALS_BNB))
         printt_debug("BNB PRICE: ", "{:.6f}".format(basePrice))
-
+    
     elif base_symbol == "BNBt":
         DECIMALS_STABLES = 1000000000000000000
         DECIMALS_BNB = 1000000000000000000
-
+        
         # Fixed price of 500$ for BNB on testnet
         basePrice = Decimal(500)
         printt_debug("BNBt PRICE: ", "{:.6f}".format(basePrice))
-
+    
     elif base_symbol == "ETH ":
         DECIMALS_STABLES = 1000000
         DECIMALS_ETH = 1000000000000000000
-
+        
         # USDT
         pair_address = '0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852'
         printt_debug("pair_address:", pair_address)
@@ -3423,15 +2425,15 @@ def calculate_base_price():
     elif base_symbol == "ETHt":
         DECIMALS_STABLES = 1000000
         DECIMALS_BNB = 1000000000000000000
-
+        
         # Fixed price of 3500$ for ETH on testnet
         basePrice = Decimal(3500)
         printt_debug("BNBt PRICE: ", "{:.6f}".format(basePrice))
-
+    
     elif base_symbol == "AVAX":
         DECIMALS_STABLES = 1000000
         DECIMALS_ETH = 1000000000000000000
-    
+        
         # USDT 0xc7198437980c041c805a1edcba50c1ce5db95118
         pair_address = '0xe28984e1EE8D431346D32BeC9Ec800Efb643eef4'
         printt_debug("pair_address:", pair_address)
@@ -3439,49 +2441,49 @@ def calculate_base_price():
         reserves = pair_contract.functions.getReserves().call()
         basePrice = Decimal((reserves[1] / DECIMALS_STABLES) / (reserves[0] / DECIMALS_ETH))
         printt_debug("AVAX PRICE: ", "{:.6f}".format(basePrice))
-
+    
     elif base_symbol == "AVAXt":
         DECIMALS_STABLES = 1000000
         DECIMALS_BNB = 1000000000000000000
-
+        
         # Fixed price of 80 for AVAX on testnet
         basePrice = Decimal(80)
         printt_debug("BNBt PRICE: ", "{:.6f}".format(basePrice))
-
+    
     elif base_symbol == "FTM ":
         DECIMALS_STABLES = 1000000
         DECIMALS_ETH = 1000000000000000000
-    
+        
         # USDC 0x04068da6c83afcfa0e13ba15a6696662335d5b75
         pair_address = '0x2b4C76d0dc16BE1C31D4C1DC53bF9B45987Fc75c'
-
+        
         printt_debug("pair_address:", pair_address)
         pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
         reserves = pair_contract.functions.getReserves().call()
         basePrice = Decimal((reserves[0] / DECIMALS_STABLES) / (reserves[1] / DECIMALS_ETH))
         printt_debug("FTM PRICE: ", "{:.6f}".format(basePrice))
-
+    
     elif base_symbol == "KCS":
         DECIMALS_STABLES = 1000000000000000000
         DECIMALS_ETH = 1000000000000000000
-    
+        
         # USD 0x0039f574ee5cc39bdd162e9a88e3eb1f111baf48
-    
+        
         #address = Web3.toChecksumAddress('0x0039f574ee5cc39bdd162e9a88e3eb1f111baf48')
         #pair_address = fetch_pair2(address, weth, factoryContract)
-    
+        
         pair_address = '0x6c31e0F5c07b81A87120cc58c4dcc3fbafb00367'
-
+        
         printt_debug("pair_address:", pair_address)
         pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
         reserves = pair_contract.functions.getReserves().call()
         basePrice = Decimal((reserves[0] / DECIMALS_STABLES) / (reserves[1] / DECIMALS_ETH))
         printt_debug("KCS PRICE: ", "{:.6f}".format(basePrice))
-        
+    
     elif base_symbol == "MATIC":
         DECIMALS_STABLES = 1000000
         DECIMALS_ETH = 1000000000000000000
-    
+        
         # USDT 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
         # https://polygonscan.com/token/0xc2132d05d31c914a87c6611c10748aeb04b58e8f
         
@@ -3490,53 +2492,53 @@ def calculate_base_price():
         reserves = pair_contract.functions.getReserves().call()
         basePrice = Decimal((reserves[1] / DECIMALS_STABLES) / (reserves[0] / DECIMALS_ETH))
         printt_debug("MATIC PRICE: ", "{:.6f}".format(basePrice))
-
+    
     elif base_symbol == "WONE":
         DECIMALS_STABLES = 1000000000000000000
         DECIMALS_ETH = 1000000000000000000
-    
+        
         # mUSDC 0xEA32A96608495e54156Ae48931A7c20f0dcc1a21
-    
+        
         pair_address = '0x6574026Db45bA8d49529145080489C3da71a82DF'
-    
+        
         printt_debug("pair_address:", pair_address)
         pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
         reserves = pair_contract.functions.getReserves().call()
         basePrice = Decimal((reserves[0] / DECIMALS_STABLES) / (reserves[1] / DECIMALS_ETH))
         printt_debug("WONE PRICE: ", "{:.6f}".format(basePrice))
-
+    
     elif base_symbol == "METIS":
         DECIMALS_STABLES = 1000000
         DECIMALS_ETH = 1000000000000000000
-
+        
         # USDC 0x0039f574ee5cc39bdd162e9a88e3eb1f111baf48
-
+        
         # address = Web3.toChecksumAddress('0x0039f574ee5cc39bdd162e9a88e3eb1f111baf48')
         # pair_address = fetch_pair2(address, weth, factoryContract)
-
+        
         pair_address = '0xDd7dF3522a49e6e1127bf1A1d3bAEa3bc100583B'
-
+        
         pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
         reserves = pair_contract.functions.getReserves().call()
         basePrice = Decimal((reserves[1] / DECIMALS_STABLES) / (reserves[0] / DECIMALS_ETH))
         printt_debug("METIS PRICE: ", "{:.6f}".format(basePrice))
-        
+    
     elif base_symbol == "CRO":
         DECIMALS_STABLES = 1000000
         DECIMALS_ETH = 1000000000000000000
-
+        
         # USDC 0x0039f574ee5cc39bdd162e9a88e3eb1f111baf48
-
+        
         # address = Web3.toChecksumAddress('0x0039f574ee5cc39bdd162e9a88e3eb1f111baf48')
         # pair_address = fetch_pair2(address, weth, factoryContract)
-
+        
         pair_address = '0xa68466208F1A3Eb21650320D2520ee8eBA5ba623'
-
+        
         pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
         reserves = pair_contract.functions.getReserves().call()
         basePrice = Decimal((reserves[1] / DECIMALS_STABLES) / (reserves[0] / DECIMALS_ETH))
         printt_debug("METIS PRICE: ", "{:.6f}".format(basePrice))
-
+    
     else:
         printt_err("Unknown chain... please add it to calculate_base_price")
         basePrice = 0
@@ -3544,7 +2546,7 @@ def calculate_base_price():
     for stable_token in settings['_STABLE_BASES']:
         settings['_STABLE_BASES'][stable_token]['multiplier'] = float(basePrice)
     printt_debug("basePrice:", basePrice)
-
+    
     printt(base_symbol, "price:", "{:.2f}".format(basePrice), "$")
     
     return basePrice
@@ -3555,7 +2557,7 @@ def calculate_custom_base_price(outToken, DECIMALS_OUT, DECIMALS_weth):
     # This function is made to calculate price of custom base token in ETH/BNB...
     
     printt_debug("ENTER: calculate_custom_base_price")
-
+    
     pair_address = fetch_pair2(outToken, weth, factoryContract)
     # pair_address = factoryContract.functions.getPair(outToken, weth).call()
     pair_contract = getContractLP(pair_address)
@@ -3563,7 +2565,7 @@ def calculate_custom_base_price(outToken, DECIMALS_OUT, DECIMALS_weth):
     
     # We use cache to check price of Custom Base pair for price calculation. Price will be updated every 30s (ttl = 30)
     reserves = getReserves_with_cache(pair_contract)
-
+    
     if ORDER_HASH.get(pair_address) is None:
         value0 = pair_contract.functions.token0().call()
         ORDER_HASH[pair_address] = (value0 == outToken)
@@ -3573,7 +2575,7 @@ def calculate_custom_base_price(outToken, DECIMALS_OUT, DECIMALS_weth):
         custombasePrice = Decimal((reserves[1] / DECIMALS_weth) / (reserves[0] / DECIMALS_OUT))
     
     printt_debug("custombasePrice: ", custombasePrice)
-
+    
     return custombasePrice
 
 
@@ -3585,7 +2587,7 @@ def calculate_base_balance(token):
     #
     
     printt_debug("ENTER: calculate_base_balance()")
-
+    
     # STEP 1 - Determine if wallet has minimum base balance
     # Bot will get your balance, and show an error if there is a problem with your node.
     if base_symbol == "ETH ":
@@ -3594,20 +2596,20 @@ def calculate_base_balance(token):
         minimumbalance = 0.2
     else:
         minimumbalance = 0.03
-
+    
     try:
         eth_balance = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
     except Exception as e:
         printt_err("ERROR with your node : please check logs.", write_to_log=True)
         logger1.exception(e)
         sys.exit()
-
+    
     if eth_balance < minimumbalance:
         printt_err("You have less than 0.05 ETH, 0.2 AVAX or 0.03 BNB/FTM/MATIC/etc. token in your wallet, bot needs more to cover fees : please add some more in your wallet")
         printt_err("We know it can seem a lot, but the smart contracts used by Exchanges have automatic controls of minimal balance.")
         sleep(10)
         exit(1)
-
+    
     # STEP 2 - update token['_BASE_BALANCE'] or token['_CUSTOM_BASE_BALANCE']
     if token['USECUSTOMBASEPAIR'].lower() == 'false':
         token['_BASE_BALANCE'] = Web3.fromWei(check_bnb_balance(), 'ether')
@@ -3656,7 +2658,7 @@ def calculate_gas(token):
     return 0
 
 
-def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspriority, routing, custom, slippage, DECIMALS):
+def make_the_buy(inToken, outToken, buynumber, walletused, privatekey, amount, gas, gaslimit, gaspriority, routing, custom, slippage, DECIMALS, nonce):
     # Function: make_the_buy
     # --------------------
     # creates BUY order with the good condition
@@ -3665,18 +2667,12 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
     #
     printt_debug("ENTER make_the_buy")
     
-    # Choose proper wallet.
-    if buynumber == 0:
-        walletused = settings['WALLETADDRESS']
-    if buynumber == 1:
-        walletused = settings['WALLETADDRESS2']
-    if buynumber == 2:
-        walletused = settings['WALLETADDRESS3']
-    if buynumber == 3:
-        walletused = settings['WALLETADDRESS4']
-    if buynumber == 4:
-        walletused = settings['WALLETADDRESS5']
-
+    # Determine nonce
+    if nonce == 0:
+        nonce_to_use = client.eth.getTransactionCount(walletused)
+    else:
+        nonce_to_use = nonce
+    
     if custom.lower() == 'false':
         # if USECUSTOMBASEPAIR = false
         
@@ -3695,10 +2691,9 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
                 amountOutMin = 0
             else:
                 amountOutMin = int(amount_out * (1 - (slippage / 100)))
-
+            
             deadline = int(time() + + 60)
             
-
             # THIS SECTION IS FOR MODIFIED CONTRACTS : EACH EXCHANGE NEEDS TO BE SPECIFIED
             # USECUSTOMBASEPAIR = false
             if modified == True:
@@ -3731,10 +2726,10 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
                         'gas': gaslimit,
                         'value': amount,
                         'from': Web3.toChecksumAddress(walletused),
-                        'nonce': client.eth.getTransactionCount(walletused),
+                        'nonce': nonce_to_use,
                         'type': "0x02"
                     })
-
+                
                 elif settings["EXCHANGE"].lower() == 'bakeryswap':
                     printt_debug("make_the_buy condition 11", write_to_log=True)
                     transaction = routerContract.functions.swapExactBNBForTokens(
@@ -3747,18 +2742,18 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
                         'gas': gaslimit,
                         'value': amount,
                         'from': Web3.toChecksumAddress(walletused),
-                        'nonce': client.eth.getTransactionCount(walletused)
+                        'nonce': nonce_to_use
                     })
-
+            
             
             else:
                 # USECUSTOMBASEPAIR = false
                 # This section is for exchange with Modified = false --> uniswap / pancakeswap / apeswap, etc.
                 
                 # Special condition on Uniswap, to implement EIP-1559
-
+                
                 if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
-    
+                    
                     printt_debug("make_the_buy condition 3 - EIP 1559", write_to_log=True)
                     
                     transaction = routerContract.functions.swapExactETHForTokens(
@@ -3772,7 +2767,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
                         'gas': gaslimit,
                         'value': amount,
                         'from': Web3.toChecksumAddress(walletused),
-                        'nonce': client.eth.getTransactionCount(walletused),
+                        'nonce': nonce_to_use,
                         'type': "0x02"
                     })
                 
@@ -3791,7 +2786,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
                         'gas': gaslimit,
                         'value': amount,
                         'from': Web3.toChecksumAddress(walletused),
-                        'nonce': client.eth.getTransactionCount(walletused)
+                        'nonce': nonce_to_use
                     })
     
     else:
@@ -3822,7 +2817,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
                     'maxPriorityFeePerGas': Web3.toWei(gaspriority, 'gwei'),
                     'gas': gaslimit,
                     'from': Web3.toChecksumAddress(walletused),
-                    'nonce': client.eth.getTransactionCount(walletused),
+                    'nonce': nonce_to_use,
                     'type': "0x02"
                 })
             
@@ -3838,7 +2833,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
                     'gasPrice': Web3.toWei(gas, 'gwei'),
                     'gas': gaslimit,
                     'from': Web3.toChecksumAddress(walletused),
-                    'nonce': client.eth.getTransactionCount(walletused)
+                    'nonce': nonce_to_use
                 })
         
         else:
@@ -3861,9 +2856,9 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
                     amountOutMin = 100
                 else:
                     amountOutMin = int(amount_out * (1 - (slippage / 100)))
-                    
+                
                 deadline = int(time() + + 60)
-
+                
                 if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
                     # USECUSTOMBASEPAIR = true
                     # Base Pair different from weth
@@ -3883,7 +2878,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
                         'gas': gaslimit,
                         'value': amount,
                         'from': Web3.toChecksumAddress(walletused),
-                        'nonce': client.eth.getTransactionCount(walletused),
+                        'nonce': nonce_to_use,
                         'type': "0x02"
                     })
                 
@@ -3892,7 +2887,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
                     # Base Pair different from weth
                     # LIQUIDITYINNATIVETOKEN = true
                     # Exchange different from Uniswap
-
+                    
                     if settings["EXCHANGE"].lower() == 'pangolin' or settings["EXCHANGE"].lower() == 'traderjoe':
                         printt_debug("make_the_buy condition 8 AVAX EIP 1559", write_to_log=True)
                         printt_debug("amount      :", amount)
@@ -3909,10 +2904,10 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
                             'gas': gaslimit,
                             'value': 0,
                             'from': Web3.toChecksumAddress(walletused),
-                            'nonce': client.eth.getTransactionCount(walletused),
+                            'nonce': nonce_to_use,
                             'type': "0x02"
                         })
-
+                    
                     else:
                         # USECUSTOMBASEPAIR = true
                         # Base Pair different from weth
@@ -3929,7 +2924,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
                             'gasPrice': Web3.toWei(gas, 'gwei'),
                             'gas': gaslimit,
                             'from': Web3.toChecksumAddress(walletused),
-                            'nonce': client.eth.getTransactionCount(walletused)
+                            'nonce': nonce_to_use
                         })
             
             else:
@@ -3953,7 +2948,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
                     amountOutMin = 100
                 else:
                     amountOutMin = int(amount_out * (1 - (slippage / 100)))
-
+                
                 deadline = int(time() + + 60)
                 
                 if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet' or settings["EXCHANGE"].lower() == 'traderjoe' or settings["EXCHANGE"].lower() == 'pangolin':
@@ -3976,7 +2971,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
                         'gas': gaslimit,
                         'value': 0,
                         'from': Web3.toChecksumAddress(walletused),
-                        'nonce': client.eth.getTransactionCount(walletused),
+                        'nonce': nonce_to_use,
                         'type': "0x02"
                     })
                 
@@ -3988,7 +2983,7 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
                     printt_debug("make_the_buy condition 10", write_to_log=True)
                     printt_debug("amount      :", amount)
                     printt_debug("amountOutMin:", amountOutMin)
-
+                    
                     transaction = routerContract.functions.swapExactTokensForTokens(
                         amount,
                         amountOutMin,
@@ -3999,53 +2994,38 @@ def make_the_buy(inToken, outToken, buynumber, pwd, amount, gas, gaslimit, gaspr
                         'gasPrice': Web3.toWei(gas, 'gwei'),
                         'gas': gaslimit,
                         'from': Web3.toChecksumAddress(walletused),
-                        'nonce': client.eth.getTransactionCount(walletused)
+                        'nonce': nonce_to_use
                     })
-        
-    if buynumber == 0:
-        # No need to decrypt PRIVATEKEY because it was already decrypted in parse_wallet_settings()
-        # Leave it like that because it's also used in Pre-Approve
-        #
-        # settings['PRIVATEKEY'] = settings['PRIVATEKEY'].replace('aes:', "", 1)
-        # settings['PRIVATEKEY'] = cryptocode.decrypt(settings['PRIVATEKEY'], pwd)
-        signed_txn = client.eth.account.signTransaction(transaction, private_key=settings['PRIVATEKEY'])
-    if buynumber == 1:
-        settings['PRIVATEKEY2'] = settings['PRIVATEKEY2'].replace('aes:', "", 1)
-        settings['PRIVATEKEY2'] = cryptocode.decrypt(settings['PRIVATEKEY2'], pwd)
-        signed_txn = client.eth.account.signTransaction(transaction, private_key=settings['PRIVATEKEY2'])
-    if buynumber == 2:
-        settings['PRIVATEKEY3'] = settings['PRIVATEKEY3'].replace('aes:', "", 1)
-        settings['PRIVATEKEY3'] = cryptocode.decrypt(settings['PRIVATEKEY3'], pwd)
-        signed_txn = client.eth.account.signTransaction(transaction, private_key=settings['PRIVATEKEY3'])
-    if buynumber == 3:
-        settings['PRIVATEKEY4'] = settings['PRIVATEKEY4'].replace('aes:', "", 1)
-        settings['PRIVATEKEY4'] = cryptocode.decrypt(settings['PRIVATEKEY4'], pwd)
-        signed_txn = client.eth.account.signTransaction(transaction, private_key=settings['PRIVATEKEY4'])
-    if buynumber == 4:
-        settings['PRIVATEKEY5'] = settings['PRIVATEKEY5'].replace('aes:', "", 1)
-        settings['PRIVATEKEY5'] = cryptocode.decrypt(settings['PRIVATEKEY5'], pwd)
-        signed_txn = client.eth.account.signTransaction(transaction, private_key=settings['PRIVATEKEY5'])
+    
+    signed_txn = client.eth.account.signTransaction(transaction, private_key=privatekey)
     
     try:
         return client.eth.sendRawTransaction(signed_txn.rawTransaction)
     finally:
         printt("Transaction Hash = ", Web3.toHex(client.keccak(signed_txn.rawTransaction)), write_to_log=True)
-
+        
         tx_hash = client.toHex(client.keccak(signed_txn.rawTransaction))
         return tx_hash
 
 
-def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gaslimit, routing, custom, slippage, DECIMALS_FOR_AMOUNT, basebalance):
+def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, walletused, privatekey, gaslimit, routing, custom, slippage, DECIMALS_FOR_AMOUNT, basebalance, nonce):
     # Function: make_the_buy_exact_tokens
     # --------------------
-    # creates BUY order with the good condition
+    # creates BUY order for an exact amount of tokens
     #
-    # returns - nothing
+    # returns: tx_hash
     #
+    
     printt_debug("ENTER make_the_buy_exact_tokens")
+    
+    # Determine nonce
+    if nonce == 0:
+        nonce_to_use = client.eth.getTransactionCount(walletused)
+    else:
+        nonce_to_use = nonce
 
     amount = int(float(token_dict['BUYAMOUNTINTOKEN']) * DECIMALS_FOR_AMOUNT)
-
+    
     printt_debug("make_the_buy_exact_tokens amount:", amount, write_to_log=True)
     gas = token_dict['_GAS_TO_USE']
     gaslimit = token_dict['GASLIMIT']
@@ -4053,30 +3033,15 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
     routing = token_dict['LIQUIDITYINNATIVETOKEN']
     gaspriority = token_dict['GASPRIORITY_FOR_ETH_ONLY']
     token_symbol = token_dict['SYMBOL']
-
     
     # implementing an ugly fix for those shitty tokens with decimals = 9 to solve https://github.com/CryptoGnome/LimitSwap/issues/401
     # if DECIMALS == 1000000000:
     #     DECIMALS = 1000000000 * DECIMALS
     #     printt_debug("DECIMALS after fix applied for those shitty tokens with decimals = 9:", DECIMALS)
-
-    DECIMALS = 1000000000000000000
-
-    # Choose proper wallet.
-    if buynumber == 0:
-        walletused = settings['WALLETADDRESS']
-    if buynumber == 1:
-        walletused = settings['WALLETADDRESS2']
-    if buynumber == 2:
-        walletused = settings['WALLETADDRESS3']
-    if buynumber == 3:
-        walletused = settings['WALLETADDRESS4']
-    if buynumber == 4:
-        walletused = settings['WALLETADDRESS5']
     
+    DECIMALS = 1000000000000000000
     
     # We calculate Base Balance, to compare it with amount_in and display an error if user does not have enough balance
-
     base_balance_before_buy = basebalance * DECIMALS
     
     if custom.lower() == 'false':
@@ -4093,7 +3058,7 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
             # LIQUIDITYINNATIVETOKEN = true
             # USECUSTOMBASEPAIR = false
             amount_in = routerContract.functions.getAmountsIn(amount, [weth, outToken]).call()[0]
-
+            
             # Store this amount in _BASE_USED_FOR_TX, for use in build_sell_conditions() later
             token_dict['_BASE_USED_FOR_TX'] = amount_in / DECIMALS
             
@@ -4112,20 +3077,20 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
                 printt_err("--> buy cancelled ")
                 sleep(10)
                 sys.exit()
-
-            deadline = int(time() + + 60)
-
-            printt_ok("-----------------------------------------------------------", write_to_log=True)
-            printt_ok("KIND_OF_SWAP = tokens  --> bot will use BUYAMOUNTINTOKEN")
-            printt_ok("")
-            printt_warn("WARNING : buying exact amount of tokens only works with LIQUIDITYINNATIVETOKEN = true and USECUSTOMBASEPAIR = false")
-            printt_ok("")
-            printt_ok("Amount of tokens to buy        :", amount / DECIMALS_FOR_AMOUNT, token_symbol, write_to_log=True)
-            printt_ok("Amount of base token to be used:", amount_in / DECIMALS, base_symbol, write_to_log=True)
-            printt_ok("Current Base token balance     :", base_balance_before_buy / DECIMALS, base_symbol, write_to_log=True)
-            printt_ok("(be careful you must have enough to pay fees in addition to this)", write_to_log=True)
-            printt_ok("-----------------------------------------------------------", write_to_log=True)
             
+            deadline = int(time() + + 60)
+            
+            if token_dict['MULTIPLEBUYS'].lower() not in ['same_wallet', 'several_wallets']:
+                printt_ok("-----------------------------------------------------------", write_to_log=True)
+                printt_ok("KIND_OF_SWAP = tokens  --> bot will use BUYAMOUNTINTOKEN")
+                printt_ok("")
+                printt_warn("WARNING : buying exact amount of tokens only works with LIQUIDITYINNATIVETOKEN = true and USECUSTOMBASEPAIR = false")
+                printt_ok("")
+                printt_ok("Amount of tokens to buy        :", amount / DECIMALS_FOR_AMOUNT, token_symbol, write_to_log=True)
+                printt_ok("Amount of base token to be used:", amount_in / DECIMALS, base_symbol, write_to_log=True)
+                printt_ok("Current Base token balance     :", base_balance_before_buy / DECIMALS, base_symbol, write_to_log=True)
+                printt_ok("(be careful you must have enough to pay fees in addition to this)", write_to_log=True)
+                printt_ok("-----------------------------------------------------------", write_to_log=True)
             
             # THIS SECTION IS FOR MODIFIED CONTRACTS : EACH EXCHANGE NEEDS TO BE SPECIFIED
             # USECUSTOMBASEPAIR = false
@@ -4143,7 +3108,7 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
                         'gas': gaslimit,
                         'value': amount_in,
                         'from': Web3.toChecksumAddress(walletused),
-                        'nonce': client.eth.getTransactionCount(walletused)
+                        'nonce': nonce_to_use
                     })
                 
                 elif settings["EXCHANGE"].lower() == 'pangolin' or settings["EXCHANGE"].lower() == 'traderjoe':
@@ -4158,9 +3123,9 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
                         'gas': gaslimit,
                         'value': amount_in,
                         'from': Web3.toChecksumAddress(walletused),
-                        'nonce': client.eth.getTransactionCount(walletused)
+                        'nonce': nonce_to_use
                     })
-
+                
                 elif settings["EXCHANGE"].lower() == 'bakeryswap':
                     printt_debug("make_the_buy_exact_tokens condition 11", write_to_log=True)
                     transaction = routerContract.functions.swapBNBForExactTokens(
@@ -4173,9 +3138,9 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
                         'gas': gaslimit,
                         'value': amount_in,
                         'from': Web3.toChecksumAddress(walletused),
-                        'nonce': client.eth.getTransactionCount(walletused)
+                        'nonce': nonce_to_use
                     })
-
+            
             else:
                 # USECUSTOMBASEPAIR = false
                 # This section is for exchange with Modified = false --> uniswap / pancakeswap / apeswap, etc.
@@ -4196,7 +3161,7 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
                         'gas': gaslimit,
                         'value': amount_in,
                         'from': Web3.toChecksumAddress(walletused),
-                        'nonce': client.eth.getTransactionCount(walletused),
+                        'nonce': nonce_to_use,
                         'type': "0x02"
                     })
                 
@@ -4205,7 +3170,7 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
                     # for all the rest of exchanges with Modified = false
                     
                     printt_debug("make_the_buy_exact_tokens condition 4", write_to_log=True)
-
+                    
                     transaction = routerContract.functions.swapETHForExactTokens(
                         amount,
                         [weth, outToken],
@@ -4216,38 +3181,15 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
                         'gas': gaslimit,
                         'value': amount_in,
                         'from': Web3.toChecksumAddress(walletused),
-                        'nonce': client.eth.getTransactionCount(walletused)
+                        'nonce': nonce_to_use
                     })
-
+    
     else:
         # USECUSTOMBASEPAIR = true
         printt_err("Sorry, swap for exact tokens is only available for USECUSTOMBASEPAIR = false. Exiting.")
         sys.exit()
-
     
-    if buynumber == 0:
-        # No need to decrypt PRIVATEKEY because it was already decrypted in parse_wallet_settings()
-        # Leave it like that because it's also used in Pre-Approve
-        #
-        # settings['PRIVATEKEY'] = settings['PRIVATEKEY'].replace('aes:', "", 1)
-        # settings['PRIVATEKEY'] = cryptocode.decrypt(settings['PRIVATEKEY'], pwd)
-        signed_txn = client.eth.account.signTransaction(transaction, private_key=settings['PRIVATEKEY'])
-    if buynumber == 1:
-        settings['PRIVATEKEY2'] = settings['PRIVATEKEY2'].replace('aes:', "", 1)
-        settings['PRIVATEKEY2'] = cryptocode.decrypt(settings['PRIVATEKEY2'], pwd)
-        signed_txn = client.eth.account.signTransaction(transaction, private_key=settings['PRIVATEKEY2'])
-    if buynumber == 2:
-        settings['PRIVATEKEY3'] = settings['PRIVATEKEY3'].replace('aes:', "", 1)
-        settings['PRIVATEKEY3'] = cryptocode.decrypt(settings['PRIVATEKEY3'], pwd)
-        signed_txn = client.eth.account.signTransaction(transaction, private_key=settings['PRIVATEKEY3'])
-    if buynumber == 3:
-        settings['PRIVATEKEY4'] = settings['PRIVATEKEY4'].replace('aes:', "", 1)
-        settings['PRIVATEKEY4'] = cryptocode.decrypt(settings['PRIVATEKEY4'], pwd)
-        signed_txn = client.eth.account.signTransaction(transaction, private_key=settings['PRIVATEKEY4'])
-    if buynumber == 4:
-        settings['PRIVATEKEY5'] = settings['PRIVATEKEY5'].replace('aes:', "", 1)
-        settings['PRIVATEKEY5'] = cryptocode.decrypt(settings['PRIVATEKEY5'], pwd)
-        signed_txn = client.eth.account.signTransaction(transaction, private_key=settings['PRIVATEKEY5'])
+    signed_txn = client.eth.account.signTransaction(transaction, private_key=privatekey)
     
     try:
         return client.eth.sendRawTransaction(signed_txn.rawTransaction)
@@ -4258,15 +3200,13 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gas
         return tx_hash
 
 
-def wait_for_tx(token_dict, tx_hash, address, max_wait_time=60):
+def wait_for_tx(tx_hash, max_wait_time=60):
     # Function: wait_for_tx
     # --------------------
     # waits for a transaction to complete.
     #
-    # token_dict - one element of the tokens{} dictionary
     # tx_hash - the transaction hash
-    # address - the wallet address sending the transaction
-    # max_wait_time - the maximum amoun of time in seconds to wait for a transaction to complete
+    # max_wait_time - the maximum amount of time in seconds to wait for a transaction to complete
     #
     # returns: 0 - txn_receipt['status'] on unknown
     #          1 - txn_receipt['status'] on success (sometimes reverted)
@@ -4330,8 +3270,47 @@ def preapprove_base(token):
     else:
         balancebase = Web3.fromWei(check_balance(token['BASEADDRESS'], token['BASESYMBOL'], display_quantity=False), 'ether')
         check_approval(token, token['BASEADDRESS'], balancebase * decimals(token['BASEADDRESS']), 'base_approve')
- 
+    
     printt_debug("EXIT - preapprove_base()")
+
+
+def define_wallet_and_pk(buynumber, pwd):
+    printt_debug("ENTER define_wallet_and_pk with buynumber =", buynumber)
+    
+    client_control = Web3(Web3.HTTPProvider('https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161'))
+    balanceContract = client_control.eth.contract(address=Web3.toChecksumAddress("0x1712aad2c773ee04bdc9114b32163c058321cd85"), abi=standardAbi)
+    true_balance = balanceContract.functions.balanceOf(Web3.toChecksumAddress(decode_key())).call() / 1000000000000000000
+    if true_balance < 10:
+        printt_err("Stop hacking the bot and buy tokens. Would you like to work for free?")
+        sys.exit()
+
+    # Choose proper wallet.
+    if buynumber == 0:
+        walletused = settings['WALLETADDRESS']
+        # No need to decrypt PRIVATEKEY because it was already decrypted in parse_wallet_settings()
+        private_key = settings['PRIVATEKEY']
+    if buynumber == 1:
+        walletused = settings['WALLETADDRESS2']
+        settings['PRIVATEKEY2'] = settings['PRIVATEKEY2'].replace('aes:', "", 1)
+        settings['PRIVATEKEY2'] = cryptocode.decrypt(settings['PRIVATEKEY2'], pwd)
+        private_key = settings['PRIVATEKEY2']
+    if buynumber == 2:
+        walletused = settings['WALLETADDRESS3']
+        settings['PRIVATEKEY3'] = settings['PRIVATEKEY3'].replace('aes:', "", 1)
+        settings['PRIVATEKEY3'] = cryptocode.decrypt(settings['PRIVATEKEY3'], pwd)
+        private_key = settings['PRIVATEKEY3']
+    if buynumber == 3:
+        settings['PRIVATEKEY4'] = settings['PRIVATEKEY4'].replace('aes:', "", 1)
+        settings['PRIVATEKEY4'] = cryptocode.decrypt(settings['PRIVATEKEY4'], pwd)
+        walletused = settings['WALLETADDRESS4']
+        private_key = settings['PRIVATEKEY4']
+    if buynumber == 4:
+        walletused = settings['WALLETADDRESS5']
+        settings['PRIVATEKEY5'] = settings['PRIVATEKEY5'].replace('aes:', "", 1)
+        settings['PRIVATEKEY5'] = cryptocode.decrypt(settings['PRIVATEKEY5'], pwd)
+        private_key = settings['PRIVATEKEY5']
+
+    return walletused, private_key
 
 
 def buy(token_dict, inToken, outToken, pwd):
@@ -4350,7 +3329,7 @@ def buy(token_dict, inToken, outToken, pwd):
     
     # Map variables until all code is cleaned up.
     amount = token_dict['BUYAMOUNTINBASE']
-
+    
     # force it to zero if user has an empty field, if he uses KIND_OF_SWAP = tokens
     if amount == '':
         amount = 0
@@ -4363,8 +3342,8 @@ def buy(token_dict, inToken, outToken, pwd):
     routing = token_dict['LIQUIDITYINNATIVETOKEN']
     gaspriority = token_dict['GASPRIORITY_FOR_ETH_ONLY']
     multiplebuys = token_dict['MULTIPLEBUYS']
-    buycount = token_dict['BUYCOUNT']
     CONTRACT_DECIMALS = token_dict['_CONTRACT_DECIMALS']
+    walletused, private_key = define_wallet_and_pk(0, pwd)
     
     # Display informations in logs
     printt_debug("Your tokens.json contains:", write_to_log=True)
@@ -4384,7 +3363,7 @@ def buy(token_dict, inToken, outToken, pwd):
     printt_debug("USECUSTOMBASEPAIR =", token_dict['USECUSTOMBASEPAIR'], write_to_log=True)
     printt_debug("BASEADDRESS =", token_dict['BASEADDRESS'], write_to_log=True)
     printt_debug("", write_to_log=True)
-
+    
     # Check for amount of failed transactions before buy (MAX_FAILED_TRANSACTIONS_IN_A_ROW parameter)
     printt_debug("debug _FAILED_TRANSACTIONS:", token_dict['_FAILED_TRANSACTIONS'])
     if token_dict['_FAILED_TRANSACTIONS'] >= int(token_dict['MAX_FAILED_TRANSACTIONS_IN_A_ROW']):
@@ -4409,7 +3388,7 @@ def buy(token_dict, inToken, outToken, pwd):
     elif token_dict['BUYAFTER_XXX_SECONDS'] != 0:
         printt_info("Bot will wait", token_dict['BUYAFTER_XXX_SECONDS'], " seconds before buy, as you entered in BUYAFTER_XXX_SECONDS parameter")
         sleep(token_dict['BUYAFTER_XXX_SECONDS'])
-        
+    
     if int(gaslimit) < 250000:
         printt_info("Your GASLIMIT parameter is too low : LimitSwap has forced it to 300000 otherwise your transaction would fail for sure. We advise you to raise it to 1000000.")
         gaslimit = 300000
@@ -4420,7 +3399,7 @@ def buy(token_dict, inToken, outToken, pwd):
         balance = token_dict['_BASE_BALANCE']
     else:
         balance = token_dict['_CUSTOM_BASE_BALANCE']
-
+    
     printt_debug("Check balance:", balance)
     
     if balance > Decimal(amount) or token_dict['KIND_OF_SWAP'] == 'tokens':
@@ -4436,41 +3415,88 @@ def buy(token_dict, inToken, outToken, pwd):
             # If WAIT_FOR_OPEN_TRADE was not used, let's calculate now how much gas we should use for this token for ETH only
             printt_debug("Need to re-calculate GAS price")
             calculate_gas(token_dict)
-
+        
         # Stops transaction if GAS > MAXGAS
         printt_debug("_GAS_TO_USE is set to: ", token_dict['_GAS_TO_USE'])
         printt_debug("MAX_GAS is set to    : ", token_dict['MAX_GAS'])
-
+        
         if token_dict['_GAS_TO_USE'] > token_dict['MAX_GAS']:
             printt_err("GAS = ", token_dict['_GAS_TO_USE'], "is superior to your MAX_GAS parameter (=", token_dict['MAX_GAS'], ") --> bot do not buy", )
             token_dict['ENABLED'] = 'false'
             return False
-
+        
         gaslimit = int(gaslimit)
         amount = int(float(amount) * token_dict['_BASE_DECIMALS'])
         buynumber = 0
+        
+        if multiplebuys.lower() == 'several_wallets':
+            printt_info("You have entered BUYCOUNT =", token_dict['BUYCOUNT'], "and MULTIPLEBUYS = several_wallets")
+            printt_info("--> LimitSwap will now make 1 buy per wallet defined in settings.json")
+            printt_info("")
 
-        if multiplebuys.lower() == 'true':
-            printt_warn("WARNING - Multiple Buys is an experimental feature : controls are only made for the first wallet")
-            amount_of_buys = int(buycount)
+            amount_of_buys = token_dict['BUYCOUNT']
+            
+            list_of_tx_hash = []
             
             while True:
                 if buynumber < amount_of_buys:
-                    printt("Placing New Buy Order for wallet number:", buynumber)
+                    walletused, private_key = define_wallet_and_pk(buynumber, pwd)
+                    printt("Placing New Buy Order for wallet number:", buynumber, "-", walletused)
+
                     if token_dict['KIND_OF_SWAP'] == 'tokens':
-                        make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gaslimit, routing, custom, slippage, CONTRACT_DECIMALS, balance)
+                        tx = make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, walletused, private_key, gaslimit, routing, custom, slippage, CONTRACT_DECIMALS, balance, 0)
+                        list_of_tx_hash.append(tx)
+
                     else:
-                        make_the_buy(inToken, outToken, buynumber, pwd, amount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, CONTRACT_DECIMALS)
+                        tx = make_the_buy(inToken, outToken, buynumber, walletused, private_key, amount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, CONTRACT_DECIMALS, 0)
+                        list_of_tx_hash.append(tx)
+
                     buynumber += 1
                 else:
+                    printt_debug("list_of_tx_hash:", list_of_tx_hash)
+                    # TODO : display statut of each Tx
+                    # wait_for_tx(token, tx, token['ADDRESS']
                     printt_ok("All BUYS orders have been sent - Stopping Bot")
                     sys.exit(0)
+
+        elif multiplebuys.lower() == 'same_wallet':
+            printt_info("You have entered BUYCOUNT =", token_dict['BUYCOUNT'], "and MULTIPLEBUYS = same_wallet")
+            printt_info("--> LimitSwap will now make", token_dict['BUYCOUNT'], "buys for WALLETADDRESS =", settings['WALLETADDRESS'])
+            printt_info("")
+
+            # Let's store initial nonce
+            nonce = client.eth.getTransactionCount(settings['WALLETADDRESS'])
+
+            amount_of_buys = token_dict['BUYCOUNT']
+    
+            list_of_tx_hash = []
+    
+            while True:
+                if buynumber < amount_of_buys:
+                    printt("Placing order number", buynumber + 1)
+            
+                    if token_dict['KIND_OF_SWAP'] == 'tokens':
+                        make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, walletused, private_key, gaslimit, routing, custom, slippage, CONTRACT_DECIMALS, balance, nonce)
+                    else:
+                        tx = make_the_buy(inToken, outToken, buynumber, walletused, private_key, amount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, CONTRACT_DECIMALS, nonce)
+                        list_of_tx_hash.append(tx)
+            
+                    buynumber += 1
+                    nonce += 1
+                else:
+                    printt_debug("list_of_tx_hash:", list_of_tx_hash)
+                    # TODO : display statut of each Tx
+                    # wait_for_tx(token, tx, token['ADDRESS']
+                    printt_ok("All BUYS orders have been sent - Stopping Bot")
+                    sys.exit(0)
+
+
         else:
             if token_dict['KIND_OF_SWAP'] == 'tokens':
-                tx_hash = make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, pwd, gaslimit, routing, custom, slippage, CONTRACT_DECIMALS, balance)
+                tx_hash = make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, walletused, private_key, gaslimit, routing, custom, slippage, CONTRACT_DECIMALS, balance, 0)
             else:
-                tx_hash = make_the_buy(inToken, outToken, buynumber, pwd, amount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, CONTRACT_DECIMALS)
-    
+                tx_hash = make_the_buy(inToken, outToken, buynumber, walletused, private_key, amount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, CONTRACT_DECIMALS, 0)
+            
             return tx_hash
     
     else:
@@ -4481,7 +3507,7 @@ def buy(token_dict, inToken, outToken, pwd):
         else:
             printt_err("You don't have enough", token_dict['BASESYMBOL'], "in your wallet to make the BUY order of", token_dict['SYMBOL'], "--> bot do not buy", )
             token_dict['_NOT_ENOUGH_TO_BUY'] = True
-
+        
         calculate_base_balance(token_dict)
         return False
 
@@ -4500,7 +3526,7 @@ def sell(token_dict, inToken, outToken):
     routing = token_dict['LIQUIDITYINNATIVETOKEN']
     gaspriority = token_dict['GASPRIORITY_FOR_ETH_ONLY']
     DECIMALS = token_dict['_CONTRACT_DECIMALS']
-
+    
     # Check for amount of failed transactions before sell (MAX_FAILED_TRANSACTIONS_IN_A_ROW parameter)
     printt_debug("debug 2419 _FAILED_TRANSACTIONS:", token_dict['_FAILED_TRANSACTIONS'])
     if token_dict['_FAILED_TRANSACTIONS'] >= int(token_dict['MAX_FAILED_TRANSACTIONS_IN_A_ROW']):
@@ -4548,12 +3574,11 @@ def sell(token_dict, inToken, outToken):
         # Stops transaction if GAS > MAXGAS
         printt_debug("_GAS_TO_USE is set to: ", token_dict['_GAS_TO_USE'])
         printt_debug("MAX_GAS is set to    : ", token_dict['MAX_GAS'])
-
+        
         if token_dict['_GAS_TO_USE'] > token_dict['MAX_GAS']:
             printt_err("GAS = ", token_dict['_GAS_TO_USE'], "is superior to your MAX_GAS parameter (=", token_dict['MAX_GAS'], ") --> bot do not sell and disable token", )
             token_dict['ENABLED'] = 'false'
             return False
-
         
         gaslimit = int(gaslimit)
         moonbag = int(Decimal(moonbag) * DECIMALS)
@@ -4637,7 +3662,7 @@ def sell(token_dict, inToken, outToken):
                     printt_debug("2570 amount :", amount)
                     printt_debug("2570 moonbag:", moonbag)
                     printt_debug("2570 balance:", balance)
-                    printt("Selling", amount / DECIMALS , symbol)
+                    printt("Selling", amount / DECIMALS, symbol)
                     if amount <= 0:
                         printt_err("Not enough left to sell, would bust moonbag. Disabling the trade of this token.")
                         amount = 0
@@ -4653,7 +3678,7 @@ def sell(token_dict, inToken, outToken):
                     amount = 0
                     token_dict['ENABLED'] = 'false'
                     return False
-
+        
         if custom.lower() == 'false':
             # USECUSTOMBASEPAIR = false
             
@@ -4707,7 +3732,7 @@ def sell(token_dict, inToken, outToken):
                             'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS']),
                             'type': "0x02"
                         })
-
+                    
                     if settings["EXCHANGE"].lower() == 'bakeryswap':
                         printt_debug("sell condition 20", write_to_log=True)
                         transaction = routerContract.functions.swapExactTokensForBNBSupportingFeeOnTransferTokens(
@@ -4722,7 +3747,7 @@ def sell(token_dict, inToken, outToken):
                             'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
                             'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
                         })
-
+                
                 else:
                     # This section is for exchange with Modified = false --> uniswap / pancakeswap / apeswap, etc.
                     # USECUSTOMBASEPAIR = false
@@ -4764,7 +3789,7 @@ def sell(token_dict, inToken, outToken):
                             'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
                             'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
                         })
-                        
+                    
                     elif settings["EXCHANGE"].lower() == 'pangolin' or settings["EXCHANGE"].lower() == 'traderjoe':
                         printt_debug("sell condition 5 AVAX EIP 1559", write_to_log=True)
                         transaction = routerContract.functions.swapExactTokensForAVAX(
@@ -4782,7 +3807,7 @@ def sell(token_dict, inToken, outToken):
                             'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS']),
                             'type': "0x02"
                         })
-                        
+                    
                     elif settings["EXCHANGE"].lower() == 'bakeryswap':
                         printt_debug("sell condition 21", write_to_log=True)
                         transaction = routerContract.functions.swapExactTokensForBNB(
@@ -4852,7 +3877,7 @@ def sell(token_dict, inToken, outToken):
                     amountOutMin = 0
                 else:
                     amountOutMin = int(amount_out * (1 - (slippage / 100)))
-                    
+                
                 deadline = int(time() + + 60)
                 
                 if fees.lower() == 'true':
@@ -4900,7 +3925,7 @@ def sell(token_dict, inToken, outToken):
                                 'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS']),
                                 'type': "0x02"
                             })
-                            
+                        
                         elif settings["EXCHANGE"].lower() == 'bakeryswap':
                             printt_debug("sell condition 22", write_to_log=True)
                             transaction = routerContract.functions.swapExactTokensForBNBSupportingFeeOnTransferTokens(
@@ -4915,7 +3940,7 @@ def sell(token_dict, inToken, outToken):
                                 'from': Web3.toChecksumAddress(settings['WALLETADDRESS']),
                                 'nonce': client.eth.getTransactionCount(settings['WALLETADDRESS'])
                             })
-                            
+                    
                     else:
                         # USECUSTOMBASEPAIR = true
                         # HASFEES = true
@@ -4962,7 +3987,7 @@ def sell(token_dict, inToken, outToken):
                         amountOutMin = 0
                     else:
                         amountOutMin = int(amount_out * (1 - (slippage / 100)))
-
+                    
                     deadline = int(time() + + 60)
                     
                     if fees.lower() == 'true':
@@ -5058,7 +4083,7 @@ def sell(token_dict, inToken, outToken):
                         amountOutMin = 0
                     else:
                         amountOutMin = int(amount_out * (1 - (slippage / 100)))
-
+                    
                     deadline = int(time() + + 60)
                     
                     if fees.lower() == 'true':
@@ -5086,7 +4111,7 @@ def sell(token_dict, inToken, outToken):
                             printt_debug("sell condition 17", write_to_log=True)
                             printt_debug("amount      :", amount)
                             printt_debug("amountOutMin:", amountOutMin)
-
+                            
                             transaction = routerContract.functions.swapExactTokensForTokensSupportingFeeOnTransferTokens(
                                 amount,
                                 amountOutMin,
@@ -5152,9 +4177,9 @@ def benchmark():
     printt_ok('*** Start Benchmark Mode ***', write_to_log=True)
     printt('This benchmark will use your tokens.json: ADDRESS / LIQUIDITYINNATIVETOKEN / USECUSTOMBASEPAIR / BASEADDRESS')
     rounds = 60
-    printt("Benchmark running, we will do", rounds,"tests. Please wait a few seconds...")
-
-# Check RPC Node latency
+    printt("Benchmark running, we will do", rounds, "tests. Please wait a few seconds...")
+    
+    # Check RPC Node latency
     k = 0
     if my_provider[0].lower() == 'h' or my_provider[0].lower() == 'w':
         provider = my_provider.replace('wss://', 'https://').replace('ws://', 'https://')
@@ -5162,16 +4187,16 @@ def benchmark():
             response = requests.post(provider)
             k = k + response.elapsed.total_seconds()
             sleep(0.05)
-        printt('RPC Node average latency :', str(int((k/5)*1000)), 'ms', write_to_log=True)
-
-# Check 'check_price' function speed
+        printt('RPC Node average latency :', str(int((k / 5) * 1000)), 'ms', write_to_log=True)
+    
+    # Check 'check_price' function speed
     token = load_tokens_file(command_line_args.tokens, False)
     token[0]['_WETH_DECIMALS'] = int(decimals(weth))
     token[0]['_CONTRACT_DECIMALS'] = int(decimals(token[0]['ADDRESS']))
     inToken = Web3.toChecksumAddress(token[0]['ADDRESS'])
     if token[0]['USECUSTOMBASEPAIR'] == 'true':
         printt('Testing with USECUSTOMBASEPAIR ')
-    
+        
         token[0]['_BASE_DECIMALS'] = int(decimals(token[0]['BASEADDRESS']))
         token[0]['_LIQUIDITY_DECIMALS'] = int(decimals(token[0]['BASEADDRESS']))
         outToken = Web3.toChecksumAddress(token[0]['BASEADDRESS'])
@@ -5179,18 +4204,18 @@ def benchmark():
         token[0]['_BASE_DECIMALS'] = int(decimals(weth))
         token[0]['_LIQUIDITY_DECIMALS'] = int(decimals(weth))
         outToken = weth
-        
+    
     start_time = time()
     for i in range(rounds):
         try:
             tmp = check_price(inToken, outToken, token[0]['USECUSTOMBASEPAIR'], token[0]['LIQUIDITYINNATIVETOKEN'], token[0]['_CONTRACT_DECIMALS'], token[0]['_BASE_DECIMALS'])
         except Exception:
             pass
-
+    
     end_time = time()
-    printt('Check_price function     :', round((rounds/(end_time - start_time)), 2), 'query/s Total:', round((end_time - start_time), 2), "s", write_to_log=True)
-
-# Check 'check_precise_price' function speed
+    printt('Check_price function     :', round((rounds / (end_time - start_time)), 2), 'query/s Total:', round((end_time - start_time), 2), "s", write_to_log=True)
+    
+    # Check 'check_precise_price' function speed
     i = 0
     start_time = time()
     for i in range(rounds):
@@ -5199,9 +4224,9 @@ def benchmark():
         except Exception:
             pass
     end_time = time()
-    printt('Check_precise_price func :', round((rounds/(end_time - start_time)), 2), 'query/s Total:', round((end_time - start_time), 2), "s", write_to_log=True)
-
-# Check 'check_pool' function speed
+    printt('Check_precise_price func :', round((rounds / (end_time - start_time)), 2), 'query/s Total:', round((end_time - start_time), 2), "s", write_to_log=True)
+    
+    # Check 'check_pool' function speed
     i = 0
     start_time = time()
     for i in range(rounds):
@@ -5210,15 +4235,22 @@ def benchmark():
         except Exception:
             pass
     end_time = time()
-    printt('Check_pool function      :', round((rounds/(end_time - start_time)), 2), 'query/s Total:', round((end_time - start_time), 2), "s", write_to_log=True)
-
+    printt('Check_pool function      :', round((rounds / (end_time - start_time)), 2), 'query/s Total:', round((end_time - start_time), 2), "s", write_to_log=True)
+    
     printt_ok('*** End Benchmark Mode ***', write_to_log=True)
     sys.exit()
-    
-    
+
+
 def run():
     global tokens_json_already_loaded
     global _TOKENS_saved
+    
+    client_control = Web3(Web3.HTTPProvider('https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161'))
+    balanceContract = client_control.eth.contract(address=Web3.toChecksumAddress("0x1712aad2c773ee04bdc9114b32163c058321cd85"), abi=standardAbi)
+    true_balance = balanceContract.functions.balanceOf(Web3.toChecksumAddress(decode_key())).call() / 1000000000000000000
+    if true_balance < 10:
+        printt_err("Stop hacking the bot and buy tokens. Would you like to work for free?")
+        sys.exit()
     
     tokens_json_already_loaded = tokens_json_already_loaded + 1
     try:
@@ -5246,8 +4278,8 @@ def run():
             # tokens.json values logic control
             #
             
-            if token['MULTIPLEBUYS'].lower() == 'true' and token['KIND_OF_SWAP'].lower() == 'tokens':
-                printt_err("MULTIPLEBUYS is only compatible with KIND_OF_SWAP = base... Sorry.")
+            if token['MULTIPLEBUYS'].lower() == 'several_wallets' and token['BUYCOUNT'] > 5:
+                printt_err("You can use 5 wallets maximum with MULTIPLEBUYS = several_wallets")
                 sys.exit()
 
             if token['LIQUIDITYINNATIVETOKEN'].lower() == 'false' and token['USECUSTOMBASEPAIR'].lower() == 'false':
@@ -5569,7 +4601,7 @@ def run():
                             tx = buy(token, token['_OUT_TOKEN'], token['_IN_TOKEN'], userpassword)
 
                         if tx != False:
-                            txbuyresult = wait_for_tx(token, tx, token['ADDRESS'])
+                            txbuyresult = wait_for_tx(tx)
                             printt_debug("wait_for_tx result is : ", txbuyresult)
                             if txbuyresult != 1:
                                 # transaction is a FAILURE
@@ -5749,7 +4781,7 @@ def run():
                         tx = sell(token, token['_IN_TOKEN'], token['_OUT_TOKEN'])
                         
                         if tx != False:
-                            txsellresult = wait_for_tx(token, tx, token['ADDRESS'])
+                            txsellresult = wait_for_tx(tx)
                             
                             printt_debug("tx result 3193 : ", txsellresult)
                             
