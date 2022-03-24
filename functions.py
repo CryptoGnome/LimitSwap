@@ -27,6 +27,7 @@ parser.add_argument("-p", "--password", type=str, help="Password to decrypt priv
 parser.add_argument("--reject_already_existing_liquidity", action='store_true', help="If liquidity is found on the first check, reject that pair.")
 parser.add_argument("-s", "--settings", type=str, help="Specify the file to user for settings (default: settings.json)", default="./settings.json")
 parser.add_argument("-t", "--tokens", type=str, help="Specify the file to use for tokens to trade (default: tokens.json)", default="./tokens.json")
+parser.add_argument("-pp", "--price_precision", type=str, help="Determine how many digits after comma you want the bot to display (default: 10)", default="10")
 parser.add_argument("-v", "--verbose", action='store_true', help="Print detailed messages to stdout")
 parser.add_argument("-pc", "--password_on_change", action='store_true', help="Ask user password again if you change tokens.json")
 parser.add_argument("-sm", "--slow_mode", action='store_true', help="Bot will only check price 2 times/s. Use it if you're on a RPC with rate limit")
@@ -42,6 +43,7 @@ parser.add_argument("--sim_buy", type=str, help=argparse.SUPPRESS)
 parser.add_argument("--sim_sell", type=str, help=argparse.SUPPRESS)
 parser.add_argument("--debug", action='store_true', help=argparse.SUPPRESS)
 parser.add_argument("--benchmark", action='store_true', help=argparse.SUPPRESS)
+parser.add_argument("--analyze", type=str, help="analyze a Tx hash")
 
 command_line_args = parser.parse_args()
 

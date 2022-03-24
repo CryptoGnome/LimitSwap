@@ -206,7 +206,7 @@ def printt_repeating(token_dict, message, print_frequency=500):
     token_dict['_LAST_MESSAGE'] = message
 
 
-def printt_sell_price(token_dict, token_price):
+def printt_sell_price(token_dict, token_price, precision):
     #     Function: printt_sell_price
     #     --------------------
     #     Formatted buying information
@@ -220,21 +220,30 @@ def printt_sell_price(token_dict, token_price):
     printt_debug("_PREVIOUS_QUOTE :", token_dict['_PREVIOUS_QUOTE'], "for token:", token_dict['SYMBOL'])
     
     if token_dict['USECUSTOMBASEPAIR'] == 'false':
-        price_message = f'{token_dict["_PAIR_SYMBOL"]} Price: {token_price:.24f} {base_symbol} | Buy: {token_dict["BUYPRICEINBASE"]:.6g}'
+        price_message = f'{token_dict["_PAIR_SYMBOL"]} = {token_price:.{precision}f}'
     
     else:
-        price_message = f'{token_dict["_PAIR_SYMBOL"]} Price: {token_price:.24f} {token_dict["BASESYMBOL"]} | Buy: {token_dict["BUYPRICEINBASE"]:.6g}'
+        price_message = f'{token_dict["_PAIR_SYMBOL"]} = {token_price:.{precision}f}'
     
-    price_message = f'{price_message} | Sell: {token_dict["_CALCULATED_SELLPRICEINBASE"]:.6g} | Stop: {token_dict["_CALCULATED_STOPLOSSPRICEINBASE"]:.6g}'
+    if token_dict['BUYPRICEINBASE'] != 0:
+        price_message = f'{price_message} | Buy {token_dict["BUYPRICEINBASE"]:.{precision}f}'
+
+    price_message = f'{price_message} | Sell {token_dict["_CALCULATED_SELLPRICEINBASE"]:.{precision}f}'
     # price_message = price_message + " ATH:" + "{0:.24f}".format(token_dict['_ALL_TIME_HIGH']) + " ATL:" + "{0:.24f}".format(token_dict['_ALL_TIME_LOW'])
     
+    if token_dict['_CALCULATED_STOPLOSSPRICEINBASE'] != 0:
+        price_message = f'{price_message} | Stop {token_dict["_CALCULATED_STOPLOSSPRICEINBASE"]:.{precision}f}'
+    
     if token_dict['TRAILING_STOP_LOSS'] != 0:
-        price_message = f'{price_message} | TrailingStop: {token_dict["_TRAILING_STOP_LOSS_PRICE"]:.6g}'
+        if token_dict["_TRAILING_STOP_LOSS_PRICE"] == 0:
+            price_message = f'{price_message} | TrailingStop (after BUY)'
+        else:
+            price_message = f'{price_message} | TrailingStop {token_dict["_TRAILING_STOP_LOSS_PRICE"]:.{precision}f}'
     
     if token_dict['USECUSTOMBASEPAIR'] == 'false':
-        price_message = f'{price_message} | Token balance: {token_dict["_TOKEN_BALANCE"]:.4f} (= {float(token_price) * float(token_dict["_BASE_PRICE"]) * float(token_dict["_TOKEN_BALANCE"]):.2f} $)'
+        price_message = f'{price_message} | Token balance {token_dict["_TOKEN_BALANCE"]:.4f} (= {float(token_price) * float(token_dict["_BASE_PRICE"]) * float(token_dict["_TOKEN_BALANCE"]):.2f} $)'
     else:
-        price_message = f'{price_message} | Token balance: {token_dict["_TOKEN_BALANCE"]:.4f} (= {float(token_price) * float(token_dict["_TOKEN_BALANCE"]):.2f} {token_dict["BASESYMBOL"]})'
+        price_message = f'{price_message} | Token balance {token_dict["_TOKEN_BALANCE"]:.4f} (= {float(token_price) * float(token_dict["_TOKEN_BALANCE"]):.2f} {token_dict["BASESYMBOL"]})'
     
     if token_dict['_REACHED_MAX_TOKENS'] == True:
         price_message = f'{price_message}\033[31m | MAXTOKENS reached \033[0m'
@@ -251,19 +260,6 @@ def printt_sell_price(token_dict, token_price):
         printt(price_message)
     
     token_dict['_LAST_PRICE_MESSAGE'] = price_message
-
-
-def printt_buy_price(token_dict, token_price):
-    #     Function: printt_buy_price
-    #     --------------------
-    #     Formatted buying information
-    #
-    #     token_dict - one element of the tokens{} dictionary
-    #     token_price - the current price of the token we want to buy
-    #
-    #     returns: nothing
-    
-    printt_sell_price(token_dict, token_price)
 
 
 def load_settings_file(settings_path, load_message=True):
@@ -425,7 +421,7 @@ printt("************************************************************************
 
 # Check for version
 #
-version = '4.2.6.0'
+version = '4.2.6.1'
 printt("YOUR BOT IS CURRENTLY RUNNING VERSION ", version, write_to_log=True)
 check_release()
 
@@ -649,6 +645,7 @@ def load_tokens_file(tokens_path, load_message=True):
     #                         instead of querying the contract for the same information repeatedly.
     # _WETH_DECIMALS        - the number of decimals of weth.
     # _LIQUIDITY_DECIMALS   - the number of decimals of liquidity.
+    # _PRICE_PRECISION      - Determine how many digits after comma you want the bot to display (default: 12)
     # _LAST_PRICE_MESSAGE   - a copy of the last pricing message printed to console, used to determine the price
     #                         should be printed again, or just a dot
     # _LAST_MESSAGE         - a place to store a copy of the last message printed to conside, use to avoid
@@ -691,6 +688,7 @@ def load_tokens_file(tokens_path, load_message=True):
         '_CONTRACT_DECIMALS': 0,
         '_BASE_DECIMALS': 0,
         '_WETH_DECIMALS': 0,
+        '_PRICE_PRECISION': 0,
         '_LAST_PRICE_MESSAGE': 0,
         '_LAST_MESSAGE': 0,
         '_FIRST_SELL_QUOTE': 0,
@@ -752,6 +750,7 @@ def load_tokens_file(tokens_path, load_message=True):
             
             for new_token_dict in build_extended_base_configuration(token):
                 set_of_new_tokens.append(new_token_dict)
+        
         elif token['WATCH_STABLES_PAIRS'] == 'true':
             printt("")
             printt_warn("Ignoring WATCH_STABLES_PAIRS", "for", token['SYMBOL'], ": WATCH_STABLES_PAIRS = true and USECUSTOMBASEPAIR = true is unsupported.")
@@ -885,6 +884,7 @@ def reload_tokens_file(tokens_path, load_message=True):
         '_BASE_DECIMALS': 0,
         '_WETH_DECIMALS': 0,
         '_LIQUIDITY_DECIMALS': 0,
+        '_PRICE_PRECISION': 0,
         '_LAST_PRICE_MESSAGE': 0,
         '_LAST_MESSAGE': 0,
         '_FIRST_SELL_QUOTE': 0,
@@ -992,6 +992,7 @@ def reload_tokens_file(tokens_path, load_message=True):
             '_BASE_DECIMALS': _TOKENS_saved[token['SYMBOL']]['_BASE_DECIMALS'],
             '_WETH_DECIMALS': _TOKENS_saved[token['SYMBOL']]['_WETH_DECIMALS'],
             '_LIQUIDITY_DECIMALS': _TOKENS_saved[token['SYMBOL']]['_LIQUIDITY_DECIMALS'],
+            '_PRICE_PRECISION': _TOKENS_saved[token['SYMBOL']]['_PRICE_PRECISION'],
             '_LAST_PRICE_MESSAGE': _TOKENS_saved[token['SYMBOL']]['_LAST_PRICE_MESSAGE'],
             '_LAST_MESSAGE': _TOKENS_saved[token['SYMBOL']]['_LAST_MESSAGE'],
             '_FIRST_SELL_QUOTE': _TOKENS_saved[token['SYMBOL']]['_FIRST_SELL_QUOTE'],
@@ -2014,6 +2015,51 @@ def get_tokens_purchased(tx_hash):
     # decode input data using contract object's decode_function_input() method
     func_obj, func_params = contract.decode_function_input(tx["input"])
     print(func_params)
+    exit(0)
+
+
+def analyze_tx(token, tx_hash):
+    # Function: analyze_tx
+    # ----------------------------
+    # provides details about a transaction
+    #
+    # tx_hash = the transaction hash
+    #
+    
+    # Get transaction object
+    tx = client.eth.get_transaction(tx_hash)
+    printt("")
+    printt("-  Tx DECODED:  ----------------------------------------------------------------")
+    printt(tx)
+    printt(tx['r'].hex())
+    printt(tx['s'].hex())
+    printt("--------------------------------------------------------------------------------")
+    printt("")
+    # tx2 = client.eth.get_transaction_receipt(tx_hash)
+    # printt("")
+    # printt("-Tx DECODED:--------------------------------------------------------------------")
+    # printt(tx2)
+    # printt("--------------------------------------------------------------------------------")
+    # printt("")
+    # decode input data
+    try:
+        input_decoded = routerContract.decode_function_input(tx['input'])
+    except Exception:
+        printt("-  Input DECODED:  -------------------------------------------------------------")
+        printt_info("There is no 'input' to decode")
+        printt("--------------------------------------------------------------------------------")
+        printt("")
+        exit(0)
+    printt("-  Input DECODED:  -------------------------------------------------------------")
+    printt(input_decoded)
+    printt("-  Check_pool :  ---------------------------------------------------------------")
+    pool = check_pool(token['_IN_TOKEN'], token['_OUT_TOKEN'], token['_LIQUIDITY_DECIMALS'])
+    printt_ok("Found", "{0:.4f}".format(pool), "liquidity for", token['_PAIR_SYMBOL'])
+    printt("--------------------------------------------------------------------------------")
+    printt("")
+    printt("-  check_liquidity_amount :  ---------------------------------------------------")
+    check_liquidity_amount(token, token['_BASE_DECIMALS'], token['_WETH_DECIMALS'])
+    printt("--------------------------------------------------------------------------------")
     exit(0)
 
 
@@ -4291,12 +4337,14 @@ def run():
                 printt_err("You have selected KIND_OF_SWAP = tokens, so you must enter a value in MAX_BASE_AMOUNT_PER_EXACT_TOKENS_TRANSACTION")
                 sys.exit()
                 
+            if token['KIND_OF_SWAP'].lower() == 'tokens' and token['WATCH_STABLES_PAIRS'] == 'true':
+                printt_err("Sorry, KIND_OF_SWAP = tokens is only available for USECUSTOMBASEPAIR = false --> it cannot be used with WATCH_STABLES_PAIRS. Exiting.")
+                sys.exit()
+                
             if token['KIND_OF_SWAP'].lower() == 'tokens' and token['USECUSTOMBASEPAIR'] == 'true':
                 printt_err("Sorry, KIND_OF_SWAP = tokens is only available for USECUSTOMBASEPAIR = false. Exiting.")
                 sys.exit()
-            
-            printt_debug("token['TRAILING_STOP_LOSS']:", token['TRAILING_STOP_LOSS'], "for token", token['_PAIR_SYMBOL'] )
-            
+                
             if token['TRAILING_STOP_LOSS'] != 0:
                 if re.search('^(\d+\.){0,1}\d+%$', str(token['TRAILING_STOP_LOSS'])):
                     pass
@@ -4393,6 +4441,10 @@ def run():
                     else:
                         token['_REACHED_MAX_TOKENS'] = False
     
+    
+                # Determine price number of decimals
+                token['_PRICE_PRECISION'] = command_line_args.price_precision
+                
                 # Calculate balances prior to buy() to accelerate buy()
                 calculate_base_balance(token)
 
@@ -4406,8 +4458,12 @@ def run():
                 # Call of RugDoc API if parameter is set to True
                 if token['RUGDOC_CHECK'] == 'true':
                     check_rugdoc_api(token)
-                
-            
+
+                # analyze mode
+                if command_line_args.analyze:
+                    tx_hash = command_line_args.analyze
+                    analyze_tx(token, tx_hash)
+
         load_token_file_increment = 0
         tokens_file_modified_time = os.path.getmtime(command_line_args.tokens)
         first_liquidity_check = True
@@ -4539,7 +4595,7 @@ def run():
                     # If we're still in the market to buy tokens, the print the buy message
                     # added the condition "if token['_PREVIOUS_QUOTE'] != 0" to avoid having a green line in first position and make trading_is_on work
                     if token['_PREVIOUS_QUOTE'] != 0 and token['_QUOTE'] != 0:  # and token['_REACHED_MAX_TOKENS'] == False:
-                        printt_buy_price(token, token['_QUOTE'])
+                        printt_sell_price(token, token['_QUOTE'], token['_PRICE_PRECISION'])
                     
                     #
                     # BUY CHECK
