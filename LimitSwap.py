@@ -1547,7 +1547,7 @@ def check_approval(token, address, allowance_to_compare_with, condition):
         return allowance_request
     
     else:
-        printt_ok("Token is already approved --> LimitSwap can use this token ")
+        printt_ok("Token is already approved --> LimitSwap can use this token")
         printt_ok("")
         return actual_allowance
 
