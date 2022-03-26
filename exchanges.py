@@ -116,6 +116,45 @@ def getRouters(settings, Web3):
         settings['_STABLE_BASES'] = {'USDT': {'address': '0x55d398326f99059ff775485246999027b3197955', 'multiplier': 0},
                                      'BUSD': {'address': '0xe9e7cea3dedca5984780bafc599bd69add087d56', 'multiplier': 0},
                                      'USDC': {'address': '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', 'multiplier': 0}}
+
+    elif settings['EXCHANGE'] == 'sushiswapbsc':
+        if settings['USECUSTOMNODE'] == 'true':
+            my_provider = settings['CUSTOMNODE']
+            printt('Using custom node.')
+        else:
+            my_provider = "https://bsc-dataseed4.defibit.io"
+        
+        if not my_provider:
+            printt_err('Custom node empty. Exiting')
+            exit(1)
+        
+        if my_provider[0].lower() == 'h':
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Using HTTPProvider')
+            client = Web3(Web3.HTTPProvider(my_provider))
+        elif my_provider[0].lower() == 'w':
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Using WebsocketProvider')
+            client = Web3(Web3.WebsocketProvider(my_provider))
+        else:
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Using IPCProvider')
+            client = Web3(Web3.IPCProvider(my_provider))
+        
+        print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), "Binance Smart Chain Connected =", client.isConnected())
+        print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), "Loading SushiSwap Smart Contracts...")
+        
+        routerAddress = Web3.toChecksumAddress("0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506")
+        factoryAddress = Web3.toChecksumAddress("0xc35DADB65012eC5796536bD9864eD8773aBc74C4")
+        
+        routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
+        factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
+        weth = Web3.toChecksumAddress("0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c")
+        base_symbol = "BNB "
+        rugdocchain = '&chain=bsc'
+        modified = False
+        
+        settings['_EXCHANGE_BASE_SYMBOL'] = 'BNB '
+        settings['_STABLE_BASES'] = {'USDT': {'address': '0x55d398326f99059ff775485246999027b3197955', 'multiplier': 0},
+                                     'BUSD': {'address': '0xe9e7cea3dedca5984780bafc599bd69add087d56', 'multiplier': 0},
+                                     'USDC': {'address': '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', 'multiplier': 0}}
     
     if settings['EXCHANGE'].lower() == 'pancakeswaptestnet':
         
@@ -182,12 +221,52 @@ def getRouters(settings, Web3):
             client = Web3(Web3.IPCProvider(my_provider))
         
         print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), "AVAX Smart Chain Connected =", client.isConnected())
-        print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), "Loading Smart Contracts...")
+        print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), "Loading TraderJoe Smart Contracts...")
         
         routerAddress = Web3.toChecksumAddress("0x60aE616a2155Ee3d9A68541Ba4544862310933d4")
         factoryAddress = Web3.toChecksumAddress("0x9Ad6C38BE94206cA50bb0d90783181662f0Cfa10")
         
         routerContract = client.eth.contract(address=routerAddress, abi=joeRouter)
+        factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
+        weth = Web3.toChecksumAddress("0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7")
+        base_symbol = "AVAX"
+        rugdocchain = '&chain=avax'
+        modified = True
+        
+        settings['_EXCHANGE_BASE_SYMBOL'] = 'AVAX'
+        settings['_STABLE_BASES'] = {'MIM ': {'address': '0x130966628846bfd36ff31a822705796e8cb8c18d', 'multiplier': 0},
+                                     'USDC': {'address': '0xA7D7079b0FEaD91F3e65f86E8915Cb59c1a4C664', 'multiplier': 0},
+                                     'USDC': {'address': '0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e', 'multiplier': 0},
+                                     'USDT': {'address': '0xc7198437980c041c805a1edcba50c1ce5db95118', 'multiplier': 0}}
+    
+    if settings['EXCHANGE'].lower() == 'sushiswapavax':
+        
+        if settings['USECUSTOMNODE'] == 'true':
+            my_provider = settings['CUSTOMNODE']
+        else:
+            my_provider = "https://api.avax.network/ext/bc/C/rpc"
+        
+        if not my_provider:
+            printt_err('Custom node empty. Exiting')
+            exit(1)
+        
+        if my_provider[0].lower() == 'h':
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Using HTTPProvider')
+            client = Web3(Web3.HTTPProvider(my_provider))
+        elif my_provider[0].lower() == 'w':
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Using WebsocketProvider')
+            client = Web3(Web3.WebsocketProvider(my_provider))
+        else:
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Using IPCProvider')
+            client = Web3(Web3.IPCProvider(my_provider))
+        
+        print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), "AVAX Smart Chain Connected =", client.isConnected())
+        print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), "Loading SushiSwap Smart Contracts...")
+        
+        routerAddress = Web3.toChecksumAddress("0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506")
+        factoryAddress = Web3.toChecksumAddress("0xc35DADB65012eC5796536bD9864eD8773aBc74C4")
+        
+        routerContract = client.eth.contract(address=routerAddress, abi=pangolinAbi)
         factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
         weth = Web3.toChecksumAddress("0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7")
         base_symbol = "AVAX"
@@ -674,6 +753,40 @@ def getRouters(settings, Web3):
         settings['_STABLE_BASES'] = {'USDC': {'address': '0x04068da6c83afcfa0e13ba15a6696662335d5b75', 'multiplier': 0},
                                      'USDT': {'address': '0x049d68029688eabf473097a2fc38ef61633a3c7a', 'multiplier': 0}}
     
+    elif settings["EXCHANGE"] == 'sushiswapftm':
+        if settings['USECUSTOMNODE'] == 'true':
+            my_provider = settings['CUSTOMNODE']
+        else:
+            my_provider = "https://rpc.ftm.tools/"
+        
+        if not my_provider:
+            printt_err('Custom node empty. Exiting')
+            exit(1)
+        
+        if my_provider[0].lower() == 'h':
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Using HTTPProvider')
+            client = Web3(Web3.HTTPProvider(my_provider))
+        elif my_provider[0].lower() == 'w':
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Using WebsocketProvider')
+            client = Web3(Web3.WebsocketProvider(my_provider))
+        else:
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Using IPCProvider')
+            client = Web3(Web3.IPCProvider(my_provider))
+        
+        print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), "FANTOM Chain Connected =", client.isConnected())
+        print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), "Loading SushiSwap Smart Contracts...")
+        routerAddress = Web3.toChecksumAddress("0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506")
+        factoryAddress = Web3.toChecksumAddress("0xc35DADB65012eC5796536bD9864eD8773aBc74C4")
+        routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
+        factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
+        weth = Web3.toChecksumAddress("0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83")
+        base_symbol = "FTM "
+        rugdocchain = '&chain=ftm'
+        modified = False
+        settings['_EXCHANGE_BASE_SYMBOL'] = 'FTM '
+        settings['_STABLE_BASES'] = {'USDC': {'address': '0x04068da6c83afcfa0e13ba15a6696662335d5b75', 'multiplier': 0},
+                                     'USDT': {'address': '0x049d68029688eabf473097a2fc38ef61633a3c7a', 'multiplier': 0}}
+    
     elif settings["EXCHANGE"] == 'protofi':
         if settings['USECUSTOMNODE'] == 'true':
             my_provider = settings['CUSTOMNODE']
@@ -766,6 +879,40 @@ def getRouters(settings, Web3):
         print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), "Loading Smart Contracts...")
         routerAddress = Web3.toChecksumAddress("0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff")
         factoryAddress = Web3.toChecksumAddress("0x5757371414417b8c6caad45baef941abc7d3ab32")
+        routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
+        factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
+        weth = Web3.toChecksumAddress("0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270")
+        base_symbol = "MATIC"
+        rugdocchain = '&chain=poly'
+        modified = False
+        settings['_EXCHANGE_BASE_SYMBOL'] = 'MATIC'
+        settings['_STABLE_BASES'] = {'USDT ': {'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier': 0},
+                                     'USDC ': {'address': '0x2791bca1f2de4661ed88a30c99a7a9449aa84174', 'multiplier': 0}}
+    
+    elif settings["EXCHANGE"] == 'sushiswapmatic':
+        if settings['USECUSTOMNODE'] == 'true':
+            my_provider = settings['CUSTOMNODE']
+        else:
+            my_provider = "https://polygon-rpc.com"
+        
+        if not my_provider:
+            printt_err('Custom node empty. Exiting')
+            exit(1)
+        
+        if my_provider[0].lower() == 'h':
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Using HTTPProvider')
+            client = Web3(Web3.HTTPProvider(my_provider))
+        elif my_provider[0].lower() == 'w':
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Using WebsocketProvider')
+            client = Web3(Web3.WebsocketProvider(my_provider))
+        else:
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Using IPCProvider')
+            client = Web3(Web3.IPCProvider(my_provider))
+        
+        print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), "Matic Chain Connected =", client.isConnected())
+        print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), "Loading SushiSwap Smart Contracts...")
+        routerAddress = Web3.toChecksumAddress("0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506")
+        factoryAddress = Web3.toChecksumAddress("0xc35DADB65012eC5796536bD9864eD8773aBc74C4")
         routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
         factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
         weth = Web3.toChecksumAddress("0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270")
