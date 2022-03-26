@@ -583,6 +583,41 @@ def getRouters(settings, Web3):
         settings['_STABLE_BASES'] = {'USDT': {'address': '0xdac17f958d2ee523a2206206994597c13d831ec7', 'multiplier': 0},
                                      'USDC': {'address': '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', 'multiplier': 0}}
     
+    elif settings["EXCHANGE"] == 'sushiswapeth':
+        if settings['USECUSTOMNODE'] == 'true':
+            my_provider = settings['CUSTOMNODE']
+        else:
+            my_provider = "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"
+        
+        if not my_provider:
+            printt_err('Custom node empty. Exiting')
+            exit(1)
+        
+        if my_provider[0].lower() == 'h':
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Using HTTPProvider')
+            client = Web3(Web3.HTTPProvider(my_provider))
+        elif my_provider[0].lower() == 'w':
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Using WebsocketProvider')
+            client = Web3(Web3.WebsocketProvider(my_provider))
+        else:
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Using IPCProvider')
+            client = Web3(Web3.IPCProvider(my_provider))
+        
+        print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), "Uniswap Chain Connected =", client.isConnected())
+        print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), "Loading SushiSwap Smart Contracts...")
+        routerAddress = Web3.toChecksumAddress("0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506")
+        factoryAddress = Web3.toChecksumAddress("0xc35DADB65012eC5796536bD9864eD8773aBc74C4")
+        routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
+        factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
+        weth = Web3.toChecksumAddress("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2")
+        base_symbol = "ETH "
+        rugdocchain = '&chain=eth'
+        modified = False
+        
+        settings['_EXCHANGE_BASE_SYMBOL'] = 'ETH '
+        settings['_STABLE_BASES'] = {'USDT': {'address': '0xdac17f958d2ee523a2206206994597c13d831ec7', 'multiplier': 0},
+                                     'USDC': {'address': '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', 'multiplier': 0}}
+    
     elif settings["EXCHANGE"] == 'degenswap':
         if settings['USECUSTOMNODE'] == 'true':
             my_provider = settings['CUSTOMNODE']

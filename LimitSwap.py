@@ -1450,8 +1450,8 @@ def auth():
     return true_balance
 
 
-def approve(token, amount):
-    print(timestamp(), "Approving", token['ADDRESS'])
+def approve(token_address, amount):
+    print(timestamp(), "Approving", token_address)
     
     eth_balance = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
     
@@ -1472,7 +1472,7 @@ def approve(token, amount):
             gas = token['_GAS_TO_USE']
             printt("Token will be approved with Gas = ", gas)
         
-        contract = client.eth.contract(address=Web3.toChecksumAddress(token['ADDRESS']), abi=standardAbi)
+        contract = client.eth.contract(address=Web3.toChecksumAddress(token_address), abi=standardAbi)
         transaction = contract.functions.approve(routerAddress, amount).buildTransaction({
             'gasPrice': Web3.toWei(gas, 'gwei'),
             'gas': 1000000,
@@ -1503,18 +1503,24 @@ def check_approval(token, address, allowance_to_compare_with, condition):
     printt_debug("allowance_to_compare_with 1592 :", allowance_to_compare_with)
     
     allowance_request = 115792089237316195423570985008687907853269984665640564039457584007913129639935
-    
+
+    # Determine which token we'll approve
+    if condition == 'custom_base_approve':
+        address_to_approve = token["BASEADDRESS"]
+    else:
+        address_to_approve = token["ADDRESS"]
+
     if actual_allowance < allowance_to_compare_with or actual_allowance == 0:
         if settings["EXCHANGE"] == 'quickswap':
             if actual_allowance == 0:
-                tx = approve(token, allowance_request)
+                tx = approve(address_to_approve, allowance_request)
                 wait_for_tx(tx)
             
             else:
                 print("Revert to Zero To change approval")
-                tx = approve(token, 0)
+                tx = approve(address_to_approve, 0)
                 wait_for_tx(tx)
-                tx = approve(token, allowance_request)
+                tx = approve(address_to_approve, allowance_request)
                 wait_for_tx(tx)
         
         else:
@@ -1522,6 +1528,10 @@ def check_approval(token, address, allowance_to_compare_with, condition):
                 printt_info("---------------------------------------------------------------------------------------------")
                 printt_info("Your base token is not approved --> LimitSwap will now APPROVE it, or it won't be able to buy")
                 printt_info("---------------------------------------------------------------------------------------------")
+            elif condition == 'custom_base_approve':
+                printt_info("----------------------------------------------------------------------------------------------")
+                printt_info("Your custom base is not approved --> LimitSwap will now APPROVE it, or it won't be able to buy")
+                printt_info("----------------------------------------------------------------------------------------------")
             elif condition == 'preapprove':
                 printt_info("-----------------------------------------------------------------------------")
                 printt_info("You have selected PREAPPROVE = true --> LimitSwap will now APPROVE this token")
@@ -1538,9 +1548,11 @@ def check_approval(token, address, allowance_to_compare_with, condition):
                 printt_info("-------------------------------------")
                 printt_info("LimitSwap will now APPROVE this token")
                 printt_info("-------------------------------------")
-            
-            tx = approve(token, allowance_request)
+
+
+            tx = approve(address_to_approve, allowance_request)
             wait_for_tx(tx)
+            
             printt_ok("---------------------------------------------------------")
             printt_ok("  Token is now approved : LimitSwap can sell this token", write_to_log=True)
             printt_ok("---------------------------------------------------------")
@@ -1548,7 +1560,7 @@ def check_approval(token, address, allowance_to_compare_with, condition):
         return allowance_request
     
     else:
-        printt_ok("Token is already approved --> LimitSwap can use this token")
+        printt_ok("Token is already approved --> LimitSwap can use this token", write_to_log=True)
         printt_ok("")
         return actual_allowance
 
@@ -2765,7 +2777,7 @@ def make_the_buy(inToken, outToken, buynumber, walletused, privatekey, amount, g
                     })
                 
                 elif settings["EXCHANGE"].lower() == 'pangolin' or settings["EXCHANGE"].lower() == 'traderjoe':
-                    printt_debug("make_the_buy condition 2 AVAX EIP 1559", write_to_log=True)
+                    printt_debug("make_the_buy condition 2 - AVAX EIP 1559", write_to_log=True)
                     transaction = routerContract.functions.swapExactAVAXForTokens(
                         amountOutMin,
                         [weth, outToken],
@@ -2803,7 +2815,7 @@ def make_the_buy(inToken, outToken, buynumber, walletused, privatekey, amount, g
                 
                 # Special condition on Uniswap, to implement EIP-1559
                 
-                if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
+                if settings["EXCHANGE"].lower() in ['uniswap', 'uniswaptestnet', 'sushiswapeth']:
                     
                     printt_debug("make_the_buy condition 3 - EIP 1559", write_to_log=True)
                     
@@ -2854,7 +2866,7 @@ def make_the_buy(inToken, outToken, buynumber, walletused, privatekey, amount, g
             
             deadline = int(time() + + 60)
             
-            if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
+            if settings["EXCHANGE"].lower() in ['uniswap', 'uniswaptestnet', 'sushiswapeth']:
                 # Special condition on Uniswap, to implement EIP-1559
                 printt_debug("make_the_buy condition 5", write_to_log=True)
                 transaction = routerContract.functions.swapExactTokensForTokens(
@@ -2904,19 +2916,19 @@ def make_the_buy(inToken, outToken, buynumber, walletused, privatekey, amount, g
                 amount_out = routerContract.functions.getAmountsOut(amount, [inToken, weth, outToken]).call()[-1]
                 
                 if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
-                    amountOutMin = 100
+                    amountOutMin = 0
                 else:
                     amountOutMin = int(amount_out * (1 - (slippage / 100)))
                 
                 deadline = int(time() + + 60)
                 
-                if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
+                if settings["EXCHANGE"].lower() in ['uniswap', 'uniswaptestnet', 'sushiswapeth', 'pangolin', 'traderjoe']:
                     # USECUSTOMBASEPAIR = true
                     # Base Pair different from weth
                     # LIQUIDITYINNATIVETOKEN = true
                     
                     # Special condition on Uniswap, to implement EIP-1559
-                    printt_debug("make_the_buy condition 7", write_to_log=True)
+                    printt_debug("make_the_buy condition 7 - EIP-1559", write_to_log=True)
                     transaction = routerContract.functions.swapExactTokensForTokens(
                         amount,
                         amountOutMin,
@@ -2927,7 +2939,6 @@ def make_the_buy(inToken, outToken, buynumber, walletused, privatekey, amount, g
                         'maxFeePerGas': Web3.toWei(gas, 'gwei'),
                         'maxPriorityFeePerGas': Web3.toWei(gaspriority, 'gwei'),
                         'gas': gaslimit,
-                        'value': amount,
                         'from': Web3.toChecksumAddress(walletused),
                         'nonce': nonce_to_use,
                         'type': "0x02"
@@ -2937,46 +2948,20 @@ def make_the_buy(inToken, outToken, buynumber, walletused, privatekey, amount, g
                     # USECUSTOMBASEPAIR = true
                     # Base Pair different from weth
                     # LIQUIDITYINNATIVETOKEN = true
-                    # Exchange different from Uniswap
-                    
-                    if settings["EXCHANGE"].lower() == 'pangolin' or settings["EXCHANGE"].lower() == 'traderjoe':
-                        printt_debug("make_the_buy condition 8 AVAX EIP 1559", write_to_log=True)
-                        printt_debug("amount      :", amount)
-                        printt_debug("amountOutMin:", amountOutMin)
-                        transaction = routerContract.functions.swapExactTokensForTokens(
-                            amount,
-                            amountOutMin,
-                            [inToken, weth, outToken],
-                            Web3.toChecksumAddress(walletused),
-                            deadline
-                        ).buildTransaction({
-                            'maxFeePerGas': Web3.toWei(gas, 'gwei'),
-                            'maxPriorityFeePerGas': Web3.toWei(gaspriority, 'gwei'),
-                            'gas': gaslimit,
-                            'value': 0,
-                            'from': Web3.toChecksumAddress(walletused),
-                            'nonce': nonce_to_use,
-                            'type': "0x02"
-                        })
-                    
-                    else:
-                        # USECUSTOMBASEPAIR = true
-                        # Base Pair different from weth
-                        # LIQUIDITYINNATIVETOKEN = true
-                        # Exchange different from Uniswap
-                        printt_debug("make_the_buy condition 8", write_to_log=True)
-                        transaction = routerContract.functions.swapExactTokensForTokens(
-                            amount,
-                            amountOutMin,
-                            [inToken, weth, outToken],
-                            Web3.toChecksumAddress(walletused),
-                            deadline
-                        ).buildTransaction({
-                            'gasPrice': Web3.toWei(gas, 'gwei'),
-                            'gas': gaslimit,
-                            'from': Web3.toChecksumAddress(walletused),
-                            'nonce': nonce_to_use
-                        })
+                    # Not EIP-1559
+                    printt_debug("make_the_buy condition 8", write_to_log=True)
+                    transaction = routerContract.functions.swapExactTokensForTokens(
+                        amount,
+                        amountOutMin,
+                        [inToken, weth, outToken],
+                        Web3.toChecksumAddress(walletused),
+                        deadline
+                    ).buildTransaction({
+                        'gasPrice': Web3.toWei(gas, 'gwei'),
+                        'gas': gaslimit,
+                        'from': Web3.toChecksumAddress(walletused),
+                        'nonce': nonce_to_use
+                    })
             
             else:
                 # LIQUIDITYINNATIVETOKEN = false
@@ -2996,20 +2981,18 @@ def make_the_buy(inToken, outToken, buynumber, walletused, privatekey, amount, g
                 amount_out = routerContract.functions.getAmountsOut(amount, [inToken, outToken]).call()[-1]
                 
                 if settings['UNLIMITEDSLIPPAGE'].lower() == 'true':
-                    amountOutMin = 100
+                    amountOutMin = 0
                 else:
                     amountOutMin = int(amount_out * (1 - (slippage / 100)))
                 
                 deadline = int(time() + + 60)
                 
-                if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet' or settings["EXCHANGE"].lower() == 'traderjoe' or settings["EXCHANGE"].lower() == 'pangolin':
+                if settings["EXCHANGE"].lower() in ['uniswap', 'uniswaptestnet', 'sushiswapeth', 'traderjoe', 'pangolin']:
                     # LIQUIDITYINNATIVETOKEN = false
                     # USECUSTOMBASEPAIR = true
                     # Base Pair different from weth
                     # Special condition on Uniswap, to implement EIP-1559
                     printt_debug("make_the_buy condition 9 - EIP 1559", write_to_log=True)
-                    printt_debug("amount      :", amount)
-                    printt_debug("amountOutMin:", amountOutMin)
                     transaction = routerContract.functions.swapExactTokensForTokens(
                         amount,
                         amountOutMin,
@@ -3020,7 +3003,6 @@ def make_the_buy(inToken, outToken, buynumber, walletused, privatekey, amount, g
                         'maxFeePerGas': Web3.toWei(gas, 'gwei'),
                         'maxPriorityFeePerGas': Web3.toWei(gaspriority, 'gwei'),
                         'gas': gaslimit,
-                        'value': 0,
                         'from': Web3.toChecksumAddress(walletused),
                         'nonce': nonce_to_use,
                         'type': "0x02"
@@ -3032,8 +3014,6 @@ def make_the_buy(inToken, outToken, buynumber, walletused, privatekey, amount, g
                     # Base Pair different from weth
                     # Exchange different from Uniswap
                     printt_debug("make_the_buy condition 10", write_to_log=True)
-                    printt_debug("amount      :", amount)
-                    printt_debug("amountOutMin:", amountOutMin)
                     
                     transaction = routerContract.functions.swapExactTokensForTokens(
                         amount,
@@ -3198,7 +3178,7 @@ def make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, walletus
                 
                 # Special condition on Uniswap, to implement EIP-1559
                 
-                if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
+                if settings["EXCHANGE"].lower() in ['uniswap', 'uniswaptestnet', 'sushiswapeth']:
                     printt_debug("make_the_buy_exact_tokens condition 3", write_to_log=True)
                     
                     transaction = routerContract.functions.swapETHForExactTokens(
@@ -3313,14 +3293,16 @@ def preapprove_base(token):
     
     printt_debug("ENTER - preapprove_base()")
     
-    printt("LimitSwap will now check approval of your Base or Custom Base for", token['SYMBOL'], ", to ensure you can use it")
-    
     if token['USECUSTOMBASEPAIR'].lower() == 'false':
+        printt("LimitSwap will now check approval of your Base token (", base_symbol, ") to ensure you can use it to buy/sell", token['SYMBOL'],)
+    
         balanceweth = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
         check_approval(token, weth, balanceweth * decimals(weth), 'base_approve')
     else:
+        printt("LimitSwap will now check approval of your Custom Base token (", token['BASESYMBOL'], ") to ensure you can use it to buy/sell", token['SYMBOL'],)
+
         balancebase = Web3.fromWei(check_balance(token['BASEADDRESS'], token['BASESYMBOL'], display_quantity=False), 'ether')
-        check_approval(token, token['BASEADDRESS'], balancebase * decimals(token['BASEADDRESS']), 'base_approve')
+        check_approval(token, token['BASEADDRESS'], balancebase * decimals(token['BASEADDRESS']), 'custom_base_approve')
     
     printt_debug("EXIT - preapprove_base()")
 
@@ -3879,7 +3861,7 @@ def sell(token_dict, inToken, outToken):
                     # HASFEES = false
                     # Modified = false --> uniswap / pancakeswap / apeswap, etc.
                     
-                    if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet':
+                    if settings["EXCHANGE"].lower() in ['uniswap', 'uniswaptestnet', 'sushiswapeth']:
                         # Special condition on Uniswap, to implement EIP-1559
                         printt_debug("sell condition 6", write_to_log=True)
                         transaction = routerContract.functions.swapExactTokensForETH(
@@ -4045,7 +4027,7 @@ def sell(token_dict, inToken, outToken):
                         # LIQUIDITYINNATIVETOKEN = false
                         # USECUSTOMBASEPAIR = true
                         # HASFEES = true
-                        if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet' or settings["EXCHANGE"].lower() == 'traderjoe' or settings["EXCHANGE"].lower() == 'pangolin':
+                        if settings["EXCHANGE"].lower() in ['uniswap', 'uniswaptestnet', 'sushiswapeth', 'traderjoe', 'pangolin']:
                             # Special condition on Uniswap, to implement EIP-1559
                             printt_debug("sell condition 12 EIP 1559", write_to_log=True)
                             transaction = routerContract.functions.swapExactTokensForTokensSupportingFeeOnTransferTokens(
@@ -4178,7 +4160,7 @@ def sell(token_dict, inToken, outToken):
                     
                     else:
                         # HASFEES = false
-                        if settings["EXCHANGE"].lower() == 'uniswap' or settings["EXCHANGE"].lower() == 'uniswaptestnet' or settings["EXCHANGE"].lower() == 'traderjoe' or settings["EXCHANGE"].lower() == 'pangolin':
+                        if settings["EXCHANGE"].lower() in ['uniswap', 'uniswaptestnet', 'sushiswapeth', 'traderjoe', 'pangolin']:
                             # Special condition on Uniswap, to implement EIP-1559
                             printt_debug("sell condition 18 - EIP 1559", write_to_log=True)
                             transaction = routerContract.functions.swapExactTokensForTokens(
