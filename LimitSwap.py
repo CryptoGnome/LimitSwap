@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import asyncio
 from toolz.functoolz import do
 from web3 import Web3
 from time import sleep, time
@@ -1995,10 +1996,11 @@ def pinksale_snipe_mode(token):
     
     #get transaction hash
     printt("")
-    printt_ok("Tx has been made!", Web3.toHex(tx_hash))
+    printt_ok("Tx has been made!", Web3.toHex(tx_hash), write_to_log=True)
     printt("")
-    printt("Bot will now close. Enjoy your lambo!")
+    printt("Bot will now close. Enjoy your lambo!", write_to_log=True)
     printt("")
+    sleep(300)
     sys.exit()
 
 
