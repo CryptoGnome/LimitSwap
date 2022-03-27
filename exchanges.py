@@ -25,6 +25,12 @@ filename = "router.json"
 file_path = os.path.join(directory, filename)
 with open(file_path) as json_file:
     routerAbi = json.load(json_file)
+    
+directory = './abi/'
+filename = "Swapper.json"
+file_path = os.path.join(directory, filename)
+with open(file_path) as json_file:
+    swapperAbi = json.load(json_file)
 
 directory = './abi/'
 filename = "factory2.json"
@@ -111,7 +117,9 @@ def getRouters(settings, Web3):
         base_symbol = "BNB "
         rugdocchain = '&chain=bsc'
         modified = False
-        
+        swapper_address = Web3.toChecksumAddress("0x18be7f977Ec1217B71D0C134FBCFF36Ea4366fCD")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
+
         settings['_EXCHANGE_BASE_SYMBOL'] = 'BNB '
         settings['_STABLE_BASES'] = {'USDT': {'address': '0x55d398326f99059ff775485246999027b3197955', 'multiplier': 0},
                                      'BUSD': {'address': '0xe9e7cea3dedca5984780bafc599bd69add087d56', 'multiplier': 0},
@@ -150,7 +158,9 @@ def getRouters(settings, Web3):
         base_symbol = "BNB "
         rugdocchain = '&chain=bsc'
         modified = False
-        
+        swapper_address = Web3.toChecksumAddress("0x18be7f977Ec1217B71D0C134FBCFF36Ea4366fCD")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
+
         settings['_EXCHANGE_BASE_SYMBOL'] = 'BNB '
         settings['_STABLE_BASES'] = {'USDT': {'address': '0x55d398326f99059ff775485246999027b3197955', 'multiplier': 0},
                                      'BUSD': {'address': '0xe9e7cea3dedca5984780bafc599bd69add087d56', 'multiplier': 0},
@@ -194,7 +204,9 @@ def getRouters(settings, Web3):
         base_symbol = "BNBt"
         rugdocchain = '&chain=bsc'
         modified = False
-        
+        swapper_address = Web3.toChecksumAddress("0x000000000000000000000000000000000000dEaD")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
+
         settings['_EXCHANGE_BASE_SYMBOL'] = 'BNBt'
         settings['_STABLE_BASES'] = {'BUSD': {'address': '0x8301f2213c0eed49a7e28ae4c3e91722919b8b47', 'multiplier': 0},
                                      'DAI ': {'address': '0x8a9424745056eb399fd19a0ec26a14316684e274', 'multiplier': 0}}
@@ -232,7 +244,9 @@ def getRouters(settings, Web3):
         base_symbol = "AVAX"
         rugdocchain = '&chain=avax'
         modified = True
-        
+        swapper_address = Web3.toChecksumAddress("0x052a50b4b8309Fc2dF49E2ec78470E29DD9fA459")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
+
         settings['_EXCHANGE_BASE_SYMBOL'] = 'AVAX'
         settings['_STABLE_BASES'] = {'MIM ': {'address': '0x130966628846bfd36ff31a822705796e8cb8c18d', 'multiplier': 0},
                                      'USDC': {'address': '0xA7D7079b0FEaD91F3e65f86E8915Cb59c1a4C664', 'multiplier': 0},
@@ -272,7 +286,9 @@ def getRouters(settings, Web3):
         base_symbol = "AVAX"
         rugdocchain = '&chain=avax'
         modified = True
-        
+        swapper_address = Web3.toChecksumAddress("0x052a50b4b8309Fc2dF49E2ec78470E29DD9fA459")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
+
         settings['_EXCHANGE_BASE_SYMBOL'] = 'AVAX'
         settings['_STABLE_BASES'] = {'MIM ': {'address': '0x130966628846bfd36ff31a822705796e8cb8c18d', 'multiplier': 0},
                                      'USDC': {'address': '0xA7D7079b0FEaD91F3e65f86E8915Cb59c1a4C664', 'multiplier': 0},
@@ -309,6 +325,9 @@ def getRouters(settings, Web3):
         base_symbol = "AVAX"
         rugdocchain = '&chain=avax'
         modified = True
+        swapper_address = Web3.toChecksumAddress("0x052a50b4b8309Fc2dF49E2ec78470E29DD9fA459")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
+        
         settings['_EXCHANGE_BASE_SYMBOL'] = 'AVAX'
         settings['_STABLE_BASES'] = {'MIM ': {'address': '0x130966628846bfd36ff31a822705796e8cb8c18d', 'multiplier': 0},
                                      'USDC': {'address': '0xA7D7079b0FEaD91F3e65f86E8915Cb59c1a4C664', 'multiplier': 0},
@@ -349,7 +368,9 @@ def getRouters(settings, Web3):
         base_symbol = "BNB "
         rugdocchain = '&chain=bsc'
         modified = False
-        
+        swapper_address = Web3.toChecksumAddress("0x18be7f977Ec1217B71D0C134FBCFF36Ea4366fCD")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
+
         settings['_EXCHANGE_BASE_SYMBOL'] = 'BNB '
         settings['_STABLE_BASES'] = {'USDT': {'address': '0x55d398326f99059ff775485246999027b3197955', 'multiplier': 0},
                                      'BUSD': {'address': '0xe9e7cea3dedca5984780bafc599bd69add087d56', 'multiplier': 0},
@@ -389,6 +410,8 @@ def getRouters(settings, Web3):
         base_symbol = "BNB "
         rugdocchain = '&chain=bsc'
         modified = False
+        swapper_address = Web3.toChecksumAddress("0x18be7f977Ec1217B71D0C134FBCFF36Ea4366fCD")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
         settings['_EXCHANGE_BASE_SYMBOL'] = 'BNB '
         settings['_STABLE_BASES'] = {'USDT': {'address': '0x55d398326f99059ff775485246999027b3197955', 'multiplier': 0},
                                      'BUSD': {'address': '0xe9e7cea3dedca5984780bafc599bd69add087d56', 'multiplier': 0},
@@ -428,6 +451,8 @@ def getRouters(settings, Web3):
         base_symbol = "BNB "
         rugdocchain = '&chain=bsc'
         modified = False
+        swapper_address = Web3.toChecksumAddress("0x18be7f977Ec1217B71D0C134FBCFF36Ea4366fCD")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
         settings['_EXCHANGE_BASE_SYMBOL'] = 'BNB '
         settings['_STABLE_BASES'] = {'USDT': {'address': '0x55d398326f99059ff775485246999027b3197955', 'multiplier': 0},
                                      'BUSD': {'address': '0xe9e7cea3dedca5984780bafc599bd69add087d56', 'multiplier': 0},
@@ -467,6 +492,8 @@ def getRouters(settings, Web3):
         base_symbol = "METIS"
         rugdocchain = '&chain=metis'
         modified = False
+        swapper_address = Web3.toChecksumAddress("0x000000000000000000000000000000000000dEaD")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
         settings['_EXCHANGE_BASE_SYMBOL'] = 'METIS'
         settings['_STABLE_BASES'] = {'mUSDC': {'address': '0xEA32A96608495e54156Ae48931A7c20f0dcc1a21', 'multiplier': 0}}
     
@@ -504,6 +531,8 @@ def getRouters(settings, Web3):
         base_symbol = "BNB "
         rugdocchain = '&chain=bsc'
         modified = True
+        swapper_address = Web3.toChecksumAddress("0x18be7f977Ec1217B71D0C134FBCFF36Ea4366fCD")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
         settings['_EXCHANGE_BASE_SYMBOL'] = 'BNB '
         settings['_STABLE_BASES'] = {'USDT': {'address': '0x55d398326f99059ff775485246999027b3197955', 'multiplier': 0},
                                      'BUSD': {'address': '0xe9e7cea3dedca5984780bafc599bd69add087d56', 'multiplier': 0},
@@ -543,6 +572,8 @@ def getRouters(settings, Web3):
         base_symbol = "BNB "
         rugdocchain = '&chain=bsc'
         modified = False
+        swapper_address = Web3.toChecksumAddress("0x18be7f977Ec1217B71D0C134FBCFF36Ea4366fCD")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
         settings['_EXCHANGE_BASE_SYMBOL'] = 'BNB '
         settings['_STABLE_BASES'] = {'USDT': {'address': '0x55d398326f99059ff775485246999027b3197955', 'multiplier': 0},
                                      'BUSD': {'address': '0xe9e7cea3dedca5984780bafc599bd69add087d56', 'multiplier': 0},
@@ -578,7 +609,9 @@ def getRouters(settings, Web3):
         base_symbol = "ETH "
         rugdocchain = '&chain=eth'
         modified = False
-        
+        swapper_address = Web3.toChecksumAddress("0x000000000000000000000000000000000000dEaD")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
+
         settings['_EXCHANGE_BASE_SYMBOL'] = 'ETH '
         settings['_STABLE_BASES'] = {'USDT': {'address': '0xdac17f958d2ee523a2206206994597c13d831ec7', 'multiplier': 0},
                                      'USDC': {'address': '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', 'multiplier': 0}}
@@ -613,7 +646,9 @@ def getRouters(settings, Web3):
         base_symbol = "ETH "
         rugdocchain = '&chain=eth'
         modified = False
-        
+        swapper_address = Web3.toChecksumAddress("0x000000000000000000000000000000000000dEaD")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
+
         settings['_EXCHANGE_BASE_SYMBOL'] = 'ETH '
         settings['_STABLE_BASES'] = {'USDT': {'address': '0xdac17f958d2ee523a2206206994597c13d831ec7', 'multiplier': 0},
                                      'USDC': {'address': '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', 'multiplier': 0}}
@@ -648,7 +683,9 @@ def getRouters(settings, Web3):
         base_symbol = "ETH "
         rugdocchain = '&chain=eth'
         modified = False
-        
+        swapper_address = Web3.toChecksumAddress("0x000000000000000000000000000000000000dEaD")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
+
         settings['_EXCHANGE_BASE_SYMBOL'] = 'ETH '
         settings['_STABLE_BASES'] = {'USDT': {'address': '0xdac17f958d2ee523a2206206994597c13d831ec7', 'multiplier': 0},
                                      'USDC': {'address': '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', 'multiplier': 0}}
@@ -683,6 +720,8 @@ def getRouters(settings, Web3):
         base_symbol = "ETHt"
         rugdocchain = '&chain=eth'
         modified = False
+        swapper_address = Web3.toChecksumAddress("0x000000000000000000000000000000000000dEaD")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
         settings['_EXCHANGE_BASE_SYMBOL'] = 'ETHt'
         settings['_STABLE_BASES'] = {'USDT': {'address': '0x3b00ef435fa4fcff5c209a37d1f3dcff37c705ad', 'multiplier': 0},
                                      'USDC': {'address': '0x4dbcdf9b62e891a7cec5a2568c3f4faf9e8abe2b', 'multiplier': 0}}
@@ -717,6 +756,8 @@ def getRouters(settings, Web3):
         base_symbol = "KCS"
         rugdocchain = '&chain=kcc'
         modified = False
+        swapper_address = Web3.toChecksumAddress("0x000000000000000000000000000000000000dEaD")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
         settings['_EXCHANGE_BASE_SYMBOL'] = 'KCS'
         settings['_STABLE_BASES'] = {'USD ': {'address': '0x0039f574ee5cc39bdd162e9a88e3eb1f111baf48', 'multiplier': 0}}
     
@@ -751,6 +792,8 @@ def getRouters(settings, Web3):
         base_symbol = "KCS"
         rugdocchain = '&chain=kcc'
         modified = True
+        swapper_address = Web3.toChecksumAddress("0x000000000000000000000000000000000000dEaD")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
         settings['_EXCHANGE_BASE_SYMBOL'] = 'KCS'
         settings['_STABLE_BASES'] = {'USD ': {'address': '0x0039f574ee5cc39bdd162e9a88e3eb1f111baf48', 'multiplier': 0}}
     
@@ -784,6 +827,9 @@ def getRouters(settings, Web3):
         base_symbol = "FTM "
         rugdocchain = '&chain=ftm'
         modified = False
+        swapper_address = Web3.toChecksumAddress("0xdA19096CCecFEEE1da30021c17a33819dE6E11F1")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
+
         settings['_EXCHANGE_BASE_SYMBOL'] = 'FTM '
         settings['_STABLE_BASES'] = {'USDC': {'address': '0x04068da6c83afcfa0e13ba15a6696662335d5b75', 'multiplier': 0},
                                      'USDT': {'address': '0x049d68029688eabf473097a2fc38ef61633a3c7a', 'multiplier': 0}}
@@ -818,6 +864,9 @@ def getRouters(settings, Web3):
         base_symbol = "FTM "
         rugdocchain = '&chain=ftm'
         modified = False
+        swapper_address = Web3.toChecksumAddress("0xdA19096CCecFEEE1da30021c17a33819dE6E11F1")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
+
         settings['_EXCHANGE_BASE_SYMBOL'] = 'FTM '
         settings['_STABLE_BASES'] = {'USDC': {'address': '0x04068da6c83afcfa0e13ba15a6696662335d5b75', 'multiplier': 0},
                                      'USDT': {'address': '0x049d68029688eabf473097a2fc38ef61633a3c7a', 'multiplier': 0}}
@@ -852,6 +901,9 @@ def getRouters(settings, Web3):
         base_symbol = "FTM "
         rugdocchain = '&chain=ftm'
         modified = False
+        swapper_address = Web3.toChecksumAddress("0xdA19096CCecFEEE1da30021c17a33819dE6E11F1")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
+
         settings['_EXCHANGE_BASE_SYMBOL'] = 'FTM '
         settings['_STABLE_BASES'] = {'USDC': {'address': '0x04068da6c83afcfa0e13ba15a6696662335d5b75', 'multiplier': 0},
                                      'USDT': {'address': '0x049d68029688eabf473097a2fc38ef61633a3c7a', 'multiplier': 0}}
@@ -886,6 +938,9 @@ def getRouters(settings, Web3):
         base_symbol = "FTM "
         rugdocchain = '&chain=ftm'
         modified = False
+        swapper_address = Web3.toChecksumAddress("0xdA19096CCecFEEE1da30021c17a33819dE6E11F1")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
+
         settings['_EXCHANGE_BASE_SYMBOL'] = 'FTM '
         settings['_STABLE_BASES'] = {'USDC': {'address': '0x04068da6c83afcfa0e13ba15a6696662335d5b75', 'multiplier': 0},
                                      'USDT': {'address': '0x049d68029688eabf473097a2fc38ef61633a3c7a', 'multiplier': 0}}
@@ -920,6 +975,8 @@ def getRouters(settings, Web3):
         base_symbol = "MATIC"
         rugdocchain = '&chain=poly'
         modified = False
+        swapper_address = Web3.toChecksumAddress("0x000000000000000000000000000000000000dEaD")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
         settings['_EXCHANGE_BASE_SYMBOL'] = 'MATIC'
         settings['_STABLE_BASES'] = {'USDT ': {'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier': 0},
                                      'USDC ': {'address': '0x2791bca1f2de4661ed88a30c99a7a9449aa84174', 'multiplier': 0}}
@@ -954,6 +1011,8 @@ def getRouters(settings, Web3):
         base_symbol = "MATIC"
         rugdocchain = '&chain=poly'
         modified = False
+        swapper_address = Web3.toChecksumAddress("0x000000000000000000000000000000000000dEaD")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
         settings['_EXCHANGE_BASE_SYMBOL'] = 'MATIC'
         settings['_STABLE_BASES'] = {'USDT ': {'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier': 0},
                                      'USDC ': {'address': '0x2791bca1f2de4661ed88a30c99a7a9449aa84174', 'multiplier': 0}}
@@ -987,6 +1046,8 @@ def getRouters(settings, Web3):
         base_symbol = "MATIC"
         rugdocchain = '&chain=poly'
         modified = False
+        swapper_address = Web3.toChecksumAddress("0x000000000000000000000000000000000000dEaD")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
         settings['_EXCHANGE_BASE_SYMBOL'] = 'MATIC'
         settings['_STABLE_BASES'] = {'USDT ': {'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier': 0},
                                      'USDC ': {'address': '0x2791bca1f2de4661ed88a30c99a7a9449aa84174', 'multiplier': 0}}
@@ -1021,6 +1082,8 @@ def getRouters(settings, Web3):
         base_symbol = "MATIC"
         rugdocchain = '&chain=poly'
         modified = False
+        swapper_address = Web3.toChecksumAddress("0x000000000000000000000000000000000000dEaD")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
         settings['_EXCHANGE_BASE_SYMBOL'] = 'MATIC'
         settings['_STABLE_BASES'] = {'USDT ': {'address': '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', 'multiplier': 0},
                                      'USDC ': {'address': '0x2791bca1f2de4661ed88a30c99a7a9449aa84174', 'multiplier': 0}}
@@ -1054,6 +1117,8 @@ def getRouters(settings, Web3):
         base_symbol = "CRO"
         rugdocchain = '&chain=cronos'
         modified = False
+        swapper_address = Web3.toChecksumAddress("0x000000000000000000000000000000000000dEaD")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
         settings['_EXCHANGE_BASE_SYMBOL'] = 'CRO'
         settings['_STABLE_BASES'] = {'USDC': {'address': '0xc21223249ca28397b4b6541dffaecc539bff0c59', 'multiplier': 0}}
     
@@ -1086,6 +1151,8 @@ def getRouters(settings, Web3):
         base_symbol = "CRO"
         rugdocchain = '&chain=cronos'
         modified = False
+        swapper_address = Web3.toChecksumAddress("0x000000000000000000000000000000000000dEaD")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
         settings['_EXCHANGE_BASE_SYMBOL'] = 'CRO'
         settings['_STABLE_BASES'] = {'USDC': {'address': '0xc21223249ca28397b4b6541dffaecc539bff0c59', 'multiplier': 0}}
     
@@ -1118,6 +1185,8 @@ def getRouters(settings, Web3):
         base_symbol = "CRO"
         rugdocchain = '&chain=cronos'
         modified = False
+        swapper_address = Web3.toChecksumAddress("0x000000000000000000000000000000000000dEaD")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
         settings['_EXCHANGE_BASE_SYMBOL'] = 'CRO'
         settings['_STABLE_BASES'] = {'USDC': {'address': '0xc21223249ca28397b4b6541dffaecc539bff0c59', 'multiplier': 0}}
     
@@ -1153,7 +1222,9 @@ def getRouters(settings, Web3):
         base_symbol = "WONE"
         rugdocchain = '&chain=one'
         modified = False
-        
+        swapper_address = Web3.toChecksumAddress("0x000000000000000000000000000000000000dEaD")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
+
         settings['_EXCHANGE_BASE_SYMBOL'] = 'WONE'
         settings['_STABLE_BASES'] = {'BUSD': {'address': '0xe176ebe47d621b984a73036b9da5d834411ef734', 'multiplier': 0},
                                      'USDT': {'address': '0x3c2b8be99c50593081eaa2a724f0b8285f5aba8f', 'multiplier': 0}}
@@ -1162,6 +1233,6 @@ def getRouters(settings, Web3):
     # Necessary to scan mempool
     client.middleware_onion.inject(geth_poa_middleware, layer=0)
 
-    return client, routerAddress, factoryAddress, routerContract, factoryContract, weth, base_symbol, modified, my_provider, rugdocchain
+    return client, routerAddress, factoryAddress, routerContract, factoryContract, weth, base_symbol, modified, my_provider, rugdocchain, swapper
 
 

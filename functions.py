@@ -42,6 +42,7 @@ parser.add_argument("--dev", action='store_true', help=argparse.SUPPRESS)
 parser.add_argument("--sim_buy", type=str, help=argparse.SUPPRESS)
 parser.add_argument("--sim_sell", type=str, help=argparse.SUPPRESS)
 parser.add_argument("--debug", action='store_true', help=argparse.SUPPRESS)
+parser.add_argument("--checktoken", action='store_true', help=argparse.SUPPRESS)
 parser.add_argument("--benchmark", action='store_true', help=argparse.SUPPRESS)
 parser.add_argument("--analyze", type=str, help="analyze a Tx hash")
 

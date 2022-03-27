@@ -229,11 +229,21 @@ def printt_sell_price(token_dict, token_price, precision):
     if token_dict['BUYPRICEINBASE'] != 0:
         price_message = f'{price_message} | Buy {token_dict["BUYPRICEINBASE"]:.{precision}f}'
 
-    price_message = f'{price_message} | Sell {token_dict["_CALCULATED_SELLPRICEINBASE"]:.{precision}f}'
-    # price_message = price_message + " ATH:" + "{0:.24f}".format(token_dict['_ALL_TIME_HIGH']) + " ATL:" + "{0:.24f}".format(token_dict['_ALL_TIME_LOW'])
+    if Decimal(token_dict['_TRAILING_STOP_LOSS_WITHOUT_PERCENT']) == 0:
+        price_message = f'{price_message} | Sell {token_dict["_CALCULATED_SELLPRICEINBASE"]:.{precision}f}'
     
     if token_dict['_CALCULATED_STOPLOSSPRICEINBASE'] != 0:
         price_message = f'{price_message} | Stop {token_dict["_CALCULATED_STOPLOSSPRICEINBASE"]:.{precision}f}'
+
+    if token_dict['BUY_AND_SELL_TAXES_CHECK'] == 'true':
+        if (token_dict['_BUY_TAX'] <= token_dict['MAX_BUY_TAX_IN_%']):
+            price_message = f'{price_message} |\033[32m BUY Tax {token_dict["_BUY_TAX"]:.1f}\033[0m'
+        else:
+            price_message = f'{price_message} |\033[31m BUY Tax {token_dict["_BUY_TAX"]:.1f}\033[0m'
+        if (token_dict['_SELL_TAX'] <= token_dict['MAX_SELL_TAX_IN_%']):
+            price_message = f'{price_message} |\033[32m SELL Tax {token_dict["_SELL_TAX"]:.1f}\033[0m'
+        else:
+            price_message = f'{price_message} |\033[31m SELL Tax {token_dict["_SELL_TAX"]:.1f}\033[0m'
     
     if token_dict['TRAILING_STOP_LOSS'] != 0:
         if token_dict["_TRAILING_STOP_LOSS_PRICE"] == 0:
@@ -422,7 +432,7 @@ printt("************************************************************************
 
 # Check for version
 #
-version = '4.2.6.2'
+version = '4.3.0.0'
 printt("YOUR BOT IS CURRENTLY RUNNING VERSION ", version, write_to_log=True)
 check_release()
 
@@ -430,7 +440,7 @@ check_release()
 # Let's call getRouters function, to get our exchange's parameters
 #
 printt_debug("ENTER getRouters")
-client, routerAddress, factoryAddress, routerContract, factoryContract, weth, base_symbol, modified, my_provider, rugdocchain = getRouters(settings, Web3)
+client, routerAddress, factoryAddress, routerContract, factoryContract, weth, base_symbol, modified, my_provider, rugdocchain, swapper = getRouters(settings, Web3)
 
 
 def apprise_notification(token, parameter):
@@ -571,11 +581,14 @@ def load_tokens_file(tokens_path, load_message=True):
         'KIND_OF_SWAP',
         'ALWAYS_CHECK_BALANCE',
         'WAIT_FOR_OPEN_TRADE',
+        'BUY_AND_SELL_TAXES_CHECK',
         'WATCH_STABLES_PAIRS'
     ]
     
     default_value_settings = {
         'SLIPPAGE': 49,
+        'MAX_BUY_TAX_IN_%': 100,
+        'MAX_SELL_TAX_IN_%': 100,
         'BUYAMOUNTINTOKEN': 0,
         'MAXTOKENS': 0,
         'MOONBAG': 0,
@@ -640,6 +653,9 @@ def load_tokens_file(tokens_path, load_message=True):
     # _CALCULATED_STOPLOSSPRICEINBASE       - the calculated stoploss price created with build_sell_conditions()
     # _ALL_TIME_HIGH        - the highest price a token has had since the bot was started
     # _ALL_TIME_LOW         - the lowest price a token has had since the bot was started
+    # _BUY_TAX              - the buy tax of the token
+    # _SELL_TAX             - the sell tax of the token
+    # _HONEYPOT_STATUT      - is it a honeypot or not ?
     # _CONTRACT_DECIMALS    - the number of decimals a contract uses. Used to speed up some of our processes
     #                         instead of querying the contract for the same information repeatedly.
     # _BASE_DECIMALS        - the number of decimals of custom base pair. Used to speed up some of our processes
@@ -682,10 +698,13 @@ def load_tokens_file(tokens_path, load_message=True):
         '_LISTING_QUOTE': 0,
         '_BUY_THE_DIP_ACTIVE': False,
         '_ALL_TIME_HIGH': 0,
+        '_ALL_TIME_LOW': 0,
+        '_BUY_TAX': 0,
+        '_SELL_TAX': 0,
+        '_HONEYPOT_STATUT': False,
         '_COST_PER_TOKEN': 0,
         '_CALCULATED_SELLPRICEINBASE': 99999,
         '_CALCULATED_STOPLOSSPRICEINBASE': 0,
-        '_ALL_TIME_LOW': 0,
         '_CONTRACT_DECIMALS': 0,
         '_BASE_DECIMALS': 0,
         '_WETH_DECIMALS': 0,
@@ -832,6 +851,8 @@ def reload_tokens_file(tokens_path, load_message=True):
     
     default_value_settings = {
         'SLIPPAGE': 49,
+        'MAX_BUY_TAX_IN_%': 100,
+        'MAX_SELL_TAX_IN_%': 100,
         'BUYAMOUNTINTOKEN': 0,
         'MAXTOKENS': 0,
         'MOONBAG': 0,
@@ -880,10 +901,13 @@ def reload_tokens_file(tokens_path, load_message=True):
         '_LISTING_QUOTE': 0,
         '_BUY_THE_DIP_ACTIVE': False,
         '_ALL_TIME_HIGH': 0,
+        '_ALL_TIME_LOW': 0,
+        '_BUY_TAX': 0,
+        '_SELL_TAX': 0,
+        '_HONEYPOT_STATUT': False,
         '_COST_PER_TOKEN': 0,
         '_CALCULATED_SELLPRICEINBASE': 99999,
         '_CALCULATED_STOPLOSSPRICEINBASE': 0,
-        '_ALL_TIME_LOW': 0,
         '_CONTRACT_DECIMALS': 0,
         '_BASE_DECIMALS': 0,
         '_WETH_DECIMALS': 0,
@@ -988,10 +1012,13 @@ def reload_tokens_file(tokens_path, load_message=True):
             '_LISTING_QUOTE': _TOKENS_saved[token['SYMBOL']]['_LISTING_QUOTE'],
             '_BUY_THE_DIP_ACTIVE': _TOKENS_saved[token['SYMBOL']]['_BUY_THE_DIP_ACTIVE'],
             '_ALL_TIME_HIGH': _TOKENS_saved[token['SYMBOL']]['_ALL_TIME_HIGH'],
+            '_ALL_TIME_LOW': _TOKENS_saved[token['SYMBOL']]['_ALL_TIME_LOW'],
+            '_BUY_TAX': _TOKENS_saved[token['SYMBOL']]['_BUY_TAX'],
+            '_SELL_TAX': _TOKENS_saved[token['SYMBOL']]['_SELL_TAX'],
+            '_HONEYPOT_STATUT': _TOKENS_saved[token['SYMBOL']]['_HONEYPOT_STATUT'],
             '_COST_PER_TOKEN': _TOKENS_saved[token['SYMBOL']]['_COST_PER_TOKEN'],
             '_CALCULATED_SELLPRICEINBASE': _TOKENS_saved[token['SYMBOL']]['_CALCULATED_SELLPRICEINBASE'],
             '_CALCULATED_STOPLOSSPRICEINBASE': _TOKENS_saved[token['SYMBOL']]['_CALCULATED_STOPLOSSPRICEINBASE'],
-            '_ALL_TIME_LOW': _TOKENS_saved[token['SYMBOL']]['_ALL_TIME_LOW'],
             '_CONTRACT_DECIMALS': _TOKENS_saved[token['SYMBOL']]['_CONTRACT_DECIMALS'],
             '_BASE_DECIMALS': _TOKENS_saved[token['SYMBOL']]['_BASE_DECIMALS'],
             '_WETH_DECIMALS': _TOKENS_saved[token['SYMBOL']]['_WETH_DECIMALS'],
@@ -1006,6 +1033,7 @@ def reload_tokens_file(tokens_path, load_message=True):
             '_IN_TOKEN': _TOKENS_saved[token['SYMBOL']]['_IN_TOKEN'],
             '_OUT_TOKEN': _TOKENS_saved[token['SYMBOL']]['_OUT_TOKEN'],
             '_NOT_ENOUGH_TO_BUY': _TOKENS_saved[token['SYMBOL']]['_NOT_ENOUGH_TO_BUY']
+            
         })
     
     # Add any tokens generated by "WATCH_STABLES_PAIRS" to the tokens list.
@@ -3552,7 +3580,6 @@ def sell(token_dict, inToken, outToken):
     gas = token_dict['_GAS_TO_USE']
     slippage = float(token_dict['SLIPPAGE'])
     gaslimit = token_dict['GASLIMIT']
-    boost = token_dict['BOOSTPERCENT']
     fees = token_dict["HASFEES"]
     custom = token_dict['USECUSTOMBASEPAIR']
     symbol = token_dict['SYMBOL']
@@ -4274,6 +4301,24 @@ def benchmark():
     sys.exit()
 
 
+def checkToken(token):
+    tokenInfos = swapper.functions.getTokenInformations(Web3.toChecksumAddress(token['ADDRESS'])).call()
+    printt_debug(tokenInfos)
+    buy_tax = round((tokenInfos[0] - tokenInfos[1]) / tokenInfos[0] * 100, 2)
+    sell_tax = round((tokenInfos[2] - tokenInfos[3]) / tokenInfos[2] * 100, 2)
+    if tokenInfos[5] and tokenInfos[6] == True:
+        honeypot = False
+        printt_debug("This is not a HoneyPot\n")
+    else:
+        honeypot = True
+        printt_err("FORCE EXIT : this token is a HoneyPot\n")
+    
+    printt_debug("[TOKENTAX] Current Token BuyTax:", buy_tax, "%")
+    printt_debug("[TOKENTAX] Current Token SellTax:", sell_tax, "%\n")
+    
+    return buy_tax, sell_tax, honeypot
+
+
 def run():
     global tokens_json_already_loaded
     global _TOKENS_saved
@@ -4318,6 +4363,10 @@ def run():
             if token['LIQUIDITYINNATIVETOKEN'].lower() == 'false' and token['USECUSTOMBASEPAIR'].lower() == 'false':
                 printt_err("You have selected LIQUIDITYINNATIVETOKEN = false , so you must choose USECUSTOMBASEPAIR = true")
                 printt_err("Please read Wiki carefully, it's very important you can lose money!!")
+                sys.exit()
+
+            if token['BUY_AND_SELL_TAXES_CHECK'].lower() == 'true' and base_symbol not in ['BSC ', 'FTM ', 'AVAX']:
+                printt_err("You have selected BUY_AND_SELL_TAXES_CHECK = true , but this feature is only compatible with BSC / AVAX / FTM for now. Sorry about that. Exiting")
                 sys.exit()
 
             if token['KIND_OF_SWAP'].lower() == 'tokens' and token['MAX_BASE_AMOUNT_PER_EXACT_TOKENS_TRANSACTION'] == 0:
@@ -4451,6 +4500,17 @@ def run():
                     tx_hash = command_line_args.analyze
                     analyze_tx(token, tx_hash)
 
+                # checktoken mode
+                if command_line_args.checktoken:
+                    printt_debug("Checktoken mode : will update every 3s")
+                    loop = 0
+                    while loop < 100:
+                        checkToken(token)
+                        sleep(3)
+                        loop += 1
+                    printt_debug("end of checktoken mode after 100s")
+                    sys.exit()
+
         load_token_file_increment = 0
         tokens_file_modified_time = os.path.getmtime(command_line_args.tokens)
         first_liquidity_check = True
@@ -4579,6 +4639,15 @@ def run():
                         elif token['_QUOTE'] < token['_ALL_TIME_LOW']:
                             token['_ALL_TIME_LOW'] = token['_QUOTE']
                         
+                        
+                    #
+                    #  TAX CHECK
+                    #    Check the latest tax on this token
+                    #
+
+                    if token['BUY_AND_SELL_TAXES_CHECK'] == 'true':
+                        token['_BUY_TAX'], token['_SELL_TAX'], token['_HONEYPOT_STATUT'] = checkToken(token)
+                    
                     # If we're still in the market to buy tokens, the print the buy message
                     # added the condition "if token['_PREVIOUS_QUOTE'] != 0" to avoid having a green line in first position and make trading_is_on work
                     if token['_PREVIOUS_QUOTE'] != 0 and token['_QUOTE'] != 0:  # and token['_REACHED_MAX_TOKENS'] == False:
@@ -4586,12 +4655,41 @@ def run():
                     
                     #
                     # BUY CHECK
-                    #   If the liquidity check has returned a quote that is less than our BUYPRICEINBASE and we haven't informrmed
-                    #   the user that we've reached the maximum number of tokens, check for other criteria to buy.
+                    #   Check if BUY conditions are reached:
                     #
                     
-                    if (token['_QUOTE'] != 0 and token['_QUOTE'] < Decimal(token['BUYPRICEINBASE']) and token['_REACHED_MAX_SUCCESS_TX'] == False and token['_REACHED_MAX_TOKENS'] == False and token['_NOT_ENOUGH_TO_BUY'] == False and token['ENABLED'] == 'true') \
-                            or (token['_BUY_THE_DIP_ACTIVE'] == True and token['_REACHED_MAX_SUCCESS_TX'] == False and token['_REACHED_MAX_TOKENS'] == False and token['_NOT_ENOUGH_TO_BUY'] == False and token['ENABLED'] == 'true'):
+                    # 'Classic' condition and no TAX check
+                    if ((token['_QUOTE'] != 0 and
+                            token['_QUOTE'] < Decimal(token['BUYPRICEINBASE']) and
+                            token['_REACHED_MAX_SUCCESS_TX'] == False and
+                            token['_REACHED_MAX_TOKENS'] == False and
+                            token['_NOT_ENOUGH_TO_BUY'] == False and
+                            token['ENABLED'] == 'true' and
+                            token['BUY_AND_SELL_TAXES_CHECK'] == 'false'
+                            )
+                            
+                            or
+        
+                            # 'Classic' condition with TAX check
+                            (token['_QUOTE'] != 0 and
+                             token['_QUOTE'] < Decimal(token['BUYPRICEINBASE']) and
+                             token['_REACHED_MAX_SUCCESS_TX'] == False and
+                             token['_REACHED_MAX_TOKENS'] == False and
+                             token['_NOT_ENOUGH_TO_BUY'] == False and
+                             token['ENABLED'] == 'true' and
+                             token['BUY_AND_SELL_TAXES_CHECK'] == 'true' and
+                             token['_BUY_TAX'] < token['MAX_BUY_TAX_IN_%']
+                            )
+        
+                            or
+        
+                            # 'BUY_THE_DIP' condition
+                            (token['_BUY_THE_DIP_ACTIVE'] == True and
+                              token['_REACHED_MAX_SUCCESS_TX'] == False and
+                              token['_REACHED_MAX_TOKENS'] == False and
+                              token['_NOT_ENOUGH_TO_BUY'] == False and
+                              token['ENABLED'] == 'true'
+                             )):
                         
                         #
                         # OPEN TRADE CHECK
@@ -4782,7 +4880,18 @@ def run():
                     # Looking if conditions are met to SELL this token
                     #
                     # 1st condition : token price > _CALCULATED_SELLPRICEINBASE
-                    if token['_QUOTE'] > Decimal(token['_CALCULATED_SELLPRICEINBASE']) and Decimal(token['_TRAILING_STOP_LOSS_WITHOUT_PERCENT']) == 0 and token['_TOKEN_BALANCE'] > 0:
+                    if ((token['_QUOTE'] > Decimal(token['_CALCULATED_SELLPRICEINBASE']) and
+                            Decimal(token['_TRAILING_STOP_LOSS_WITHOUT_PERCENT']) == 0 and
+                            token['_TOKEN_BALANCE'] > 0 and token['BUY_AND_SELL_TAXES_CHECK'] == 'false')
+                        
+                        or
+        
+                            (token['_QUOTE'] > Decimal(token['_CALCULATED_SELLPRICEINBASE']) and
+                            Decimal(token['_TRAILING_STOP_LOSS_WITHOUT_PERCENT']) == 0 and
+                            token['_TOKEN_BALANCE'] > 0 and token['BUY_AND_SELL_TAXES_CHECK'] == 'true' and
+                            token['_SELL_TAX'] < token['MAX_SELL_TAX_IN_%'])
+                        
+                    ):
                         printt_warn("--------------------------------------------------------------")
                         printt_warn("Sell Signal Found =-= Sell Signal Found =-= Sell Signal Found ", write_to_log=True)
                         price_conditions_met = True
