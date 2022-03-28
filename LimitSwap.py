@@ -245,12 +245,6 @@ def printt_sell_price(token_dict, token_price, precision):
         else:
             price_message = f'{price_message} |\033[31m SELL Tax {token_dict["_SELL_TAX"]:.1f}\033[0m'
     
-    if token_dict['TRAILING_STOP_LOSS'] != 0:
-        if token_dict["_TRAILING_STOP_LOSS_PRICE"] == 0:
-            price_message = f'{price_message} | TrailingStop (after BUY)'
-        else:
-            price_message = f'{price_message} | TrailingStop {token_dict["_TRAILING_STOP_LOSS_PRICE"]:.{precision}f}'
-    
     if token_dict['USECUSTOMBASEPAIR'] == 'false':
         price_message = f'{price_message} | Token balance {token_dict["_TOKEN_BALANCE"]:.4f} (= {float(token_price) * float(token_dict["_BASE_PRICE"]) * float(token_dict["_TOKEN_BALANCE"]):.2f} $)'
     else:
@@ -432,7 +426,7 @@ printt("************************************************************************
 
 # Check for version
 #
-version = '4.3.0.0'
+version = '4.3.0.1'
 printt("YOUR BOT IS CURRENTLY RUNNING VERSION ", version, write_to_log=True)
 check_release()
 
@@ -607,7 +601,7 @@ def load_tokens_file(tokens_path, load_message=True):
         'GASPRIORITY_FOR_ETH_ONLY': 1.5,
         'STOPLOSSPRICEINBASE': 0,
         'BUYCOUNT': 0,
-        'TRAILING_STOP_LOSS': 0,
+        'TRAILING_STOP_LOSS_PARAMETER': 0,
         'ANTI_DUMP_PRICE': 0,
         'PINKSALE_PRESALE_ADDRESS': "",
         '_STABLE_BASES': {}
@@ -696,7 +690,6 @@ def load_tokens_file(tokens_path, load_message=True):
         '_QUOTE': 0,
         '_PREVIOUS_QUOTE': 0,
         '_LISTING_QUOTE': 0,
-        '_BUY_THE_DIP_ACTIVE': False,
         '_ALL_TIME_HIGH': 0,
         '_ALL_TIME_LOW': 0,
         '_BUY_TAX': 0,
@@ -713,7 +706,10 @@ def load_tokens_file(tokens_path, load_message=True):
         '_LAST_MESSAGE': 0,
         '_FIRST_SELL_QUOTE': 0,
         '_BUILT_BY_BOT': False,
-        '_TRAILING_STOP_LOSS_PRICE': 0,
+        '_BUY_THE_DIP_ACTIVE': False,
+        '_BUY_THE_DIP_BUY_TRIGGER': False,
+        '_TRAILING_STOP_LOSS_ACTIVE': False,
+        '_TRAILING_STOP_LOSS_SELL_TRIGGER': False,
         '_TRAILING_STOP_LOSS_WITHOUT_PERCENT': 0,
         '_EXCHANGE_BASE_SYMBOL': settings['_EXCHANGE_BASE_SYMBOL'],
         '_PAIR_SYMBOL': ''
@@ -871,7 +867,7 @@ def reload_tokens_file(tokens_path, load_message=True):
         'GASPRIORITY_FOR_ETH_ONLY': 1.5,
         'STOPLOSSPRICEINBASE': 0,
         'BUYCOUNT': 0,
-        'TRAILING_STOP_LOSS': 0,
+        'TRAILING_STOP_LOSS_PARAMETER': 0,
         'ANTI_DUMP_PRICE': 0,
         'PINKSALE_PRESALE_ADDRESS': "",
         '_STABLE_BASES': {}
@@ -899,7 +895,6 @@ def reload_tokens_file(tokens_path, load_message=True):
         '_QUOTE': 0,
         '_PREVIOUS_QUOTE': 0,
         '_LISTING_QUOTE': 0,
-        '_BUY_THE_DIP_ACTIVE': False,
         '_ALL_TIME_HIGH': 0,
         '_ALL_TIME_LOW': 0,
         '_BUY_TAX': 0,
@@ -917,7 +912,10 @@ def reload_tokens_file(tokens_path, load_message=True):
         '_LAST_MESSAGE': 0,
         '_FIRST_SELL_QUOTE': 0,
         '_BUILT_BY_BOT': False,
-        '_TRAILING_STOP_LOSS_PRICE': 0,
+        '_BUY_THE_DIP_ACTIVE': False,
+        '_BUY_THE_DIP_BUY_TRIGGER': False,
+        '_TRAILING_STOP_LOSS_ACTIVE': False,
+        '_TRAILING_STOP_LOSS_SELL_TRIGGER': False,
         '_TRAILING_STOP_LOSS_WITHOUT_PERCENT': 0,
         '_EXCHANGE_BASE_SYMBOL': settings['_EXCHANGE_BASE_SYMBOL'],
         '_PAIR_SYMBOL': '',
@@ -1002,7 +1000,6 @@ def reload_tokens_file(tokens_path, load_message=True):
             '_PREVIOUS_TOKEN_BALANCE': _TOKENS_saved[token['SYMBOL']]['_PREVIOUS_TOKEN_BALANCE'],
             '_BASE_BALANCE': _TOKENS_saved[token['SYMBOL']]['_BASE_BALANCE'],
             '_BASE_PRICE': _TOKENS_saved[token['SYMBOL']]['_BASE_PRICE'],
-            '_TRAILING_STOP_LOSS_PRICE': _TOKENS_saved[token['SYMBOL']]['_TRAILING_STOP_LOSS_PRICE'],
             '_TRAILING_STOP_LOSS_WITHOUT_PERCENT': _TOKENS_saved[token['SYMBOL']]['_TRAILING_STOP_LOSS_WITHOUT_PERCENT'],
             '_BASE_USED_FOR_TX': _TOKENS_saved[token['SYMBOL']]['_BASE_USED_FOR_TX'],
             '_PAIR_TO_DISPLAY': _TOKENS_saved[token['SYMBOL']]['_PAIR_TO_DISPLAY'],
@@ -1010,7 +1007,6 @@ def reload_tokens_file(tokens_path, load_message=True):
             '_QUOTE': _TOKENS_saved[token['SYMBOL']]['_QUOTE'],
             '_PREVIOUS_QUOTE': _TOKENS_saved[token['SYMBOL']]['_PREVIOUS_QUOTE'],
             '_LISTING_QUOTE': _TOKENS_saved[token['SYMBOL']]['_LISTING_QUOTE'],
-            '_BUY_THE_DIP_ACTIVE': _TOKENS_saved[token['SYMBOL']]['_BUY_THE_DIP_ACTIVE'],
             '_ALL_TIME_HIGH': _TOKENS_saved[token['SYMBOL']]['_ALL_TIME_HIGH'],
             '_ALL_TIME_LOW': _TOKENS_saved[token['SYMBOL']]['_ALL_TIME_LOW'],
             '_BUY_TAX': _TOKENS_saved[token['SYMBOL']]['_BUY_TAX'],
@@ -1028,6 +1024,10 @@ def reload_tokens_file(tokens_path, load_message=True):
             '_LAST_MESSAGE': _TOKENS_saved[token['SYMBOL']]['_LAST_MESSAGE'],
             '_FIRST_SELL_QUOTE': _TOKENS_saved[token['SYMBOL']]['_FIRST_SELL_QUOTE'],
             '_BUILT_BY_BOT': _TOKENS_saved[token['SYMBOL']]['_BUILT_BY_BOT'],
+            '_BUY_THE_DIP_ACTIVE': _TOKENS_saved[token['SYMBOL']]['_BUY_THE_DIP_ACTIVE'],
+            '_BUY_THE_DIP_BUY_TRIGGER': _TOKENS_saved[token['SYMBOL']]['_BUY_THE_DIP_BUY_TRIGGER'],
+            '_TRAILING_STOP_LOSS_ACTIVE': _TOKENS_saved[token['SYMBOL']]['_TRAILING_STOP_LOSS_ACTIVE'],
+            '_TRAILING_STOP_LOSS_SELL_TRIGGER': _TOKENS_saved[token['SYMBOL']]['_TRAILING_STOP_LOSS_SELL_TRIGGER'],
             '_EXCHANGE_BASE_SYMBOL': _TOKENS_saved[token['SYMBOL']]['_EXCHANGE_BASE_SYMBOL'],
             '_PAIR_SYMBOL': _TOKENS_saved[token['SYMBOL']]['_PAIR_SYMBOL'],
             '_IN_TOKEN': _TOKENS_saved[token['SYMBOL']]['_IN_TOKEN'],
@@ -1241,7 +1241,7 @@ def build_extended_base_configuration(token_dict):
                 "BUYPRICEINBASE": token_dict['BUYPRICEINBASE'] * settings['_STABLE_BASES'][stable_token]['multiplier'],
                 "SELLPRICEINBASE": token_dict['_CALCULATED_SELLPRICEINBASE'],
                 "STOPLOSSPRICEINBASE": token_dict['_CALCULATED_STOPLOSSPRICEINBASE'],
-                "TRAILING_STOP_LOSS": token_dict['TRAILING_STOP_LOSS'],
+                "TRAILING_STOP_LOSS_PARAMETER": token_dict['TRAILING_STOP_LOSS_PARAMETER'],
                 "MINIMUM_LIQUIDITY_IN_DOLLARS": token_dict['MINIMUM_LIQUIDITY_IN_DOLLARS'],
                 "USECUSTOMBASEPAIR": "true",
                 "LIQUIDITYINNATIVETOKEN": "false",
@@ -1258,7 +1258,7 @@ def build_extended_base_configuration(token_dict):
                 "SELLPRICEINBASE": float(token_dict['_CALCULATED_SELLPRICEINBASE']) * float(settings['_STABLE_BASES'][stable_token]['multiplier']),
                 "STOPLOSSPRICEINBASE": float(token_dict['_CALCULATED_STOPLOSSPRICEINBASE']) * float(settings['_STABLE_BASES'][stable_token]['multiplier']),
                 "MINIMUM_LIQUIDITY_IN_DOLLARS": token_dict['MINIMUM_LIQUIDITY_IN_DOLLARS'],
-                "TRAILING_STOP_LOSS": token_dict['TRAILING_STOP_LOSS'],
+                "TRAILING_STOP_LOSS_PARAMETER": token_dict['TRAILING_STOP_LOSS_PARAMETER'],
                 "USECUSTOMBASEPAIR": "true",
                 "LIQUIDITYINNATIVETOKEN": "false",
                 "BASESYMBOL": stable_token,
@@ -1478,7 +1478,7 @@ def auth():
     return true_balance
 
 
-def approve(token_address, amount):
+def approve(token_address, token, amount):
     print(timestamp(), "Approving", token_address)
     
     eth_balance = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
@@ -1541,14 +1541,14 @@ def check_approval(token, address, allowance_to_compare_with, condition):
     if actual_allowance < allowance_to_compare_with or actual_allowance == 0:
         if settings["EXCHANGE"] == 'quickswap':
             if actual_allowance == 0:
-                tx = approve(address_to_approve, allowance_request)
+                tx = approve(address_to_approve, token, allowance_request)
                 wait_for_tx(tx)
             
             else:
                 print("Revert to Zero To change approval")
-                tx = approve(address_to_approve, 0)
+                tx = approve(address_to_approve, token, 0)
                 wait_for_tx(tx)
-                tx = approve(address_to_approve, allowance_request)
+                tx = approve(address_to_approve, token, allowance_request)
                 wait_for_tx(tx)
         
         else:
@@ -1578,7 +1578,7 @@ def check_approval(token, address, allowance_to_compare_with, condition):
                 printt_info("-------------------------------------")
 
 
-            tx = approve(address_to_approve, allowance_request)
+            tx = approve(address_to_approve, token, allowance_request)
             wait_for_tx(tx)
             
             printt_ok("---------------------------------------------------------")
@@ -1933,24 +1933,29 @@ def wait_for_open_trade(token, inToken, outToken):
     # many examples here : https://www.4byte.directory/signatures/?sort=text_signature&page=10003
 
 
-def buy_the_dip_mode(token, inToken, outToken):
+def buy_the_dip_mode(token, inToken, outToken, precision):
     printt_debug("ENTER buy_the_dip_mode")
+    
+    dip_parameter = int(token['BUY_THE_DIP_PARAMETERS'][:2])
+    rise_parameter = int(token['BUY_THE_DIP_PARAMETERS'][-3:-1])
     
     printt(" ", write_to_log=False)
     printt("-----------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
     printt("BUY_THE_DIP mode is enabled", write_to_log=True)
     printt("", write_to_log=True)
-    printt("- Bot will wait for the price to dip 50% under ATH (All-Time-High)", write_to_log=True)
-    printt("- Then wait for price to rise 20% above ATL to buy", write_to_log=True)
+    printt("You have entered BUY_THE_DIP_PARAMETERS =", token['BUY_THE_DIP_PARAMETERS'], write_to_log=True)
     printt("", write_to_log=True)
-    printt("--> it will make you buy 20% above the dip :)", write_to_log=True)
+    printt("Bot will:", write_to_log=True)
+    printt("1/ Wait for the price to dip", dip_parameter, "% under ATH (All-Time-High)", write_to_log=True)
+    printt("2/ Wait for price to rise", rise_parameter, "% above ATL to buy", write_to_log=True)
+    printt("", write_to_log=True)
+    printt("--> it will make you buy ", rise_parameter, "% above the dip :)", write_to_log=True)
     printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
     
     buy_the_dip = False
     
-    # Let's instantiate All-Time Low (ATL) and Listing price
+    # Let's instantiate ATH / ATL
     token['_QUOTE'] = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], int(token['_CONTRACT_DECIMALS']), int(token['_BASE_DECIMALS']))
-    
     token['_ALL_TIME_HIGH'] = token['_QUOTE']
     token['_ALL_TIME_LOW'] = token['_QUOTE']
     
@@ -1962,23 +1967,78 @@ def buy_the_dip_mode(token, inToken, outToken):
         if token['_QUOTE'] > token['_ALL_TIME_HIGH']:
             token['_ALL_TIME_HIGH'] = token['_QUOTE']
         
-        if token['_QUOTE'] > (token['_ALL_TIME_HIGH'] * 0.5) and token['_BUY_THE_DIP_ACTIVE'] == False:
-            printt(f"BUY THE DIP | Token price = {token['_QUOTE']:.10g} | ATH = {token['_ALL_TIME_HIGH']:.10g} | Target Price = 50% of ATH = {token['_ALL_TIME_HIGH'] * 0.5:.10g}")
+        if token['_QUOTE'] > (token['_ALL_TIME_HIGH'] * (dip_parameter/100)) and token['_BUY_THE_DIP_BUY_TRIGGER'] == False:
+            printt(f"BUY THE DIP  | Token price {token['_QUOTE']:.{precision}f} | ATH {token['_ALL_TIME_HIGH']:.{precision}f} | Starts when price = {dip_parameter}% of ATH = {token['_ALL_TIME_HIGH'] * (dip_parameter/100):.{precision}f}")
         
-        elif token['_QUOTE'] <= (token['_ALL_TIME_HIGH'] * 0.5):
+        elif token['_QUOTE'] <= (token['_ALL_TIME_HIGH'] * (dip_parameter/100)):
             token['_BUY_THE_DIP_ACTIVE'] = True
             
             # Update ATL if Price < previous ATL
             if token['_QUOTE'] < token['_ALL_TIME_LOW']:
                 token['_ALL_TIME_LOW'] = token['_QUOTE']
             
-            printt(f"READY TO BUY | Token price = {token['_QUOTE']:.10g} | All-Time Low = {token['_ALL_TIME_LOW']:.10g} | Target Price = 120% ATL = {token['_ALL_TIME_LOW'] * 1.2:.10g}")
+            printt(f"READY TO BUY | Token price {token['_QUOTE']:.{precision}f} | ATL {token['_ALL_TIME_LOW']:.{precision}f} | Target Price = {100 + rise_parameter}% of ATL = {token['_ALL_TIME_LOW'] * ((100 + rise_parameter)/100):.{precision}f}")
         
-        if token['_BUY_THE_DIP_ACTIVE'] == True and token['_QUOTE'] > token['_ALL_TIME_LOW'] * 1.2:
-            token["BUYPRICEINBASE"] = token['_ALL_TIME_LOW'] * 1.2
+        if token['_BUY_THE_DIP_ACTIVE'] == True and token['_QUOTE'] > token['_ALL_TIME_LOW'] * ((100 + rise_parameter)/100):
+            token["_BUY_THE_DIP_BUY_TRIGGER"] = True
+            token["BUYPRICEINBASE"] = 9999
             printt_ok("")
             printt_ok("BUY THE DIP target reached : LET'S BUY !")
+            printt_ok("")
             buy_the_dip = True
+            break
+        
+        sleep(cooldown)
+
+
+def trailing_stop_loss_mode(token, inToken, outToken, precision):
+    printt_debug("ENTER trailing_stop_loss_mode")
+    trailing_stop_loss_percentage = int(token['_TRAILING_STOP_LOSS_WITHOUT_PERCENT'])
+
+    printt(" ", write_to_log=False)
+    printt("-----------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
+    printt("TRAILING_STOP_LOSS mode is enabled", write_to_log=True)
+    printt("", write_to_log=True)
+    printt("Bot will:", write_to_log=True)
+    printt("1/ Wait for the price to go above SELLPRICEINBASE", write_to_log=True)
+    printt("2/ Monitor ATH", write_to_log=True)
+    printt("3/ Wait for price to drop to (", token['TRAILING_STOP_LOSS_PARAMETER'], "* ATH ) to sell", write_to_log=True)
+    printt("", write_to_log=True)
+    printt("--> it will make you sell", (100 - trailing_stop_loss_percentage), "% under the ATH :)", write_to_log=True)
+    printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
+    
+    trailing_stop_loss = False
+    
+    # Let's instantiate All-Time Low (ATL) and Listing price
+    token['_QUOTE'] = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], int(token['_CONTRACT_DECIMALS']), int(token['_BASE_DECIMALS']))
+    
+    token['_ALL_TIME_HIGH'] = token['_QUOTE']
+    token['_ALL_TIME_LOW'] = token['_QUOTE']
+    
+    while trailing_stop_loss == False:
+        
+        token['_QUOTE'] = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], int(token['_CONTRACT_DECIMALS']), int(token['_BASE_DECIMALS']))
+        
+        # Update ATH if Price > previous ATH
+        if token['_QUOTE'] > token['_ALL_TIME_HIGH']:
+            token['_ALL_TIME_HIGH'] = token['_QUOTE']
+
+        # Bot will wait for the price to go above SELLPRICEINBASE
+        if token['_QUOTE'] < token['SELLPRICEINBASE'] and token['_TRAILING_STOP_LOSS_ACTIVE'] == False:
+            printt(f"TRAILING STOP | Token price {token['_QUOTE']:.{precision}f} | ATH {token['_ALL_TIME_HIGH']:.{precision}f} | Target Price = SELLPRICEINBASE = {token['SELLPRICEINBASE']:.{precision}f}")
+        
+        elif token['_QUOTE'] >= token['SELLPRICEINBASE']:
+            token['_TRAILING_STOP_LOSS_ACTIVE'] = True
+            
+            printt(f"READY TO SELL | Token price {token['_QUOTE']:.{precision}f} | ATH {token['_ALL_TIME_HIGH']:.{precision}f} | Target Price = {token['TRAILING_STOP_LOSS_PARAMETER']} * ATH = {((trailing_stop_loss_percentage/100) * token['_ALL_TIME_HIGH']):.{precision}f}")
+        
+        if token['_TRAILING_STOP_LOSS_ACTIVE'] == True and token['_QUOTE'] < ((trailing_stop_loss_percentage/100) * token['_ALL_TIME_HIGH']):
+            # update SELLPRICEINBASE to be below token price,to sell
+            token["_TRAILING_STOP_LOSS_SELL_TRIGGER"] = True
+            printt_ok("")
+            printt_ok("TRAILING STOP target reached : LET'S SELL !")
+            printt_ok("")
+            trailing_stop_loss = True
             break
         
         sleep(cooldown)
@@ -2121,7 +2181,7 @@ def build_sell_conditions(token_dict, condition, show_message):
     
     sell = token_dict['SELLPRICEINBASE']
     stop = token_dict['STOPLOSSPRICEINBASE']
-    trailingstop = token_dict['TRAILING_STOP_LOSS']
+    trailingstop = token_dict['TRAILING_STOP_LOSS_PARAMETER']
     
     # Calculates cost per token
     #  Bot compare between _TOKEN_BALANCE and _PREVIOUS_TOKEN_BALANCE to calculate it only if a BUY order was made
@@ -2172,13 +2232,10 @@ def build_sell_conditions(token_dict, condition, show_message):
     else:
         token_dict['_CALCULATED_STOPLOSSPRICEINBASE'] = stop
     
-    # remove the "%"  in TRAILING_STOP_LOSS
+    # remove the "%"  in TRAILING_STOP_LOSS_PARAMETER
     if trailingstop != 0:
         if re.search('^(\d+\.){0,1}\d+%$', str(trailingstop)):
-            token_dict['_TRAILING_STOP_LOSS_WITHOUT_PERCENT'] = token_dict['TRAILING_STOP_LOSS'].replace("%", "")
-            if token_dict['_TOKEN_BALANCE'] != 0:
-                printt_info("- TRAILING STOP LOSS will be calculated after BUY is made. Setting 0     as default value")
-                printt("")
+            token_dict['_TRAILING_STOP_LOSS_WITHOUT_PERCENT'] = token_dict['TRAILING_STOP_LOSS_PARAMETER'].replace("%", "")
     
     printt_debug("1111 token_dict['_CALCULATED_SELLPRICEINBASE']    :", token_dict['_CALCULATED_SELLPRICEINBASE'])
     printt_debug("1111 token_dict['_CALCULATED_STOPLOSSPRICEINBASE']:", token_dict['_CALCULATED_STOPLOSSPRICEINBASE'])
@@ -4380,12 +4437,17 @@ def run():
             if token['KIND_OF_SWAP'].lower() == 'tokens' and token['USECUSTOMBASEPAIR'] == 'true':
                 printt_err("Sorry, KIND_OF_SWAP = tokens is only available for USECUSTOMBASEPAIR = false. Exiting.")
                 sys.exit()
-                
-            if token['TRAILING_STOP_LOSS'] != 0:
-                if re.search('^(\d+\.){0,1}\d+%$', str(token['TRAILING_STOP_LOSS'])):
+            
+            if token['TRAILING_STOP_LOSS_MODE_ACTIVE'] == 'true' and token['TRAILING_STOP_LOSS_PARAMETER'] == 0:
+                printt_err("TRAILING_STOP_LOSS_MODE_ACTIVE = true --> Please put an amount in % in TRAILING_STOP_LOSS_PARAMETER value")
+                sleep(10)
+                sys.exit()
+
+            if token['TRAILING_STOP_LOSS_PARAMETER'] != 0:
+                if re.search('^(\d+\.){0,1}\d+%$', str(token['TRAILING_STOP_LOSS_PARAMETER'])):
                     pass
                 else:
-                    printt_err("Please put an amount in % in TRAILING_STOP_LOSS value")
+                    printt_err("Please put an amount in % in TRAILING_STOP_LOSS_PARAMETER value")
                     sleep(10)
                     sys.exit()
                     
@@ -4407,6 +4469,17 @@ def run():
                 printt_err("PINKSALE sniping is only compatible with KIND_OF_SWAP = base")
                 sleep(10)
                 sys.exit()
+            
+            if token['PING_PONG_MODE'] == 'true' and token['BUYPRICEINBASE'] != 'BUY_THE_DIP':
+                printt_err("PING_PONG_MODE needs 'BUYPRICEINBASE = BUY_THE_DIP' to work")
+                sleep(10)
+                sys.exit()
+            
+            if token['PING_PONG_MODE'] == 'true' and token['TRAILING_STOP_LOSS_PARAMETER'] == 0:
+                printt_err("PING_PONG_MODE needs a TRAILING_STOP_LOSS_PARAMETER value to work")
+                sleep(10)
+                sys.exit()
+
             
             #
             # end of tokens.json values logic control
@@ -4510,6 +4583,14 @@ def run():
                         loop += 1
                     printt_debug("end of checktoken mode after 100s")
                     sys.exit()
+                    
+                # Display message if PING PONG mode is enabled, only at bot startup
+                if token['_PREVIOUS_QUOTE'] == 0 and token['PING_PONG_MODE'] == 'true':
+                    printt_info("--------------------------------------------------------------------------")
+                    printt_info("PING-PONG mode is enabled ")
+                    printt_info("Bot will continuously loop between BUY_THE_DIP and TRAILING_STOP_LOSS mode")
+                    printt_info("--------------------------------------------------------------------------")
+                    printt_info("")
 
         load_token_file_increment = 0
         tokens_file_modified_time = os.path.getmtime(command_line_args.tokens)
@@ -4606,11 +4687,10 @@ def run():
                     #
                     
                     # If user has chosen BUY_THE_DIP option :
-                    #   1/ Let's store the listing quote, to make "BUY_THE_DIP" function work
-                    #   2/ Let's switch to "BUY_THE_DIP" mode
+                    #   Let's switch to "BUY_THE_DIP" mode
                     
-                    if token['BUYPRICEINBASE'] == 'BUY_THE_DIP' and token['_PREVIOUS_QUOTE'] == 0:
-                        buy_the_dip_mode(token, token['_IN_TOKEN'], token['_OUT_TOKEN'])
+                    if token['BUYPRICEINBASE'] == 'BUY_THE_DIP' and token['_BUY_THE_DIP_BUY_TRIGGER'] == False:
+                        buy_the_dip_mode(token, token['_IN_TOKEN'], token['_OUT_TOKEN'], token['_PRICE_PRECISION'])
                     
                     # If user wants to snipe Pinksale listing before it started:
                     if token['WAIT_FOR_OPEN_TRADE'] == 'pinksale_not_started':
@@ -4630,12 +4710,8 @@ def run():
                     # why this condition ? Because trailing stop loss is based on ATH, and we want this to be activated only after buy
                     if token['_TOKEN_BALANCE'] > 0:
                         if token['_QUOTE'] > token['_ALL_TIME_HIGH']:
-        
-                            # Setting trailing stop loss price if price goes up
-                            token['_TRAILING_STOP_LOSS_PRICE'] = float(token['_QUOTE']) * (float(token['_TRAILING_STOP_LOSS_WITHOUT_PERCENT']) / 100)
-    
                             token['_ALL_TIME_HIGH'] = token['_QUOTE']
-                        
+
                         elif token['_QUOTE'] < token['_ALL_TIME_LOW']:
                             token['_ALL_TIME_LOW'] = token['_QUOTE']
                         
@@ -4684,7 +4760,7 @@ def run():
                             or
         
                             # 'BUY_THE_DIP' condition
-                            (token['_BUY_THE_DIP_ACTIVE'] == True and
+                            (token['_BUY_THE_DIP_BUY_TRIGGER'] == True and
                               token['_REACHED_MAX_SUCCESS_TX'] == False and
                               token['_REACHED_MAX_TOKENS'] == False and
                               token['_NOT_ENOUGH_TO_BUY'] == False and
@@ -4876,18 +4952,23 @@ def run():
                         token['_TOKEN_BALANCE'] = check_balance(token['ADDRESS'], token['SYMBOL'],display_quantity=False) / token['_CONTRACT_DECIMALS']
 
                     printt_debug("_TOKEN_BALANCE 3411", token['_TOKEN_BALANCE'], "for the token:",token['SYMBOL'])
-                    
+
+                    # If user has entered a value un TRAILING_STOP_LOSS_PARAMETER :
+                    #   Let's start trailing_stop_loss_mode
+
+                    if token['_TRAILING_STOP_LOSS_SELL_TRIGGER'] == False and token['TRAILING_STOP_LOSS_MODE_ACTIVE'] == 'true':
+                        trailing_stop_loss_mode(token, token['_IN_TOKEN'], token['_OUT_TOKEN'], token['_PRICE_PRECISION'])
+
                     # Looking if conditions are met to SELL this token
                     #
                     # 1st condition : token price > _CALCULATED_SELLPRICEINBASE
+                    # 1/ without tax check
                     if ((token['_QUOTE'] > Decimal(token['_CALCULATED_SELLPRICEINBASE']) and
-                            Decimal(token['_TRAILING_STOP_LOSS_WITHOUT_PERCENT']) == 0 and
                             token['_TOKEN_BALANCE'] > 0 and token['BUY_AND_SELL_TAXES_CHECK'] == 'false')
                         
                         or
-        
+                            # 2/ with tax check
                             (token['_QUOTE'] > Decimal(token['_CALCULATED_SELLPRICEINBASE']) and
-                            Decimal(token['_TRAILING_STOP_LOSS_WITHOUT_PERCENT']) == 0 and
                             token['_TOKEN_BALANCE'] > 0 and token['BUY_AND_SELL_TAXES_CHECK'] == 'true' and
                             token['_SELL_TAX'] < token['MAX_SELL_TAX_IN_%'])
                         
@@ -4902,14 +4983,11 @@ def run():
                         printt_warn("Sell Signal Found =-= STOPLOSS triggered =-= Sell Signal Found ", write_to_log=True)
                         price_conditions_met = True
 
-                    # 3rd condition : token price < _TRAILING_STOP_LOSS_PRICE
-                    elif token['TRAILING_STOP_LOSS'] != 0 and token['_TOKEN_BALANCE'] > 0 and token['_QUOTE'] < float(token['_TRAILING_STOP_LOSS_PRICE']) and token['_QUOTE'] > float(token['ANTI_DUMP_PRICE']):
+                    # 3rd condition : TRAILING_STOP_LOSS has triggered a sell
+                    elif token['_TRAILING_STOP_LOSS_SELL_TRIGGER'] == True and token['_TOKEN_BALANCE'] > 0:
                         printt_warn("--------------------------------------------------------------")
                         printt_warn("Sell Signal Found =-= Trailing STOPLOSS =-= Sell Signal Found ", write_to_log=True)
                         price_conditions_met = True
-
-                    if token['_QUOTE'] < float(token['ANTI_DUMP_PRICE']):
-                        token['_TRAILING_STOP_LOSS_PRICE'] = 0
 
                     if price_conditions_met == True:
                         log_price = "{:.18f}".format(token['_QUOTE'])
@@ -4990,7 +5068,14 @@ def run():
 
                                 # Save previous token balance before recalculating
                                 token['_PREVIOUS_TOKEN_BALANCE'] = token['_TOKEN_BALANCE']
-
+                                
+                                # Reset BUY THE DIP and TRAILING_STOP_LOSS status if ping-pong mode is enabled
+                                if token['PING_PONG_MODE'] == 'true':
+                                    token['BUYPRICEINBASE'] = 'BUY_THE_DIP'
+                                    token['_BUY_THE_DIP_BUY_TRIGGER'] = False
+                                    token['_TRAILING_STOP_LOSS_SELL_TRIGGER'] = False
+                                    
+                                    
                                 # Wait 3s before recalculating, because sometimes it's not updated yet
                                 printt("Let's wait 3s before we check your new balance, to be sure we get correct amount")
                                 sleep(3)
