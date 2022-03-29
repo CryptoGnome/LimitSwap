@@ -3584,6 +3584,7 @@ def buy(token_dict, inToken, outToken, pwd):
                     # TODO : display statut of each Tx
                     # wait_for_tx(token, tx, token['ADDRESS']
                     printt_ok("All BUYS orders have been sent - Stopping Bot")
+                    sleep(30)
                     sys.exit(0)
 
         elif multiplebuys.lower() == 'same_wallet':
@@ -3615,6 +3616,7 @@ def buy(token_dict, inToken, outToken, pwd):
                     # TODO : display statut of each Tx
                     # wait_for_tx(token, tx, token['ADDRESS']
                     printt_ok("All BUYS orders have been sent - Stopping Bot")
+                    sleep(30)
                     sys.exit(0)
 
 
