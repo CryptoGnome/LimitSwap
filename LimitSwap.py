@@ -426,7 +426,7 @@ printt("************************************************************************
 
 # Check for version
 #
-version = '4.3.0.1'
+version = '4.3.1.0'
 printt("YOUR BOT IS CURRENTLY RUNNING VERSION ", version, write_to_log=True)
 check_release()
 
@@ -576,6 +576,7 @@ def load_tokens_file(tokens_path, load_message=True):
         'ALWAYS_CHECK_BALANCE',
         'WAIT_FOR_OPEN_TRADE',
         'BUY_AND_SELL_TAXES_CHECK',
+        'CHECK_IF_TRADING_IS_ENABLED',
         'WATCH_STABLES_PAIRS'
     ]
     
@@ -694,6 +695,7 @@ def load_tokens_file(tokens_path, load_message=True):
         '_ALL_TIME_LOW': 0,
         '_BUY_TAX': 0,
         '_SELL_TAX': 0,
+        '_TRADING_IS_ENABLED': False,
         '_HONEYPOT_STATUT': False,
         '_COST_PER_TOKEN': 0,
         '_CALCULATED_SELLPRICEINBASE': 99999,
@@ -711,6 +713,7 @@ def load_tokens_file(tokens_path, load_message=True):
         '_TRAILING_STOP_LOSS_ACTIVE': False,
         '_TRAILING_STOP_LOSS_SELL_TRIGGER': False,
         '_TRAILING_STOP_LOSS_WITHOUT_PERCENT': 0,
+        '_ENABLE_TRADING_BUY_TRIGGER': False,
         '_EXCHANGE_BASE_SYMBOL': settings['_EXCHANGE_BASE_SYMBOL'],
         '_PAIR_SYMBOL': ''
     }
@@ -842,6 +845,8 @@ def reload_tokens_file(tokens_path, load_message=True):
         'KIND_OF_SWAP',
         'ALWAYS_CHECK_BALANCE',
         'WAIT_FOR_OPEN_TRADE',
+        'BUY_AND_SELL_TAXES_CHECK',
+        'CHECK_IF_TRADING_IS_ENABLED',
         'WATCH_STABLES_PAIRS'
     ]
     
@@ -899,6 +904,7 @@ def reload_tokens_file(tokens_path, load_message=True):
         '_ALL_TIME_LOW': 0,
         '_BUY_TAX': 0,
         '_SELL_TAX': 0,
+        '_TRADING_IS_ENABLED': False,
         '_HONEYPOT_STATUT': False,
         '_COST_PER_TOKEN': 0,
         '_CALCULATED_SELLPRICEINBASE': 99999,
@@ -917,6 +923,7 @@ def reload_tokens_file(tokens_path, load_message=True):
         '_TRAILING_STOP_LOSS_ACTIVE': False,
         '_TRAILING_STOP_LOSS_SELL_TRIGGER': False,
         '_TRAILING_STOP_LOSS_WITHOUT_PERCENT': 0,
+        '_ENABLE_TRADING_BUY_TRIGGER': False,
         '_EXCHANGE_BASE_SYMBOL': settings['_EXCHANGE_BASE_SYMBOL'],
         '_PAIR_SYMBOL': '',
         '_NOT_ENOUGH_TO_BUY': False,
@@ -1011,6 +1018,7 @@ def reload_tokens_file(tokens_path, load_message=True):
             '_ALL_TIME_LOW': _TOKENS_saved[token['SYMBOL']]['_ALL_TIME_LOW'],
             '_BUY_TAX': _TOKENS_saved[token['SYMBOL']]['_BUY_TAX'],
             '_SELL_TAX': _TOKENS_saved[token['SYMBOL']]['_SELL_TAX'],
+            '_TRADING_IS_ENABLED': _TOKENS_saved[token['SYMBOL']]['_TRADING_IS_ENABLED'],
             '_HONEYPOT_STATUT': _TOKENS_saved[token['SYMBOL']]['_HONEYPOT_STATUT'],
             '_COST_PER_TOKEN': _TOKENS_saved[token['SYMBOL']]['_COST_PER_TOKEN'],
             '_CALCULATED_SELLPRICEINBASE': _TOKENS_saved[token['SYMBOL']]['_CALCULATED_SELLPRICEINBASE'],
@@ -1028,6 +1036,7 @@ def reload_tokens_file(tokens_path, load_message=True):
             '_BUY_THE_DIP_BUY_TRIGGER': _TOKENS_saved[token['SYMBOL']]['_BUY_THE_DIP_BUY_TRIGGER'],
             '_TRAILING_STOP_LOSS_ACTIVE': _TOKENS_saved[token['SYMBOL']]['_TRAILING_STOP_LOSS_ACTIVE'],
             '_TRAILING_STOP_LOSS_SELL_TRIGGER': _TOKENS_saved[token['SYMBOL']]['_TRAILING_STOP_LOSS_SELL_TRIGGER'],
+            '_ENABLE_TRADING_BUY_TRIGGER': _TOKENS_saved[token['SYMBOL']]['_ENABLE_TRADING_BUY_TRIGGER'],
             '_EXCHANGE_BASE_SYMBOL': _TOKENS_saved[token['SYMBOL']]['_EXCHANGE_BASE_SYMBOL'],
             '_PAIR_SYMBOL': _TOKENS_saved[token['SYMBOL']]['_PAIR_SYMBOL'],
             '_IN_TOKEN': _TOKENS_saved[token['SYMBOL']]['_IN_TOKEN'],
@@ -4376,6 +4385,41 @@ def checkToken(token):
     return buy_tax, sell_tax, honeypot
 
 
+
+def checkifTokenBuyisEnabled(token):
+    printt_debug("ENTER checkifTokenBuyisEnabled")
+    
+    printt(" ", write_to_log=False)
+    printt("-----------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
+    printt("You have entered CHECK_IF_TRADING_IS_ENABLED = true", write_to_log=True)
+    printt("", write_to_log=True)
+    
+    trading_is_enabled = False
+    loop_iterations = 0
+    
+    while trading_is_enabled == False:
+    
+        trading_is_enabled = swapper.functions.getTokenInformations(Web3.toChecksumAddress(token['ADDRESS'])).call()[4]
+        #True if Buy is enabled, False if disabled
+        
+        if trading_is_enabled == False:
+            if loop_iterations == 0:
+                print(timestamp(), style.RED, " Trading is not enabled for ", token["SYMBOL"], style.RESET, " - Waiting for dev to enable it", sep='', end="", flush=True)
+                loop_iterations += 1
+            else:
+                print(".", sep='', end="", flush=True)
+                
+        else:
+            token["_ENABLE_TRADING_BUY_TRIGGER"] = True
+            printt_ok("")
+            printt_ok("Trading is enabled : LET'S BUY !")
+            printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
+            printt_ok("")
+            trading_is_enabled = True
+            break
+        
+        sleep(cooldown)
+
 def run():
     global tokens_json_already_loaded
     global _TOKENS_saved
@@ -4422,7 +4466,7 @@ def run():
                 printt_err("Please read Wiki carefully, it's very important you can lose money!!")
                 sys.exit()
 
-            if token['BUY_AND_SELL_TAXES_CHECK'].lower() == 'true' and base_symbol not in ['BSC ', 'FTM ', 'AVAX']:
+            if token['BUY_AND_SELL_TAXES_CHECK'].lower() == 'true' and settings['_EXCHANGE_BASE_SYMBOL'] not in ['BNB ', 'FTM ', 'AVAX']:
                 printt_err("You have selected BUY_AND_SELL_TAXES_CHECK = true , but this feature is only compatible with BSC / AVAX / FTM for now. Sorry about that. Exiting")
                 sys.exit()
 
@@ -4720,7 +4764,6 @@ def run():
                     #  TAX CHECK
                     #    Check the latest tax on this token
                     #
-
                     if token['BUY_AND_SELL_TAXES_CHECK'] == 'true':
                         token['_BUY_TAX'], token['_SELL_TAX'], token['_HONEYPOT_STATUT'] = checkToken(token)
                     
@@ -4768,24 +4811,21 @@ def run():
                              )):
                         
                         #
-                        # OPEN TRADE CHECK
-                        #   If the option is selected, bot wait for trading_is_on == True to create a BUY order
+                        # ENABLED TRADING CHECK
+                        #   Check if trading is enabled on this token
                         #
     
                         if token['WAIT_FOR_OPEN_TRADE'].lower() == 'true' or token['WAIT_FOR_OPEN_TRADE'].lower() == 'true_no_message' or token['WAIT_FOR_OPEN_TRADE'] == 'mempool' or token['WAIT_FOR_OPEN_TRADE'] == 'pinksale':
                             wait_for_open_trade(token, token['_IN_TOKEN'], token['_OUT_TOKEN'])
     
+                        if token['CHECK_IF_TRADING_IS_ENABLED'] == 'true':
+                            checkifTokenBuyisEnabled(token)
+                        
                         printt_debug(token)
                         #
                         # PURCHASE POSITION
                         #   If we've passed all checks, attempt to purchase the token
                         #
-                        printt_debug("===========================================")
-                        printt_debug("token['_QUOTE']:", token['_QUOTE'])
-                        printt_debug("Buy Price:", Decimal(token['BUYPRICEINBASE']))
-                        printt_debug("_REACHED_MAX_SUCCESS_TX:", token['_REACHED_MAX_SUCCESS_TX'])
-                        printt_debug("_REACHED_MAX_TOKENS:", token['_REACHED_MAX_TOKENS'])
-                        printt_debug("===========================================")
                         
                         log_price = "{:.18f}".format(token['_QUOTE'])
                         printt_ok("")
