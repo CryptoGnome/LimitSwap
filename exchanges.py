@@ -83,12 +83,12 @@ def getRouters(settings, Web3):
     if settings['EXCHANGE'] == 'pancakeswap':
         if settings['USECUSTOMNODE'] == 'true':
             my_provider = settings['CUSTOMNODE']
-            printt('Using custom node.')
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Using custom node.')
         else:
             my_provider = "https://bsc-dataseed4.defibit.io"
         
         if not my_provider:
-            printt_err('Custom node empty. Exiting')
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Custom node empty. Exiting')
             exit(1)
         
         if my_provider[0].lower() == 'h':
@@ -128,12 +128,12 @@ def getRouters(settings, Web3):
     elif settings['EXCHANGE'] == 'sushiswapbsc':
         if settings['USECUSTOMNODE'] == 'true':
             my_provider = settings['CUSTOMNODE']
-            printt('Using custom node.')
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Using custom node.')
         else:
             my_provider = "https://bsc-dataseed4.defibit.io"
         
         if not my_provider:
-            printt_err('Custom node empty. Exiting')
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Custom node empty. Exiting')
             exit(1)
         
         if my_provider[0].lower() == 'h':
@@ -219,7 +219,7 @@ def getRouters(settings, Web3):
             my_provider = "https://api.avax.network/ext/bc/C/rpc"
         
         if not my_provider:
-            printt_err('Custom node empty. Exiting')
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Custom node empty. Exiting')
             exit(1)
         
         if my_provider[0].lower() == 'h':
@@ -261,7 +261,7 @@ def getRouters(settings, Web3):
             my_provider = "https://api.avax.network/ext/bc/C/rpc"
         
         if not my_provider:
-            printt_err('Custom node empty. Exiting')
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Custom node empty. Exiting')
             exit(1)
         
         if my_provider[0].lower() == 'h':
@@ -302,7 +302,7 @@ def getRouters(settings, Web3):
             my_provider = "https://api.avax.network/ext/bc/C/rpc"
         
         if not my_provider:
-            printt_err('Custom node empty. Exiting')
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Custom node empty. Exiting')
             exit(1)
         
         if my_provider[0].lower() == 'h':
@@ -545,7 +545,7 @@ def getRouters(settings, Web3):
             my_provider = "https://bsc-dataseed4.defibit.io"
         
         if not my_provider:
-            printt_err('Custom node empty. Exiting')
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Custom node empty. Exiting')
             exit(1)
         
         if my_provider[0].lower() == 'h':
@@ -586,7 +586,7 @@ def getRouters(settings, Web3):
             my_provider = "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"
         
         if not my_provider:
-            printt_err('Custom node empty. Exiting')
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Custom node empty. Exiting')
             exit(1)
         
         if my_provider[0].lower() == 'h':
@@ -623,7 +623,7 @@ def getRouters(settings, Web3):
             my_provider = "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"
         
         if not my_provider:
-            printt_err('Custom node empty. Exiting')
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Custom node empty. Exiting')
             exit(1)
         
         if my_provider[0].lower() == 'h':
@@ -660,7 +660,7 @@ def getRouters(settings, Web3):
             my_provider = "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"
         
         if not my_provider:
-            printt_err('Custom node empty. Exiting')
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Custom node empty. Exiting')
             exit(1)
         
         if my_provider[0].lower() == 'h':
@@ -697,7 +697,7 @@ def getRouters(settings, Web3):
             my_provider = "https://rinkeby-light.eth.linkpool.io/"
         
         if not my_provider:
-            printt_err('Custom node empty. Exiting')
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Custom node empty. Exiting')
             exit(1)
         
         if my_provider[0].lower() == 'h':
@@ -733,7 +733,7 @@ def getRouters(settings, Web3):
             my_provider = "https://rpc-mainnet.kcc.network"
         
         if not my_provider:
-            printt_err('Custom node empty. Exiting')
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Custom node empty. Exiting')
             exit(1)
         
         if my_provider[0].lower() == 'h':
@@ -769,7 +769,7 @@ def getRouters(settings, Web3):
             my_provider = "https://rpc-mainnet.kcc.network"
         
         if not my_provider:
-            printt_err('Custom node empty. Exiting')
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Custom node empty. Exiting')
             exit(1)
         
         if my_provider[0].lower() == 'h':
@@ -804,7 +804,7 @@ def getRouters(settings, Web3):
             my_provider = "https://rpc.ftm.tools/"
         
         if not my_provider:
-            printt_err('Custom node empty. Exiting')
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Custom node empty. Exiting')
             exit(1)
         
         if my_provider[0].lower() == 'h':
@@ -841,7 +841,7 @@ def getRouters(settings, Web3):
             my_provider = "https://rpc.ftm.tools/"
         
         if not my_provider:
-            printt_err('Custom node empty. Exiting')
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Custom node empty. Exiting')
             exit(1)
         
         if my_provider[0].lower() == 'h':
@@ -878,7 +878,7 @@ def getRouters(settings, Web3):
             my_provider = "https://rpc.ftm.tools/"
         
         if not my_provider:
-            printt_err('Custom node empty. Exiting')
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Custom node empty. Exiting')
             exit(1)
         
         if my_provider[0].lower() == 'h':
@@ -915,7 +915,7 @@ def getRouters(settings, Web3):
             my_provider = "https://rpc.ftm.tools/"
         
         if not my_provider:
-            printt_err('Custom node empty. Exiting')
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Custom node empty. Exiting')
             exit(1)
         
         if my_provider[0].lower() == 'h':
@@ -952,7 +952,7 @@ def getRouters(settings, Web3):
             my_provider = "https://polygon-rpc.com"
         
         if not my_provider:
-            printt_err('Custom node empty. Exiting')
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Custom node empty. Exiting')
             exit(1)
         
         if my_provider[0].lower() == 'h':
@@ -988,7 +988,7 @@ def getRouters(settings, Web3):
             my_provider = "https://polygon-rpc.com"
         
         if not my_provider:
-            printt_err('Custom node empty. Exiting')
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Custom node empty. Exiting')
             exit(1)
         
         if my_provider[0].lower() == 'h':
@@ -1024,7 +1024,7 @@ def getRouters(settings, Web3):
             my_provider = "https://polygon-rpc.com"
         
         if not my_provider:
-            printt_err('Custom node empty. Exiting')
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Custom node empty. Exiting')
             exit(1)
         
         if my_provider[0].lower() == 'h':
@@ -1059,7 +1059,7 @@ def getRouters(settings, Web3):
             my_provider = "https://rpc-waultfinance-mainnet.maticvigil.com/v1/0bc1bb1691429f1eeee66b2a4b919c279d83d6b0"
         
         if not my_provider:
-            printt_err('Custom node empty. Exiting')
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Custom node empty. Exiting')
             exit(1)
         
         if my_provider[0].lower() == 'h':
@@ -1095,7 +1095,7 @@ def getRouters(settings, Web3):
             my_provider = "https://evm-cronos.crypto.org"
         
         if not my_provider:
-            printt_err('Custom node empty. Exiting')
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Custom node empty. Exiting')
             exit(1)
         
         if my_provider[0].lower() == 'h':
@@ -1129,7 +1129,7 @@ def getRouters(settings, Web3):
             my_provider = "https://evm-cronos.crypto.org"
         
         if not my_provider:
-            printt_err('Custom node empty. Exiting')
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Custom node empty. Exiting')
             exit(1)
         
         if my_provider[0].lower() == 'h':
@@ -1163,7 +1163,7 @@ def getRouters(settings, Web3):
             my_provider = "https://evm-cronos.crypto.org"
         
         if not my_provider:
-            printt_err('Custom node empty. Exiting')
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Custom node empty. Exiting')
             exit(1)
         
         if my_provider[0].lower() == 'h':
@@ -1197,7 +1197,7 @@ def getRouters(settings, Web3):
             my_provider = "https://api.harmony.one/"
         
         if not my_provider:
-            printt_err('Custom node empty. Exiting')
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Custom node empty. Exiting')
             exit(1)
         
         if my_provider[0].lower() == 'h':
