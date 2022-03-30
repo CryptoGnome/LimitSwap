@@ -1986,9 +1986,15 @@ def buy_the_dip_mode(token, inToken, outToken, precision):
         if (token['_PREVIOUS_QUOTE'] == token['_QUOTE']) and settings['VERBOSE_PRICING'] == 'false':
             bot_settings['_NEED_NEW_LINE'] = False
         else:
-            if token['_QUOTE'] > (token['_ALL_TIME_HIGH'] * (dip_parameter/100)) and token['_BUY_THE_DIP_BUY_TRIGGER'] == False:
-                printt(f"BUY THE DIP  | Token price {token['_QUOTE']:.{precision}f} | ATH {token['_ALL_TIME_HIGH']:.{precision}f} | Starts when price = {dip_parameter}% of ATH = {token['_ALL_TIME_HIGH'] * (dip_parameter/100):.{precision}f}")
-            
+            if token['_QUOTE'] > (token['_ALL_TIME_HIGH'] * (dip_parameter/100)) and token['_BUY_THE_DIP_ACTIVE'] == False:
+                before_signal_message = f"BUY THE DIP  | Token price {token['_QUOTE']:.{precision}f} | ATH {token['_ALL_TIME_HIGH']:.{precision}f} | Starts when price = {dip_parameter}% of ATH = {token['_ALL_TIME_HIGH'] * (dip_parameter/100):.{precision}f}"
+                
+                # Display in red or green
+                if token['_PREVIOUS_QUOTE'] < token['_QUOTE']:
+                    printt_ok(before_signal_message)
+                else:
+                    printt_err(before_signal_message)
+                
             elif token['_QUOTE'] <= (token['_ALL_TIME_HIGH'] * (dip_parameter/100)):
                 token['_BUY_THE_DIP_ACTIVE'] = True
                 
@@ -1996,7 +2002,14 @@ def buy_the_dip_mode(token, inToken, outToken, precision):
                 if token['_QUOTE'] < token['_ALL_TIME_LOW']:
                     token['_ALL_TIME_LOW'] = token['_QUOTE']
                 
-                printt(f"READY TO BUY | Token price {token['_QUOTE']:.{precision}f} | ATL {token['_ALL_TIME_LOW']:.{precision}f} | Target Price = {100 + rise_parameter}% of ATL = {token['_ALL_TIME_LOW'] * ((100 + rise_parameter)/100):.{precision}f}")
+                after_signal_message = f"READY TO BUY | Token price {token['_QUOTE']:.{precision}f} | ATL {token['_ALL_TIME_LOW']:.{precision}f} | Target Price = {100 + rise_parameter}% of ATL = {token['_ALL_TIME_LOW'] * ((100 + rise_parameter)/100):.{precision}f}"
+                
+                # Display in red or green
+                if token['_PREVIOUS_QUOTE'] < token['_QUOTE']:
+                    printt_ok(after_signal_message)
+                else:
+                    printt_err(after_signal_message)
+
             
         if token['_BUY_THE_DIP_ACTIVE'] == True and token['_QUOTE'] > token['_ALL_TIME_LOW'] * ((100 + rise_parameter)/100):
             token["_BUY_THE_DIP_BUY_TRIGGER"] = True
@@ -2034,25 +2047,45 @@ def trailing_stop_loss_mode(token, inToken, outToken, precision):
     token['_ALL_TIME_HIGH'] = token['_QUOTE']
     token['_ALL_TIME_LOW'] = token['_QUOTE']
     
+    # Display the BUY THE DIP message once, to display it even if VERBOSE_PRICING is false
+    printt(f"TRAILING STOP | Token price {token['_QUOTE']:.{precision}f} | ATH {token['_ALL_TIME_HIGH']:.{precision}f} | Target Price = SELLPRICEINBASE = {token['_CALCULATED_SELLPRICEINBASE']:.{precision}f}")
+
     while trailing_stop_loss == False:
-        
+        # Store previous price to use VERBOSE_PRICING
+        token['_PREVIOUS_QUOTE'] = token['_QUOTE']
+
         token['_QUOTE'] = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], int(token['_CONTRACT_DECIMALS']), int(token['_BASE_DECIMALS']))
         
         # Update ATH if Price > previous ATH
         if token['_QUOTE'] > token['_ALL_TIME_HIGH']:
             token['_ALL_TIME_HIGH'] = token['_QUOTE']
 
-        # Bot will wait for the price to go above SELLPRICEINBASE
-        if token['_QUOTE'] < token['SELLPRICEINBASE'] and token['_TRAILING_STOP_LOSS_ACTIVE'] == False:
-            printt(f"TRAILING STOP | Token price {token['_QUOTE']:.{precision}f} | ATH {token['_ALL_TIME_HIGH']:.{precision}f} | Target Price = SELLPRICEINBASE = {token['SELLPRICEINBASE']:.{precision}f}")
-        
-        elif token['_QUOTE'] >= token['SELLPRICEINBASE']:
-            token['_TRAILING_STOP_LOSS_ACTIVE'] = True
+        # If price did not move, do not display line if VERBOSE_PRICE is false
+        if (token['_PREVIOUS_QUOTE'] == token['_QUOTE']) and settings['VERBOSE_PRICING'] == 'false':
+            bot_settings['_NEED_NEW_LINE'] = False
+        else:
+            # Bot will wait for the price to go above _CALCULATED_SELLPRICEINBASE
+            if token['_QUOTE'] < token['_CALCULATED_SELLPRICEINBASE'] and token['_TRAILING_STOP_LOSS_ACTIVE'] == False:
+                before_signal_message = f"TRAILING STOP | Token price {token['_QUOTE']:.{precision}f} | ATH {token['_ALL_TIME_HIGH']:.{precision}f} | Target Price = SELLPRICEINBASE = {token['_CALCULATED_SELLPRICEINBASE']:.{precision}f}"
+                
+                # Display in red or green
+                if token['_PREVIOUS_QUOTE'] < token['_QUOTE']:
+                    printt_ok(before_signal_message)
+                else:
+                    printt_err(before_signal_message)
             
-            printt(f"READY TO SELL | Token price {token['_QUOTE']:.{precision}f} | ATH {token['_ALL_TIME_HIGH']:.{precision}f} | Target Price = {token['TRAILING_STOP_LOSS_PARAMETER']} * ATH = {((trailing_stop_loss_percentage/100) * token['_ALL_TIME_HIGH']):.{precision}f}")
-        
+            elif token['_QUOTE'] >= token['_CALCULATED_SELLPRICEINBASE']:
+                token['_TRAILING_STOP_LOSS_ACTIVE'] = True
+                
+                after_signal_message = f"READY TO SELL | Token price {token['_QUOTE']:.{precision}f} | ATH {token['_ALL_TIME_HIGH']:.{precision}f} | Target Price = {token['TRAILING_STOP_LOSS_PARAMETER']} * ATH = {((trailing_stop_loss_percentage/100) * token['_ALL_TIME_HIGH']):.{precision}f}"
+
+                # Display in red or green
+                if token['_PREVIOUS_QUOTE'] < token['_QUOTE']:
+                    printt_ok(after_signal_message)
+                else:
+                    printt_err(after_signal_message)
+
         if token['_TRAILING_STOP_LOSS_ACTIVE'] == True and token['_QUOTE'] < ((trailing_stop_loss_percentage/100) * token['_ALL_TIME_HIGH']):
-            # update SELLPRICEINBASE to be below token price,to sell
             token["_TRAILING_STOP_LOSS_SELL_TRIGGER"] = True
             printt_ok("")
             printt_ok("TRAILING STOP target reached : LET'S SELL !")
