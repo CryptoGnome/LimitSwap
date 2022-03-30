@@ -3648,8 +3648,15 @@ def buy(token_dict, inToken, outToken, pwd):
             
                     if token_dict['KIND_OF_SWAP'] == 'tokens':
                         make_the_buy_exact_tokens(token_dict, inToken, outToken, buynumber, walletused, private_key, gaslimit, routing, custom, slippage, CONTRACT_DECIMALS, balance, nonce)
+
+                        # Increase slippage, to avoid Tx fail
+                        slippage = slippage * 1.1
+
                     else:
                         tx = make_the_buy(inToken, outToken, buynumber, walletused, private_key, amount, token_dict['_GAS_TO_USE'], gaslimit, gaspriority, routing, custom, slippage, CONTRACT_DECIMALS, nonce)
+                        
+                        # Increase slippage, to avoid Tx fail
+                        slippage = slippage * 1.1
                         list_of_tx_hash.append(tx)
             
                     buynumber += 1
