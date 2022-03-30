@@ -1967,27 +1967,37 @@ def buy_the_dip_mode(token, inToken, outToken, precision):
     token['_QUOTE'] = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], int(token['_CONTRACT_DECIMALS']), int(token['_BASE_DECIMALS']))
     token['_ALL_TIME_HIGH'] = token['_QUOTE']
     token['_ALL_TIME_LOW'] = token['_QUOTE']
-    
+
+    # Display the BUY THE DIP message once, to display it even if VERBOSE_PRICING is false
+    printt(f"BUY THE DIP  | Token price {token['_QUOTE']:.{precision}f} | ATH {token['_ALL_TIME_HIGH']:.{precision}f} | Starts when price = {dip_parameter}% of ATH = {token['_ALL_TIME_HIGH'] * (dip_parameter / 100):.{precision}f}")
+
     while buy_the_dip == False:
+        # Store previous price to use VERBOSE_PRICING
+        token['_PREVIOUS_QUOTE'] = token['_QUOTE']
         
         token['_QUOTE'] = check_price(inToken, outToken, token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], int(token['_CONTRACT_DECIMALS']), int(token['_BASE_DECIMALS']))
+        
         
         # Update ATH if Price > previous ATH
         if token['_QUOTE'] > token['_ALL_TIME_HIGH']:
             token['_ALL_TIME_HIGH'] = token['_QUOTE']
-        
-        if token['_QUOTE'] > (token['_ALL_TIME_HIGH'] * (dip_parameter/100)) and token['_BUY_THE_DIP_BUY_TRIGGER'] == False:
-            printt(f"BUY THE DIP  | Token price {token['_QUOTE']:.{precision}f} | ATH {token['_ALL_TIME_HIGH']:.{precision}f} | Starts when price = {dip_parameter}% of ATH = {token['_ALL_TIME_HIGH'] * (dip_parameter/100):.{precision}f}")
-        
-        elif token['_QUOTE'] <= (token['_ALL_TIME_HIGH'] * (dip_parameter/100)):
-            token['_BUY_THE_DIP_ACTIVE'] = True
+
+        # If price did not move, do not display line if VERBOSE_PRICE is false
+        if (token['_PREVIOUS_QUOTE'] == token['_QUOTE']) and settings['VERBOSE_PRICING'] == 'false':
+            bot_settings['_NEED_NEW_LINE'] = False
+        else:
+            if token['_QUOTE'] > (token['_ALL_TIME_HIGH'] * (dip_parameter/100)) and token['_BUY_THE_DIP_BUY_TRIGGER'] == False:
+                printt(f"BUY THE DIP  | Token price {token['_QUOTE']:.{precision}f} | ATH {token['_ALL_TIME_HIGH']:.{precision}f} | Starts when price = {dip_parameter}% of ATH = {token['_ALL_TIME_HIGH'] * (dip_parameter/100):.{precision}f}")
             
-            # Update ATL if Price < previous ATL
-            if token['_QUOTE'] < token['_ALL_TIME_LOW']:
-                token['_ALL_TIME_LOW'] = token['_QUOTE']
+            elif token['_QUOTE'] <= (token['_ALL_TIME_HIGH'] * (dip_parameter/100)):
+                token['_BUY_THE_DIP_ACTIVE'] = True
+                
+                # Update ATL if Price < previous ATL
+                if token['_QUOTE'] < token['_ALL_TIME_LOW']:
+                    token['_ALL_TIME_LOW'] = token['_QUOTE']
+                
+                printt(f"READY TO BUY | Token price {token['_QUOTE']:.{precision}f} | ATL {token['_ALL_TIME_LOW']:.{precision}f} | Target Price = {100 + rise_parameter}% of ATL = {token['_ALL_TIME_LOW'] * ((100 + rise_parameter)/100):.{precision}f}")
             
-            printt(f"READY TO BUY | Token price {token['_QUOTE']:.{precision}f} | ATL {token['_ALL_TIME_LOW']:.{precision}f} | Target Price = {100 + rise_parameter}% of ATL = {token['_ALL_TIME_LOW'] * ((100 + rise_parameter)/100):.{precision}f}")
-        
         if token['_BUY_THE_DIP_ACTIVE'] == True and token['_QUOTE'] > token['_ALL_TIME_LOW'] * ((100 + rise_parameter)/100):
             token["_BUY_THE_DIP_BUY_TRIGGER"] = True
             token["BUYPRICEINBASE"] = 9999
