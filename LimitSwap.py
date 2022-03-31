@@ -220,39 +220,64 @@ def printt_sell_price(token_dict, token_price, precision):
     printt_debug("token_dict['_TRADING_IS_ON'] 266:", token_dict['_TRADING_IS_ON'], "for token:", token_dict['SYMBOL'])
     printt_debug("_PREVIOUS_QUOTE :", token_dict['_PREVIOUS_QUOTE'], "for token:", token_dict['SYMBOL'])
     
+    # Token Pair
     if token_dict['USECUSTOMBASEPAIR'] == 'false':
         price_message = f'{token_dict["_PAIR_SYMBOL"]} = {token_price:.{precision}f}'
-    
     else:
         price_message = f'{token_dict["_PAIR_SYMBOL"]} = {token_price:.{precision}f}'
     
+    # Buy price
     if token_dict['BUYPRICEINBASE'] != 0:
         price_message = f'{price_message} | Buy {token_dict["BUYPRICEINBASE"]:.{precision}f}'
-
-    if Decimal(token_dict['_TRAILING_STOP_LOSS_WITHOUT_PERCENT']) == 0:
-        price_message = f'{price_message} | Sell {token_dict["_CALCULATED_SELLPRICEINBASE"]:.{precision}f}'
     
+    # Sell price
+    price_message = f'{price_message} | Sell {token_dict["_CALCULATED_SELLPRICEINBASE"]:.{precision}f}'
+    
+    # Stoploss
     if token_dict['_CALCULATED_STOPLOSSPRICEINBASE'] != 0:
         price_message = f'{price_message} | Stop {token_dict["_CALCULATED_STOPLOSSPRICEINBASE"]:.{precision}f}'
 
+    # Taxes
     if token_dict['BUY_AND_SELL_TAXES_CHECK'] == 'true':
-        if (token_dict['_BUY_TAX'] <= token_dict['MAX_BUY_TAX_IN_%']):
+        # Do not display BUY tax if trading is disabled
+        if token_dict['_BUY_TAX'] == 9999999:
+            pass
+        # Else, display in green or red depending on price movement
+        elif (token_dict['_BUY_TAX'] <= token_dict['MAX_BUY_TAX_IN_%']):
             price_message = f'{price_message} |\033[32m BUY Tax {token_dict["_BUY_TAX"]:.1f}\033[0m'
         else:
             price_message = f'{price_message} |\033[31m BUY Tax {token_dict["_BUY_TAX"]:.1f}\033[0m'
-        if (token_dict['_SELL_TAX'] <= token_dict['MAX_SELL_TAX_IN_%']):
+        
+        # Do not display SELL tax if trading is disabled
+        if token_dict['_SELL_TAX'] == 9999999:
+            price_message = f'{price_message} |\033[31m Trading disabled : tax cannot be calculated\033[0m'
+        # Else, display in green or red depending on price movement
+        elif (token_dict['_SELL_TAX'] <= token_dict['MAX_SELL_TAX_IN_%']):
             price_message = f'{price_message} |\033[32m SELL Tax {token_dict["_SELL_TAX"]:.1f}\033[0m'
         else:
             price_message = f'{price_message} |\033[31m SELL Tax {token_dict["_SELL_TAX"]:.1f}\033[0m'
     
+    # Trading status
+    if token_dict['CHECK_IF_TRADING_IS_ENABLED'] == 'true':
+        if token_dict['_ENABLE_TRADING_BUY_TRIGGER'] == True:
+            price_message = f'{price_message} |\033[32m TRADING IS ENABLED\033[0m'
+        else:
+            if token_dict['BUY_AND_SELL_TAXES_CHECK'] == 'true' and token_dict['_SELL_TAX'] == 9999999 :
+                pass
+            else:
+                price_message = f'{price_message} |\033[31m TRADING IS DISABLED\033[0m'
+    
+    # Token balance
     if token_dict['USECUSTOMBASEPAIR'] == 'false':
         price_message = f'{price_message} | Token balance {token_dict["_TOKEN_BALANCE"]:.4f} (= {float(token_price) * float(token_dict["_BASE_PRICE"]) * float(token_dict["_TOKEN_BALANCE"]):.2f} $)'
     else:
         price_message = f'{price_message} | Token balance {token_dict["_TOKEN_BALANCE"]:.4f} (= {float(token_price) * float(token_dict["_TOKEN_BALANCE"]):.2f} {token_dict["BASESYMBOL"]})'
     
+    # MAXTOKENS
     if token_dict['_REACHED_MAX_TOKENS'] == True:
         price_message = f'{price_message}\033[31m | MAXTOKENS reached \033[0m'
     
+    # Display new line or not depending on VERBOSE_PRICING
     if price_message == token_dict['_LAST_PRICE_MESSAGE'] and settings['VERBOSE_PRICING'] == 'false':
         bot_settings['_NEED_NEW_LINE'] = False
     elif token_price > token_dict['_PREVIOUS_QUOTE']:
@@ -264,6 +289,7 @@ def printt_sell_price(token_dict, token_price, precision):
     else:
         printt(price_message)
     
+    # save last message to decide if we display it or not next time
     token_dict['_LAST_PRICE_MESSAGE'] = price_message
 
 
@@ -426,7 +452,7 @@ printt("************************************************************************
 
 # Check for version
 #
-version = '4.3.1.2'
+version = '4.3.1.3'
 printt("YOUR BOT IS CURRENTLY RUNNING VERSION ", version, write_to_log=True)
 check_release()
 
@@ -4421,36 +4447,43 @@ def benchmark():
 
 def checkToken(token):
     printt_debug("ENTER checkToken")
+
+    honeypot = True
+    
     try:
         tokenInfos = swapper.functions.getTokenInformations(Web3.toChecksumAddress(token['ADDRESS'])).call()
         printt_debug(tokenInfos)
+        
+        # Tax calculation
         buy_tax = round((tokenInfos[0] - tokenInfos[1]) / tokenInfos[0] * 100, 2)
         sell_tax = round((tokenInfos[2] - tokenInfos[3]) / tokenInfos[2] * 100, 2)
+        printt_debug("[TAX] Current Token BuyTax:", buy_tax, "%\n")
+        printt_debug("[TAX] Current Token SellTax:", sell_tax, "%\n")
+
+        # Honeypot calculation
         if tokenInfos[5] and tokenInfos[6] == True:
             honeypot = False
             printt_debug("This is not a HoneyPot\n")
         else:
-            honeypot = True
-            printt_err("FORCE EXIT : this token is a HoneyPot\n")
-        
-        printt_debug("[TOKENTAX] Current Token BuyTax:", buy_tax, "%")
-        printt_debug("[TOKENTAX] Current Token SellTax:", sell_tax, "%\n")
+            printt_debug("This is a HoneyPot\n")
+
+        # EnableTrading calculation
+        if tokenInfos[4] == True:
+            token["_ENABLE_TRADING_BUY_TRIGGER"] = True
+            printt_debug("Trading is enabled\n")
+        else:
+            printt_debug("Trading is NOT enabled\n")
+
 
     except Exception as e:
         logging.exception(e)
-
-        printt_err("")
-        printt_err("An error occured with BUY_AND_SELL_TAXES_CHECK : please report it in our TG channel.", write_to_log=True)
-        printt_err("It can happend when liquidity is added, but Trading is not enabled...", write_to_log=True)
-        printt_err("If you still want to buy this token, please set BUY_AND_SELL_TAXES_CHECK = false", write_to_log=True)
-        printt_err("")
-
+        
         buy_tax = 9999999
         sell_tax = 9999999
         honeypot = True
-
-    return buy_tax, sell_tax, honeypot
-
+        token["_ENABLE_TRADING_BUY_TRIGGER"] = False
+    
+    return buy_tax, sell_tax, honeypot, token["_ENABLE_TRADING_BUY_TRIGGER"]
 
 
 def checkifTokenBuyisEnabled(token):
@@ -4461,41 +4494,32 @@ def checkifTokenBuyisEnabled(token):
     printt("You have entered CHECK_IF_TRADING_IS_ENABLED = true", write_to_log=True)
     printt("", write_to_log=True)
     
-    trading_is_enabled = False
     loop_iterations = 0
-    
-    try:
-        while trading_is_enabled == False:
-        
-            trading_is_enabled = swapper.functions.getTokenInformations(Web3.toChecksumAddress(token['ADDRESS'])).call()[4]
-            #True if Buy is enabled, False if disabled
-            
-            if trading_is_enabled == False:
-                if loop_iterations == 0:
-                    print(timestamp(), style.RED, " Trading is not enabled for ", token["SYMBOL"], style.RESET, " - Waiting for dev to enable it", sep='', end="", flush=True)
-                    loop_iterations += 1
-                else:
-                    print(".", sep='', end="", flush=True)
-                    
-            else:
+
+    while True:
+        sleep(0.07)
+        sleep(cooldown)
+        try:
+            if swapper.functions.getTokenInformations(Web3.toChecksumAddress(token['ADDRESS'])).call()[4] == True:
                 token["_ENABLE_TRADING_BUY_TRIGGER"] = True
-                printt_ok("")
-                printt_ok("Trading is enabled : LET'S BUY !", write_to_log=True)
-                printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
-                printt_ok("")
-                trading_is_enabled = True
                 break
-            
-            sleep(cooldown)
-            
-    except Exception as e:
-        logging.exception(e)
-        printt_err("An error occured with CHECK_IF_TRADING_IS_ENABLED : please report it in our TG channel.", write_to_log=True)
-        printt_err("If you still want to buy this token, please use:", write_to_log=True)
-        printt_err("   - CHECK_IF_TRADING_IS_ENABLED = false", write_to_log=True)
-        printt_err("   - WAIT_FOR_OPEN_TRADE parameter. Check wiki for more information", write_to_log=True)
-        sleep(30)
-        sys.exit()
+        except Exception as e:
+            # Display a '.' after the initial message
+            if loop_iterations == 0:
+                print(timestamp(), style.RED, " Trading is not enabled for ", token["SYMBOL"], style.RESET, " - Waiting for dev to enable it", sep='', end="", flush=True)
+                loop_iterations += 1
+            else:
+                print(".", sep='', end="", flush=True)
+    
+            if "UPDATE" in str(e):
+                print(e)
+                sleep(30)
+                sys.exit()
+            continue
+    
+    printt_ok("")
+    printt_ok("Trading is enabled : LET'S BUY !", write_to_log=True)
+    printt_ok("")
 
 
 def run():
@@ -4537,27 +4561,33 @@ def run():
             
             if token['MULTIPLEBUYS'].lower() == 'several_wallets' and token['BUYCOUNT'] > 5:
                 printt_err("You can use 5 wallets maximum with MULTIPLEBUYS = several_wallets")
+                sleep(10)
                 sys.exit()
 
             if token['LIQUIDITYINNATIVETOKEN'].lower() == 'false' and token['USECUSTOMBASEPAIR'].lower() == 'false':
                 printt_err("You have selected LIQUIDITYINNATIVETOKEN = false , so you must choose USECUSTOMBASEPAIR = true")
                 printt_err("Please read Wiki carefully, it's very important you can lose money!!")
+                sleep(10)
                 sys.exit()
 
             if token['BUY_AND_SELL_TAXES_CHECK'].lower() == 'true' and settings['_EXCHANGE_BASE_SYMBOL'] not in ['BNB ', 'FTM ', 'AVAX']:
                 printt_err("You have selected BUY_AND_SELL_TAXES_CHECK = true , but this feature is only compatible with BSC / AVAX / FTM for now. Sorry about that. Exiting")
+                sleep(10)
                 sys.exit()
 
             if token['KIND_OF_SWAP'].lower() == 'tokens' and token['MAX_BASE_AMOUNT_PER_EXACT_TOKENS_TRANSACTION'] == 0:
                 printt_err("You have selected KIND_OF_SWAP = tokens, so you must enter a value in MAX_BASE_AMOUNT_PER_EXACT_TOKENS_TRANSACTION")
+                sleep(10)
                 sys.exit()
                 
             if token['KIND_OF_SWAP'].lower() == 'tokens' and token['WATCH_STABLES_PAIRS'] == 'true':
                 printt_err("Sorry, KIND_OF_SWAP = tokens is only available for USECUSTOMBASEPAIR = false --> it cannot be used with WATCH_STABLES_PAIRS. Exiting.")
+                sleep(10)
                 sys.exit()
                 
             if token['KIND_OF_SWAP'].lower() == 'tokens' and token['USECUSTOMBASEPAIR'] == 'true':
                 printt_err("Sorry, KIND_OF_SWAP = tokens is only available for USECUSTOMBASEPAIR = false. Exiting.")
+                sleep(10)
                 sys.exit()
             
             if token['TRAILING_STOP_LOSS_MODE_ACTIVE'] == 'true' and token['TRAILING_STOP_LOSS_PARAMETER'] == 0:
@@ -4599,6 +4629,12 @@ def run():
             
             if token['PING_PONG_MODE'] == 'true' and token['TRAILING_STOP_LOSS_PARAMETER'] == 0:
                 printt_err("PING_PONG_MODE needs a TRAILING_STOP_LOSS_PARAMETER value to work")
+                sleep(10)
+                sys.exit()
+
+            if token['WAIT_FOR_OPEN_TRADE'] != 'false' and token['CHECK_IF_TRADING_IS_ENABLED'] == 'true':
+                printt_err("WAIT_FOR_OPEN_TRADE and CHECK_IF_TRADING_IS_ENABLED do the same job")
+                printt_err("--> If you use CHECK_IF_TRADING_IS_ENABLED = true, then set WAIT_FOR_OPEN_TRADE = false")
                 sleep(10)
                 sys.exit()
 
@@ -4839,12 +4875,13 @@ def run():
                         
                         
                     #
-                    #  TAX CHECK
+                    #  TOKEN CHECK
                     #    Check the latest tax on this token
                     #
-                    if token['BUY_AND_SELL_TAXES_CHECK'] == 'true':
-                        token['_BUY_TAX'], token['_SELL_TAX'], token['_HONEYPOT_STATUT'] = checkToken(token)
+                    if token['BUY_AND_SELL_TAXES_CHECK'] == 'true' or token['CHECK_IF_TRADING_IS_ENABLED'] == 'true':
+                        token['_BUY_TAX'], token['_SELL_TAX'], token['_HONEYPOT_STATUT'], token["_ENABLE_TRADING_BUY_TRIGGER"] = checkToken(token)
                     
+
                     # If we're still in the market to buy tokens, the print the buy message
                     # added the condition "if token['_PREVIOUS_QUOTE'] != 0" to avoid having a green line in first position and make trading_is_on work
                     if token['_PREVIOUS_QUOTE'] != 0 and token['_QUOTE'] != 0:  # and token['_REACHED_MAX_TOKENS'] == False:
@@ -4855,19 +4892,24 @@ def run():
                     #   Check if BUY conditions are reached:
                     #
                     
-                    # 'Classic' condition and no TAX check
+                    # 'Classic' condition :
+                    #  1/ no TAX check
+                    #  2/ no ENABLEtrading check
+                    
                     if ((token['_QUOTE'] != 0 and
                             token['_QUOTE'] < Decimal(token['BUYPRICEINBASE']) and
                             token['_REACHED_MAX_SUCCESS_TX'] == False and
                             token['_REACHED_MAX_TOKENS'] == False and
                             token['_NOT_ENOUGH_TO_BUY'] == False and
                             token['ENABLED'] == 'true' and
-                            token['BUY_AND_SELL_TAXES_CHECK'] == 'false'
+                            token['BUY_AND_SELL_TAXES_CHECK'] == 'false' and
+                            token['CHECK_IF_TRADING_IS_ENABLED'] == 'false'
                             )
                             
                             or
         
-                            # 'Classic' condition with TAX check
+                            #  1/ TAX check
+                            #  2/ no ENABLEtrading check
                             (token['_QUOTE'] != 0 and
                              token['_QUOTE'] < Decimal(token['BUYPRICEINBASE']) and
                              token['_REACHED_MAX_SUCCESS_TX'] == False and
@@ -4875,7 +4917,39 @@ def run():
                              token['_NOT_ENOUGH_TO_BUY'] == False and
                              token['ENABLED'] == 'true' and
                              token['BUY_AND_SELL_TAXES_CHECK'] == 'true' and
-                             token['_BUY_TAX'] < token['MAX_BUY_TAX_IN_%']
+                             token['_BUY_TAX'] < token['MAX_BUY_TAX_IN_%'] and
+                             token['CHECK_IF_TRADING_IS_ENABLED'] == 'false'
+                            )
+        
+                            or
+        
+                            #  1/ no TAX check
+                            #  2/ ENABLEtrading check
+                            (token['_QUOTE'] != 0 and
+                             token['_QUOTE'] < Decimal(token['BUYPRICEINBASE']) and
+                             token['_REACHED_MAX_SUCCESS_TX'] == False and
+                             token['_REACHED_MAX_TOKENS'] == False and
+                             token['_NOT_ENOUGH_TO_BUY'] == False and
+                             token['ENABLED'] == 'true' and
+                             token['BUY_AND_SELL_TAXES_CHECK'] == 'false' and
+                             token['CHECK_IF_TRADING_IS_ENABLED'] == 'true' and
+                             token["_ENABLE_TRADING_BUY_TRIGGER"] == True
+                            )
+                            
+                            or
+        
+                            #  1/ TAX check
+                            #  2/ ENABLEtrading check
+                            (token['_QUOTE'] != 0 and
+                             token['_QUOTE'] < Decimal(token['BUYPRICEINBASE']) and
+                             token['_REACHED_MAX_SUCCESS_TX'] == False and
+                             token['_REACHED_MAX_TOKENS'] == False and
+                             token['_NOT_ENOUGH_TO_BUY'] == False and
+                             token['ENABLED'] == 'true' and
+                             token['BUY_AND_SELL_TAXES_CHECK'] == 'true' and
+                             token['_BUY_TAX'] < token['MAX_BUY_TAX_IN_%'] and
+                             token['CHECK_IF_TRADING_IS_ENABLED'] == 'true' and
+                             token["_ENABLE_TRADING_BUY_TRIGGER"] == True
                             )
         
                             or
@@ -4888,16 +4962,10 @@ def run():
                               token['ENABLED'] == 'true'
                              )):
                         
-                        #
-                        # ENABLED TRADING CHECK
-                        #   Check if trading is enabled on this token
-                        #
-    
+                        
                         if token['WAIT_FOR_OPEN_TRADE'].lower() == 'true' or token['WAIT_FOR_OPEN_TRADE'].lower() == 'true_no_message' or token['WAIT_FOR_OPEN_TRADE'] == 'mempool' or token['WAIT_FOR_OPEN_TRADE'] == 'pinksale':
                             wait_for_open_trade(token, token['_IN_TOKEN'], token['_OUT_TOKEN'])
     
-                        if token['CHECK_IF_TRADING_IS_ENABLED'] == 'true':
-                            checkifTokenBuyisEnabled(token)
                         
                         printt_debug(token)
                         #
