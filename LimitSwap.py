@@ -426,7 +426,7 @@ printt("************************************************************************
 
 # Check for version
 #
-version = '4.3.1.1'
+version = '4.3.1.2'
 printt("YOUR BOT IS CURRENTLY RUNNING VERSION ", version, write_to_log=True)
 check_release()
 
@@ -4420,20 +4420,35 @@ def benchmark():
 
 
 def checkToken(token):
-    tokenInfos = swapper.functions.getTokenInformations(Web3.toChecksumAddress(token['ADDRESS'])).call()
-    printt_debug(tokenInfos)
-    buy_tax = round((tokenInfos[0] - tokenInfos[1]) / tokenInfos[0] * 100, 2)
-    sell_tax = round((tokenInfos[2] - tokenInfos[3]) / tokenInfos[2] * 100, 2)
-    if tokenInfos[5] and tokenInfos[6] == True:
-        honeypot = False
-        printt_debug("This is not a HoneyPot\n")
-    else:
+    printt_debug("ENTER checkToken")
+    try:
+        tokenInfos = swapper.functions.getTokenInformations(Web3.toChecksumAddress(token['ADDRESS'])).call()
+        printt_debug(tokenInfos)
+        buy_tax = round((tokenInfos[0] - tokenInfos[1]) / tokenInfos[0] * 100, 2)
+        sell_tax = round((tokenInfos[2] - tokenInfos[3]) / tokenInfos[2] * 100, 2)
+        if tokenInfos[5] and tokenInfos[6] == True:
+            honeypot = False
+            printt_debug("This is not a HoneyPot\n")
+        else:
+            honeypot = True
+            printt_err("FORCE EXIT : this token is a HoneyPot\n")
+        
+        printt_debug("[TOKENTAX] Current Token BuyTax:", buy_tax, "%")
+        printt_debug("[TOKENTAX] Current Token SellTax:", sell_tax, "%\n")
+
+    except Exception as e:
+        logging.exception(e)
+
+        printt_err("")
+        printt_err("An error occured with BUY_AND_SELL_TAXES_CHECK : please report it in our TG channel.", write_to_log=True)
+        printt_err("It can happend when liquidity is added, but Trading is not enabled...", write_to_log=True)
+        printt_err("If you still want to buy this token, please set BUY_AND_SELL_TAXES_CHECK = false", write_to_log=True)
+        printt_err("")
+
+        buy_tax = 9999999
+        sell_tax = 9999999
         honeypot = True
-        printt_err("FORCE EXIT : this token is a HoneyPot\n")
-    
-    printt_debug("[TOKENTAX] Current Token BuyTax:", buy_tax, "%")
-    printt_debug("[TOKENTAX] Current Token SellTax:", sell_tax, "%\n")
-    
+
     return buy_tax, sell_tax, honeypot
 
 
@@ -4449,28 +4464,39 @@ def checkifTokenBuyisEnabled(token):
     trading_is_enabled = False
     loop_iterations = 0
     
-    while trading_is_enabled == False:
-    
-        trading_is_enabled = swapper.functions.getTokenInformations(Web3.toChecksumAddress(token['ADDRESS'])).call()[4]
-        #True if Buy is enabled, False if disabled
+    try:
+        while trading_is_enabled == False:
         
-        if trading_is_enabled == False:
-            if loop_iterations == 0:
-                print(timestamp(), style.RED, " Trading is not enabled for ", token["SYMBOL"], style.RESET, " - Waiting for dev to enable it", sep='', end="", flush=True)
-                loop_iterations += 1
+            trading_is_enabled = swapper.functions.getTokenInformations(Web3.toChecksumAddress(token['ADDRESS'])).call()[4]
+            #True if Buy is enabled, False if disabled
+            
+            if trading_is_enabled == False:
+                if loop_iterations == 0:
+                    print(timestamp(), style.RED, " Trading is not enabled for ", token["SYMBOL"], style.RESET, " - Waiting for dev to enable it", sep='', end="", flush=True)
+                    loop_iterations += 1
+                else:
+                    print(".", sep='', end="", flush=True)
+                    
             else:
-                print(".", sep='', end="", flush=True)
-                
-        else:
-            token["_ENABLE_TRADING_BUY_TRIGGER"] = True
-            printt_ok("")
-            printt_ok("Trading is enabled : LET'S BUY !")
-            printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
-            printt_ok("")
-            trading_is_enabled = True
-            break
-        
-        sleep(cooldown)
+                token["_ENABLE_TRADING_BUY_TRIGGER"] = True
+                printt_ok("")
+                printt_ok("Trading is enabled : LET'S BUY !", write_to_log=True)
+                printt("------------------------------------------------------------------------------------------------------------------------------", write_to_log=True)
+                printt_ok("")
+                trading_is_enabled = True
+                break
+            
+            sleep(cooldown)
+            
+    except Exception as e:
+        logging.exception(e)
+        printt_err("An error occured with CHECK_IF_TRADING_IS_ENABLED : please report it in our TG channel.", write_to_log=True)
+        printt_err("If you still want to buy this token, please use:", write_to_log=True)
+        printt_err("   - CHECK_IF_TRADING_IS_ENABLED = false", write_to_log=True)
+        printt_err("   - WAIT_FOR_OPEN_TRADE parameter. Check wiki for more information", write_to_log=True)
+        sleep(30)
+        sys.exit()
+
 
 def run():
     global tokens_json_already_loaded
