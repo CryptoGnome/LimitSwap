@@ -1229,6 +1229,45 @@ def getRouters(settings, Web3):
         settings['_STABLE_BASES'] = {'BUSD': {'address': '0xe176ebe47d621b984a73036b9da5d834411ef734', 'multiplier': 0},
                                      'USDT': {'address': '0x3c2b8be99c50593081eaa2a724f0b8285f5aba8f', 'multiplier': 0}}
 
+    elif settings["EXCHANGE"] == 'milkomeda':
+        if settings['USECUSTOMNODE'] == 'true':
+            my_provider = settings['CUSTOMNODE']
+        else:
+            my_provider = "https://rpc-mainnet-cardano-evm.c1.milkomeda.com"
+        
+        if not my_provider:
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Custom node empty. Exiting')
+            exit(1)
+        
+        if my_provider[0].lower() == 'h':
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Using HTTPProvider')
+            client = Web3(Web3.HTTPProvider(my_provider))
+        elif my_provider[0].lower() == 'w':
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Using WebsocketProvider')
+            client = Web3(Web3.WebsocketProvider(my_provider))
+        else:
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Using IPCProvider')
+            client = Web3(Web3.IPCProvider(my_provider))
+        
+        print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), "MILKOMEDA Chain Connected =", client.isConnected())
+        print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), "Loading WADA Smart Contracts...")
+        
+        routerAddress = Web3.toChecksumAddress("0x9D2E30C2FB648BeE307EDBaFDb461b09DF79516C")
+        factoryAddress = Web3.toChecksumAddress("0xD6Ab33Ad975b39A8cc981bBc4Aaf61F957A5aD29")
+        
+        routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
+        factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
+        weth = Web3.toChecksumAddress("0xAE83571000aF4499798d1e3b0fA0070EB3A3E3F9")
+        base_symbol = "ADA"
+        rugdocchain = '&chain=ada'
+        modified = False
+        swapper_address = Web3.toChecksumAddress("0x000000000000000000000000000000000000dEaD")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
+
+        settings['_EXCHANGE_BASE_SYMBOL'] = 'ADA'
+        settings['_STABLE_BASES'] = {'USDC': {'address': '0x6a2d262D56735DbA19Dd70682B39F6bE9a931D98', 'multiplier': 0},
+                                     'USDT': {'address': '0x3795C36e7D12A8c252A20C5a7B455f7c57b60283', 'multiplier': 0}}
+
 
     # Necessary to scan mempool
     client.middleware_onion.inject(geth_poa_middleware, layer=0)

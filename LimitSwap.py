@@ -452,7 +452,7 @@ printt("************************************************************************
 
 # Check for version
 #
-version = '4.3.1.3'
+version = '4.3.1.4'
 printt("YOUR BOT IS CURRENTLY RUNNING VERSION ", version, write_to_log=True)
 check_release()
 
@@ -647,6 +647,7 @@ def load_tokens_file(tokens_path, load_message=True):
     # _NOT_ENOUGH_TO_BUY    - if user does not have enough base pair in his wallet to buy
     # _GAS_TO_USE           - the amount of gas the bot has estimated it should use for the purchase of a token
     #                         this number is calculated every bot start up
+    # _GAS_TO_USE_FOR_APPROVE  - the amount of gas the bot has estimated it should use for the approval
     # _FAILED_TRANSACTIONS  - the number of times a transaction has failed for this token
     # _SUCCESS_TRANSACTIONS - the number of times a transaction has succeeded for this token
     # _REACHED_MAX_SUCCESS_TX  - flag to look at to determine if the user's wallet has reached the maximum number of flags
@@ -703,6 +704,7 @@ def load_tokens_file(tokens_path, load_message=True):
         '_OUT_TOKEN': "",
         '_RUGDOC_DECISION': "",
         '_GAS_TO_USE': 0,
+        '_GAS_TO_USE_FOR_APPROVE': 0,
         '_GAS_IS_CALCULATED': False,
         '_FAILED_TRANSACTIONS': 0,
         '_SUCCESS_TRANSACTIONS': 0,
@@ -912,6 +914,7 @@ def reload_tokens_file(tokens_path, load_message=True):
         '_TRADING_IS_ON': False,
         '_RUGDOC_DECISION': "",
         '_GAS_TO_USE': 0,
+        '_GAS_TO_USE_FOR_APPROVE': 0,
         '_GAS_IS_CALCULATED': False,
         '_FAILED_TRANSACTIONS': 0,
         '_SUCCESS_TRANSACTIONS': 0,
@@ -1025,6 +1028,7 @@ def reload_tokens_file(tokens_path, load_message=True):
             '_TRADING_IS_ON': _TOKENS_saved[token['SYMBOL']]['_TRADING_IS_ON'],
             '_RUGDOC_DECISION': _TOKENS_saved[token['SYMBOL']]['_RUGDOC_DECISION'],
             '_GAS_TO_USE': _TOKENS_saved[token['SYMBOL']]['_GAS_TO_USE'],
+            '_GAS_TO_USE_FOR_APPROVE': _TOKENS_saved[token['SYMBOL']]['_GAS_TO_USE_FOR_APPROVE'],
             '_GAS_IS_CALCULATED': _TOKENS_saved[token['SYMBOL']]['_GAS_IS_CALCULATED'],
             '_FAILED_TRANSACTIONS': _TOKENS_saved[token['SYMBOL']]['_FAILED_TRANSACTIONS'],
             '_SUCCESS_TRANSACTIONS': _TOKENS_saved[token['SYMBOL']]['_SUCCESS_TRANSACTIONS'],
@@ -1532,7 +1536,7 @@ def approve(token_address, token, amount):
             gas = (((client.eth.gasPrice) / 1000000000)) + ((client.eth.gasPrice) / 1000000000) * (int(200) / 100)
             printt("Current Gas Price =", gas)
         else:
-            gas = token['_GAS_TO_USE']
+            gas = token['_GAS_TO_USE_FOR_APPROVE']
             printt("Token will be approved with Gas = ", gas)
         
         contract = client.eth.contract(address=Web3.toChecksumAddress(token_address), abi=standardAbi)
@@ -2765,6 +2769,22 @@ def calculate_base_price():
         basePrice = Decimal((reserves[1] / DECIMALS_STABLES) / (reserves[0] / DECIMALS_ETH))
         printt_debug("METIS PRICE: ", "{:.6f}".format(basePrice))
     
+    elif base_symbol == "ADA":
+        DECIMALS_STABLES = 1000000
+        DECIMALS_ETH = 1000000000000000000
+        
+        # USDC 0x0039f574ee5cc39bdd162e9a88e3eb1f111baf48
+        
+        # address = Web3.toChecksumAddress('0x0039f574ee5cc39bdd162e9a88e3eb1f111baf48')
+        # pair_address = fetch_pair2(address, weth, factoryContract)
+        
+        pair_address = '0x22ffE5f315F6061f4A58E337218a7716cBbFE5C1'
+        
+        pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
+        reserves = pair_contract.functions.getReserves().call()
+        basePrice = Decimal((reserves[0] / DECIMALS_STABLES) / (reserves[1] / DECIMALS_ETH))
+        printt_debug("ADA PRICE: ", "{:.6f}".format(basePrice))
+    
     else:
         printt_err("Unknown chain... please add it to calculate_base_price")
         basePrice = 0
@@ -2821,7 +2841,7 @@ def calculate_base_balance(token):
     elif base_symbol == "AVAX":
         minimumbalance = 0.2
     else:
-        minimumbalance = 0.03
+        minimumbalance = 0
     
     try:
         eth_balance = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
@@ -2834,7 +2854,7 @@ def calculate_base_balance(token):
         printt_err("You have less than 0.05 ETH, 0.2 AVAX or 0.03 BNB/FTM/MATIC/etc. token in your wallet, bot needs more to cover fees : please add some more in your wallet")
         printt_err("We know it can seem a lot, but the smart contracts used by Exchanges have automatic controls of minimal balance.")
         sleep(10)
-        exit(1)
+        sys.exit()
     
     # STEP 2 - update token['_BASE_BALANCE'] or token['_CUSTOM_BASE_BALANCE']
     if token['USECUSTOMBASEPAIR'].lower() == 'false':
@@ -2865,6 +2885,7 @@ def calculate_gas(token):
             "Your GASLIMIT parameter is too low : LimitSwap has forced it to 300000 otherwise your transaction would fail for sure. We advise you to raise it to 1000000.")
         token['GASLIMIT'] = 300000
     
+    # Set GAS for the real Tx
     if token['GAS'] == 'boost' or token['GAS'] == 'BOOST' or token['GAS'] == 'Boost':
         if base_symbol == "BNB" or base_symbol == "BNB ":
             gas_price = 10
@@ -2875,10 +2896,25 @@ def calculate_gas(token):
         printt_info("")
         printt_info("Current Gas Price =", gas_price)
         token['_GAS_TO_USE'] = (gas_price * ((int(token['BOOSTPERCENT'])) / 100)) + gas_price
-        printt_info("Transaction for", token['SYMBOL'], "will be created with gas =", token['_GAS_TO_USE'])
+        printt_info("Tx for", token['SYMBOL'], "will be created with gas =", token['_GAS_TO_USE'])
         printt_info("")
     else:
         token['_GAS_TO_USE'] = int(token['GAS'])
+    
+    # Set GAS for the Approval
+    if token['GAS_FOR_APPROVE'] == 'boost' or token['GAS_FOR_APPROVE'] == 'BOOST' or token['GAS_FOR_APPROVE'] == 'Boost':
+        if base_symbol == "BNB" or base_symbol == "BNB ":
+            gas_price = 10
+        else:
+            gas_check = client.eth.gasPrice
+            gas_price = gas_check / 1000000000
+        
+        printt_info("")
+        token['_GAS_TO_USE_FOR_APPROVE'] = (gas_price * ((int(token['BOOSTPERCENT'])) / 100)) + gas_price
+        printt_info("Approval Tx for", token['SYMBOL'], "will be created with gas =", token['_GAS_TO_USE_FOR_APPROVE'])
+        printt_info("")
+    else:
+        token['_GAS_TO_USE_FOR_APPROVE'] = int(token['GAS_FOR_APPROVE'])
     
     printt_debug("EXIT: calculate_gas()")
     return 0
@@ -4572,6 +4608,11 @@ def run():
 
             if token['BUY_AND_SELL_TAXES_CHECK'].lower() == 'true' and settings['_EXCHANGE_BASE_SYMBOL'] not in ['BNB ', 'FTM ', 'AVAX']:
                 printt_err("You have selected BUY_AND_SELL_TAXES_CHECK = true , but this feature is only compatible with BSC / AVAX / FTM for now. Sorry about that. Exiting")
+                sleep(10)
+                sys.exit()
+
+            if token['CHECK_IF_TRADING_IS_ENABLED'].lower() == 'true' and settings['_EXCHANGE_BASE_SYMBOL'] not in ['BNB ', 'FTM ', 'AVAX']:
+                printt_err("You have selected CHECK_IF_TRADING_IS_ENABLED = true , but this feature is only compatible with BSC / AVAX / FTM for now. Sorry about that. Exiting")
                 sleep(10)
                 sys.exit()
 
