@@ -1229,7 +1229,7 @@ def getRouters(settings, Web3):
         settings['_STABLE_BASES'] = {'BUSD': {'address': '0xe176ebe47d621b984a73036b9da5d834411ef734', 'multiplier': 0},
                                      'USDT': {'address': '0x3c2b8be99c50593081eaa2a724f0b8285f5aba8f', 'multiplier': 0}}
 
-    elif settings["EXCHANGE"] == 'milkomeda':
+    elif settings["EXCHANGE"] == 'milkyswap':
         if settings['USECUSTOMNODE'] == 'true':
             my_provider = settings['CUSTOMNODE']
         else:
