@@ -2841,7 +2841,7 @@ def calculate_base_balance(token):
     elif base_symbol == "AVAX":
         minimumbalance = 0.2
     else:
-        minimumbalance = 0
+        minimumbalance = 0.03
     
     try:
         eth_balance = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
