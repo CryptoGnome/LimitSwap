@@ -224,7 +224,7 @@ def printt_sell_price(token_dict, token_price, precision):
     if token_dict['USECUSTOMBASEPAIR'] == 'false':
         price_message = f'{token_dict["_PAIR_SYMBOL"]} = {token_price:.{precision}f}'
     else:
-        price_message = f'{token_dict["_PAIR_SYMBOL"]} = {token_price:.{precision}f}'
+        price_message = f'{token_dict["_PAIR_SYMBOL"]} = {token_price:.{precision}f} {token_dict["BASESYMBOL"]}'
     
     # Buy price
     if token_dict['BUYPRICEINBASE'] != 0:
@@ -2841,7 +2841,7 @@ def calculate_base_balance(token):
     elif base_symbol == "AVAX":
         minimumbalance = 0.2
     else:
-        minimumbalance = 0.03
+        minimumbalance = 0
     
     try:
         eth_balance = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')
