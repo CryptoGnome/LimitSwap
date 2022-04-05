@@ -222,7 +222,7 @@ def printt_sell_price(token_dict, token_price, precision):
     
     # Token Pair
     if token_dict['USECUSTOMBASEPAIR'] == 'false':
-        price_message = f'{token_dict["_PAIR_SYMBOL"]} = {token_price:.{precision}f}'
+        price_message = f'{token_dict["_PAIR_SYMBOL"]} = {token_price:.{precision}f} {base_symbol}'
     else:
         price_message = f'{token_dict["_PAIR_SYMBOL"]} = {token_price:.{precision}f} {token_dict["BASESYMBOL"]}'
     
@@ -2785,6 +2785,22 @@ def calculate_base_price():
         basePrice = Decimal((reserves[0] / DECIMALS_STABLES) / (reserves[1] / DECIMALS_ETH))
         printt_debug("ADA PRICE: ", "{:.6f}".format(basePrice))
     
+    elif base_symbol == "VLX ":
+        DECIMALS_STABLES = 1000000000000000000
+        DECIMALS_ETH = 1000000000000000000
+        
+        # USDC 0x0039f574ee5cc39bdd162e9a88e3eb1f111baf48
+        
+        # address = Web3.toChecksumAddress('0x0039f574ee5cc39bdd162e9a88e3eb1f111baf48')
+        # pair_address = fetch_pair2(address, weth, factoryContract)
+        
+        pair_address = '0x8e2B762Bee3E2bf2C8fB0cdd04274042748D6C23'
+        
+        pair_contract = client.eth.contract(address=pair_address, abi=lpAbi)
+        reserves = pair_contract.functions.getReserves().call()
+        basePrice = Decimal((reserves[0] / DECIMALS_STABLES) / (reserves[1] / DECIMALS_ETH))
+        printt_debug("VLX PRICE: ", "{:.6f}".format(basePrice))
+    
     else:
         printt_err("Unknown chain... please add it to calculate_base_price")
         basePrice = 0
@@ -2841,7 +2857,7 @@ def calculate_base_balance(token):
     elif base_symbol == "AVAX":
         minimumbalance = 0.2
     else:
-        minimumbalance = 0.03
+        minimumbalance = 0
     
     try:
         eth_balance = Web3.fromWei(client.eth.getBalance(settings['WALLETADDRESS']), 'ether')

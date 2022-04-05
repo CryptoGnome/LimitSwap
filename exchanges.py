@@ -834,6 +834,43 @@ def getRouters(settings, Web3):
         settings['_STABLE_BASES'] = {'USDC': {'address': '0x04068da6c83afcfa0e13ba15a6696662335d5b75', 'multiplier': 0},
                                      'USDT': {'address': '0x049d68029688eabf473097a2fc38ef61633a3c7a', 'multiplier': 0}}
     
+    elif settings["EXCHANGE"] == 'wagyuswap':
+        if settings['USECUSTOMNODE'] == 'true':
+            my_provider = settings['CUSTOMNODE']
+        else:
+            my_provider = "https://evmexplorer.velas.com/rpc"
+        
+        if not my_provider:
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Custom node empty. Exiting')
+            exit(1)
+        
+        if my_provider[0].lower() == 'h':
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Using HTTPProvider')
+            client = Web3(Web3.HTTPProvider(my_provider))
+        elif my_provider[0].lower() == 'w':
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Using WebsocketProvider')
+            client = Web3(Web3.WebsocketProvider(my_provider))
+        else:
+            print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), 'Using IPCProvider')
+            client = Web3(Web3.IPCProvider(my_provider))
+        
+        print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), "VELAS Chain Connected =", client.isConnected())
+        print(datetime.now().strftime('%m-%d %H:%M:%S.%f'), "Loading Smart Contracts...")
+        routerAddress = Web3.toChecksumAddress("0x3D1c58B6d4501E34DF37Cf0f664A58059a188F00")
+        factoryAddress = Web3.toChecksumAddress("0x69f3212344A38b35844cCe4864C2af9c717F35e3")
+        routerContract = client.eth.contract(address=routerAddress, abi=routerAbi)
+        factoryContract = client.eth.contract(address=factoryAddress, abi=factoryAbi)
+        weth = Web3.toChecksumAddress("0xc579D1f3CF86749E05CD06f7ADe17856c2CE3126")
+        base_symbol = "VLX "
+        rugdocchain = '&chain=vlx'
+        modified = False
+        swapper_address = Web3.toChecksumAddress("0x000000000000000000000000000000000000dEaD")
+        swapper = client.eth.contract(address=swapper_address, abi=swapperAbi)
+
+        settings['_EXCHANGE_BASE_SYMBOL'] = 'VLX '
+        settings['_STABLE_BASES'] = {'BUSD': {'address': '0xc111c29A988AE0C0087D97b33C6E6766808A3BD3', 'multiplier': 0},
+                                     'USDT': {'address': '0x01445C31581c354b7338AC35693AB2001B50b9aE', 'multiplier': 0}}
+    
     elif settings["EXCHANGE"] == 'sushiswapftm':
         if settings['USECUSTOMNODE'] == 'true':
             my_provider = settings['CUSTOMNODE']
