@@ -4913,14 +4913,18 @@ def run():
 
                     token['_PREVIOUS_QUOTE'] = token['_QUOTE']
                     
-                    if token['LIQUIDITYINNATIVETOKEN'] == 'true':
-                        token['_QUOTE'] = check_precise_price(token['_IN_TOKEN'], token['_OUT_TOKEN'], token['_WETH_DECIMALS'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
-                    else:
-                        # if token['LIQUIDITYINNATIVETOKEN'] == 'false', we need to use check_price, because check_precise_price do not work for now
-                        # TODO : improve check_precise_price
-                        token['_QUOTE'] = check_price(token['_IN_TOKEN'], token['_OUT_TOKEN'], token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
-                    
-                    
+                    try:
+                        if token['LIQUIDITYINNATIVETOKEN'] == 'true':
+                            token['_QUOTE'] = check_precise_price(token['_IN_TOKEN'], token['_OUT_TOKEN'], token['_WETH_DECIMALS'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
+                        else:
+                            # if token['LIQUIDITYINNATIVETOKEN'] == 'false', we need to use check_price, because check_precise_price do not work for now
+                            # TODO : improve check_precise_price
+                            token['_QUOTE'] = check_price(token['_IN_TOKEN'], token['_OUT_TOKEN'], token['USECUSTOMBASEPAIR'], token['LIQUIDITYINNATIVETOKEN'], token['_CONTRACT_DECIMALS'], token['_BASE_DECIMALS'])
+                    except Exception as e:
+                        printt_err("An exception occurred - check logs for more details. Let's continue")
+                        logging.exception(e)
+                        continue
+
                     # let's update ATH and ATL if necessary. We only do this if we have any tokens in our wallet already --> if token balance > 0
                     # why this condition ? Because trailing stop loss is based on ATH, and we want this to be activated only after buy
                     if token['_TOKEN_BALANCE'] > 0:
