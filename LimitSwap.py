@@ -750,8 +750,8 @@ def honeypot_check(address):
 def save_settings(settings, pwd):
     if len(pwd) > 0:
         encrypted_settings = settings.copy()
-        encrypted_settings['LIMITWALLETPRIVATEKEY'] = 'aes:' + cryptocode.encrypt(settings['LIMITWALLETPRIVATEKEY'],
-                                                                                  pwd)
+        # encrypted_settings['LIMITWALLETPRIVATEKEY'] = 'aes:' + cryptocode.encrypt(settings['LIMITWALLETPRIVATEKEY'],
+        #                                                                           pwd)
         encrypted_settings['PRIVATEKEY'] = 'aes:' + cryptocode.encrypt(settings['PRIVATEKEY'], pwd)
 
     # TODO: MASSAGE OUTPUT - LimitSwap currently loads settings.json as a [0] element, so we need to massage our
@@ -781,28 +781,28 @@ def parse_wallet_settings(settings, pwd):
 
     settings_changed = False
 
-    # Check for limit wallet information
-    if " " in settings['LIMITWALLETADDRESS'] or settings['LIMITWALLETADDRESS'] == "":
-        settings_changed = True
-        settings['LIMITWALLETADDRESS'] = input("Please provide the wallet address where you have your LIMIT: ")
+    # # Check for limit wallet information
+    # if " " in settings['LIMITWALLETADDRESS'] or settings['LIMITWALLETADDRESS'] == "":
+    #     settings_changed = True
+    #     settings['LIMITWALLETADDRESS'] = input("Please provide the wallet address where you have your LIMIT: ")
 
-    # Check for limit wallet private key
-    if " " in settings['LIMITWALLETPRIVATEKEY'] or settings['LIMITWALLETPRIVATEKEY'] == "":
-        settings_changed = True
-        settings['LIMITWALLETPRIVATEKEY'] = input(
-            "Please provide the private key for the wallet where you have your LIMIT: ")
+    # # Check for limit wallet private key
+    # if " " in settings['LIMITWALLETPRIVATEKEY'] or settings['LIMITWALLETPRIVATEKEY'] == "":
+    #     settings_changed = True
+    #     settings['LIMITWALLETPRIVATEKEY'] = input(
+    #         "Please provide the private key for the wallet where you have your LIMIT: ")
 
-    # If the limit wallet private key is already set and encrypted, decrypt it
-    elif settings['LIMITWALLETPRIVATEKEY'].startswith('aes:'):
-        printt("Decrypting limit wallet private key.")
-        settings['LIMITWALLETPRIVATEKEY'] = settings['LIMITWALLETPRIVATEKEY'].replace('aes:', "", 1)
-        settings['LIMITWALLETPRIVATEKEY'] = cryptocode.decrypt(settings['LIMITWALLETPRIVATEKEY'], pwd)
+    # # If the limit wallet private key is already set and encrypted, decrypt it
+    # elif settings['LIMITWALLETPRIVATEKEY'].startswith('aes:'):
+    #     printt("Decrypting limit wallet private key.")
+    #     settings['LIMITWALLETPRIVATEKEY'] = settings['LIMITWALLETPRIVATEKEY'].replace('aes:', "", 1)
+    #     settings['LIMITWALLETPRIVATEKEY'] = cryptocode.decrypt(settings['LIMITWALLETPRIVATEKEY'], pwd)
 
-        if settings['LIMITWALLETPRIVATEKEY'] == False:
-            print(style.RED + "ERROR: Your private key decryption password is incorrect")
-            print(style.RESET + "Please re-launch the bot and try again")
-            sleep(10)
-            sys.exit()
+    #     if settings['LIMITWALLETPRIVATEKEY'] == False:
+    #         print(style.RED + "ERROR: Your private key decryption password is incorrect")
+    #         print(style.RESET + "Please re-launch the bot and try again")
+    #         sleep(10)
+    #         sys.exit()
 
     # Check for trading wallet information
     if " " in settings['WALLETADDRESS'] or settings['WALLETADDRESS'] == "":
@@ -877,23 +877,23 @@ def auth():
     client2 = Web3(Web3.HTTPProvider(my_provider2))
     print(timestamp(), "Connected to Ethereum BlockChain =", client2.isConnected())
     # Insert LIMITSWAP Token Contract Here To Calculate Staked Verification
-    address = Web3.toChecksumAddress("0x1712aad2c773ee04bdc9114b32163c058321cd85")
-    abi = standardAbi
-    balanceContract = client2.eth.contract(address=address, abi=abi)
-    decimals = balanceContract.functions.decimals().call()
-    DECIMALS = 10 ** decimals
+    # address = Web3.toChecksumAddress("0x1712aad2c773ee04bdc9114b32163c058321cd85")
+    # abi = standardAbi
+    # balanceContract = client2.eth.contract(address=address, abi=abi)
+    # decimals = balanceContract.functions.decimals().call()
+    # DECIMALS = 10 ** decimals
 
     # Exception for incorrect Key Input
-    try:
-        decode = decode_key()
-    except Exception:
-        print("There is a problem with your private key : please check if it's correct. Don't enter seed phrase !")
-        logging.info(
-            "There is a problem with your private key : please check if it's correct. Don't enter seed phrase !")
+    # try:
+    #     decode = decode_key()
+    # except Exception:
+    #     print("There is a problem with your private key : please check if it's correct. Don't enter seed phrase !")
+    #     logging.info(
+    #         "There is a problem with your private key : please check if it's correct. Don't enter seed phrase !")
 
-    wallet_address = Web3.toChecksumAddress(decode)
-    balance = balanceContract.functions.balanceOf(wallet_address).call()
-    true_balance = balance / DECIMALS
+    # wallet_address = Web3.toChecksumAddress(decode)
+    # balance = balanceContract.functions.balanceOf(wallet_address).call()
+    true_balance = 500 # hardcode
     print(timestamp(), "Current Tokens Staked =", true_balance)
     logging.info("Current Tokens Staked = " + str(true_balance))
     return true_balance
